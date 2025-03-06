@@ -35,7 +35,7 @@ onMounted(() => {
     <Tabbar />
     <!-- 内容详情区 -->
     <div class="layout_main" :class="{ fold: settingStore.fold }">
-      <Main />
+      <Main></Main>
     </div>
   </div>
 </template>
