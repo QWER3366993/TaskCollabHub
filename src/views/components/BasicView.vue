@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
+import '@/assets/main.css'
 
 // src（图片路径）、alt（图片描述）属性
 const slides = ref([

@@ -21,10 +21,13 @@ onMounted(() => {
 
 // 监听 teams 数据变化，保证每次获取后更新 UI
 watchEffect(() => {
-  if (teamStore.teams.length > 0) {
-    selectedTeamId.value = teamStore.teams[0]?.id || '';  // 设置默认选中的团队ID
+  if (teamStore.teams.size > 0) {
+    const firstTeam = Array.from(teamStore.teams.values())[0];
+    if (firstTeam) {
+    selectedTeamId.value = firstTeam.id || '';  // 设置默认选中的团队ID
     teamStore.getTeamMembers(selectedTeamId.value);  // 加载默认团队成员
   }
+}
 });
 
 // 创建团队

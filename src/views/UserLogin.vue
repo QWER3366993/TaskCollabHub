@@ -42,6 +42,7 @@ const handleLogin = async () => {
       try {
         const res = await login({ username: username.value, password: password.value });
         createToast(res.data.msg, { position: 'top-center', showIcon: true });
+        router.push('/index'); // 登录成功后跳转到主页
       } catch (e) {
         alert(e);
         reset(); // 调用 reset 函数重置表单

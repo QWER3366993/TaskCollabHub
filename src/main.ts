@@ -1,4 +1,3 @@
-import './assets/main.css'
 
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
@@ -38,10 +37,12 @@ const vuetify = createVuetify({
   })
 
 const app = createApp(App)
+const pinia = createPinia()
 
 app.use(createPinia())
 app.use(router)
 app.use(vuetify)
+app.use(pinia)
 
 
 // 全局注册 Echarts

@@ -1,83 +1,116 @@
 import { createRouter, createWebHistory } from 'vue-router'
 
 // 创建路由实例
-const router = createRouter({
+export const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
     {
       path: '/',
       name: 'basic',
-      component: () => import('@/views/components/BasicView.vue'),  // 基本视图
+      component: () => import('@/views/components/BasicView.vue'),  // 初始页面基本视图
+      meta: {
+        title: '初始页',
+        hidden: true, //代表路由标题在菜单中是否隐藏  true:隐藏 false:不隐藏
+        icon: 'account_balance',
+      },
       children: [
         {
           path: '',
           name: 'login',
-          component: () => import('@/views/UserLogin.vue')  // 登录页面
+          component: () => import('@/views/UserLogin.vue'),  // 登录页面
+          meta: {
+            title: '登录',
+            hidden: true,
+            icon: 'login',
+          }
         },
         {
           path: 'register',
           name: 'register',
-          component: () => import('@/views/UserRegister.vue')  // 注册页面
+          component: () => import('@/views/UserRegister.vue'),  // 注册页面
+          meta: {
+            title: '注册',
+            hidden: true,
+            icon: 'key',
+          }
         },
         {
           path: 'forget',
           name: 'forget',
-          component: () => import('@/views/UserForget.vue')  // 忘记密码页面
+          component: () => import('@/views/UserForget.vue'),  // 忘记密码页面
+          meta: {
+            title: '忘记密码',
+            hidden: true,
+            icon: 'sync',
+          }
         }
       ]
-    }, {
-      path: '/dashboard',
-      name: 'dashboard',
-      component: () => import('@/views/DashBoard.vue'),  // 仪表盘,主页
     },
     {
-      path: '/tasklist',
-      name: 'tasklist',
-      component: () => import('@/views/components/TaskList.vue'),  // 任务列表
-      meta: { requiresAuth: true }  // 需要认证
-    },
-    {
-      path: '/task/:id',
-      name: 'task',
-      component: () => import('@/views/TaskDetail.vue'),  // 任务详情
-      meta: { requiresAuth: true }
+      path: '/index',
+      name: 'index',
+      component: () => import('../views/layout/index.vue'),
+      meta: {
+        title: '项目',
+        hidden: false,
+        icon: 'home'
+      },
+      children: [
+        {
+          path: 'dashboard',
+          name: 'dashboard',
+          component: () => import('@/views/DashBoard.vue'),  // 仪表盘,主页
+          meta: {
+            title: '仪表盘',
+            hidden: false,
+            icon: 'dashboard'
+          }
+        },
+
+      ]
     },
     {
       path: '/taskmanagement',
       name: 'taskmanagement',
       component: () => import('@/views/TaskManagement.vue'),  // 任务管理
-      meta: { requiresAuth: true }
+      meta: {
+        title: '任务管理',
+        hidden: false,
+        icon: 'list_alt'
+      }
     },
     {
-      path: '/taskscheduling',
-      name: 'taskscheduling',
-      component: () => import('@/views/components/TaskScheduling.vue'),  // 任务调度
-      meta: { requiresAuth: true }
-    },
-    {
-      path: '/team',
-      name: 'team',
+      path: '/teammanagement',
+      name: 'teammanagement',
       component: () => import('@/views/TeamManagement.vue'),  // 团队管理
-      meta: { requiresAuth: true }
+      meta: {
+        title: '团队管理',
+        hidden: false,
+        icon: 'group'
+      }
     },
     {
       path: '/profile',
       name: 'profile',
       component: () => import('@/views/UserProfile.vue'),  // 个人资料
-      meta: { requiresAuth: true }
+      meta: {
+        title: '个人资料',
+        hidden: false,
+        icon: 'badge'
+      }
     },
     {
       path: '/reports',
       name: 'reports',
-      component: () => import('@/views/StatisticalReport.vue'),  // 统计与报告
-      meta: { requiresAuth: true }
+      component: () => import('@/views/StatisticalReport.vue'),  // 统计报告
+      meta: {
+        title: '统计报告',
+        hidden: false,
+        icon: 'summarize'
+      }
     },
-    // {
-    //   path: '/1',
-    //   name: '1',
-    //   component: () => import('../views/charts/LineChart.vue'),  
-    // },
-  
+
+
 
   ]
 })
