@@ -118,14 +118,15 @@ export const useTeamStore = defineStore('team', () => {
   };
 
   // 获取团队成员列表
-  const getTeamMembers = async (teamId: string) => {
-    try {
-      teamMembers.value = await fetchTeamMembers(teamId);
-    } catch (error) {
-      console.error(error);
-      createToast('获取团队成员失败', { position: 'top-center', showIcon: true });
-    }
-  };
+const getTeamMembers = async (teamId: string) => {
+  try {
+    const members = await fetchTeamMembers(teamId); // 调用 API
+    return members; // 返回团队成员列表
+  } catch (error) {
+    console.error('获取团队成员失败:', error);
+    throw error; // 抛出错误，便于调用者处理
+  }
+};
 
   return {
     teams,

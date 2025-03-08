@@ -2,8 +2,7 @@ import service from '@/utils/request'
 import type { Comment } from '@/types/comment'
 import type { Task, OperationLog } from '@/types/task'
 import type { Employee } from '@/types/team'
-import { formatDate } from '@/utils/formatDate'
-
+import dayjs from 'dayjs'
 // 获取任务列表
 export const fetchTasks = async (): Promise<Task[]> => {
   const response = await service({
@@ -69,12 +68,12 @@ export const createTask = async (taskData: { title: string; description: string;
   return response.data;
 };
 
-// 更新任务状态
-export const updateTaskStatus = async (id: string, status: '待处理' | '进行中' | '已完成'): Promise<Task> => {
+// 更新任务
+export const updateOldTask = async (id: string, updatedTask: Partial<Task>): Promise<Task> => {
   const response = await service({
     url: `/api/tasks/${id}`,
     method: 'patch',
-    data: { status },
+    data: updatedTask,
   });
   return response.data;
 };
@@ -123,14 +122,14 @@ export const startTaskScheduling = async (): Promise<void> => {
 };
 
 // 更新任务调度
-export const updateTaskScheduling = async (taskId: string, scheduledTime: Date): Promise<void> => {
+export const updateTaskScheduling = async (taskId: string, scheduledTime: string): Promise<void> => {
   await service({
     url: '/api/update-task-scheduling',
     method: 'post',
     data: {
       taskId,
-      scheduledTime: formatDate(scheduledTime),
-    },
+      scheduledTime: dayjs(scheduledTime).format('YYYY-MM-DD HH:mm:ss'), // 使用 dayjs 格式化日期
+    }
   });
 };
 

@@ -1,21 +1,26 @@
+import type { Comment } from './comment';
 export interface Task {
-    id: string;
-    title: string;
-    description: string;
-    status: '待处理' | '进行中' | '已完成';
-    assignedTo: string;
-    priority: '高' | '中' | '低';
-    creator:  string;
-    scheduledTime:Date
-    image?: string; // 添加 image 属性，并设为可选
-  }
+  teamId: string; // 所属团队 ID
+  id: string;
+  title: string;
+  description: string;
+  status: '待处理' | '进行中' | '已完成';
+  priority: '高' | '中' | '低';
+  comments?: Comment[]; // 评论
+  creator: string; // 创建者 ID
+  assignedTo: string; // 负责人 ID
+  scheduledTime: string; // 调度时间
+  deadline?: string; // 截止时间
+  image?: File | string; // 添加 image 属性，并设为可选
+  reminderTime?: string; // 任务截止前提醒时间
+}
 
-  export interface OperationLog {
-    id: string;
-    userId: string;
-    operation: string;
-    time: Date;
-  }
+export interface OperationLog {
+  id: string;
+  userId: string;
+  operation: string;
+  time: Date;
+}
 
 // 数字字面量类型，用于表示状态
 export type WorkStatus = 0 | 1 | 2;

@@ -1,7 +1,8 @@
 export interface Comment {
-    user: {
-      avatar: string;
-      name: string;
-    };
-    text: string;
-  }
+  user: {
+    avatar: string;
+    name: string;
+  };
+  content: string;
+  createdAt: string;
+}

@@ -1,16 +1,17 @@
 <script setup lang="ts">
-import { defineProps } from 'vue';
 import { useRouter } from 'vue-router';
 import type { RouteRecordRaw } from 'vue-router';
 
 const props = defineProps<{
-    menuList: RouteRecordRaw[];
+    menuList: RouteRecordRaw[]; // 一级菜单数据
 }>();
 
 const router = useRouter();
+const emit = defineEmits(['menu-click']); // 定义事件
 
-const goRoute = (vc: RouteRecordRaw) => {
-    router.push(vc.path);
+const goRoute = (item: RouteRecordRaw) => {
+    emit('menu-click', item.path); // 触发事件，通知父组件更新 activeMenu
+    router.push(item.path); // 跳转到一级菜单对应的路径
 };
 </script>
 

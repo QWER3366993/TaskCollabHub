@@ -1,4 +1,3 @@
-
 import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 import App from './App.vue'
@@ -10,7 +9,9 @@ import * as components from 'vuetify/components'
 import * as directives from 'vuetify/directives'
 import 'material-design-icons-iconfont/dist/material-design-icons.css'
 import { aliases, md } from 'vuetify/iconsets/md'
-
+import dayjs from 'dayjs';
+import relativeTime from 'dayjs/plugin/relativeTime';
+import 'dayjs/locale/zh-cn';
 // 引入echarts
 import Echarts from 'vue-echarts'
 import * as echarts from 'echarts'
@@ -38,7 +39,10 @@ const vuetify = createVuetify({
 
 const app = createApp(App)
 const pinia = createPinia()
-
+// 扩展插件
+dayjs.extend(relativeTime);
+// 设置中文语言
+dayjs.locale('zh-cn');
 app.use(createPinia())
 app.use(router)
 app.use(vuetify)

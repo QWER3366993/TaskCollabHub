@@ -49,45 +49,79 @@ export const router = createRouter({
     {
       path: '/index',
       name: 'index',
-      component: () => import('../views/layout/index.vue'),
+      component: () => import('@/views/layout/index.vue'),
       meta: {
         title: '项目',
         hidden: false,
         icon: 'home'
       },
+      redirect: '/index/taskmanagement', // 默认跳转到任务管理
       children: [
         {
-          path: 'dashboard',
-          name: 'dashboard',
-          component: () => import('@/views/DashBoard.vue'),  // 仪表盘,主页
+          path: 'taskmanagement',
+          name: 'taskmanagement',
+          component: () => import('@/views/task/TaskManagement.vue'), // 任务首页
           meta: {
-            title: '仪表盘',
+            title: '任务管理',
             hidden: false,
             icon: 'dashboard'
           }
         },
-
+        {
+          path: 'taskdetail/:id',
+          name: 'taskdetail',
+          component: () => import('@/views/task/TaskDetail.vue'), // 任务列表及操作
+          meta: {
+            title: '任务详情',
+            hidden: true,
+            icon: 'details'
+          }
+        },
+        {
+          path: 'taskscheduling',
+          name: 'taskscheduling',
+          component: () => import('@/views/task/TaskScheduling.vue'), //发布任务
+          meta: {
+            title: '任务调度',
+            hidden: false,
+            icon: 'schedule'
+          }
+        },
+        {
+          path: 'fileuplode',
+          name: 'fileuplode',
+          component: () => import('@/views/task/FileUpload.vue'), //文件总览及上传
+          meta: {
+            title: '文件上传',
+            hidden: false,
+            icon: 'upload'
+          }
+        }
       ]
     },
+
     {
-      path: '/taskmanagement',
-      name: 'taskmanagement',
-      component: () => import('@/views/TaskManagement.vue'),  // 任务管理
+      path: '/team',
+      name: 'team',
+      component: () => import('@/views/layout/index.vue'),  // 团队目录
       meta: {
-        title: '任务管理',
-        hidden: false,
-        icon: 'list_alt'
-      }
-    },
-    {
-      path: '/teammanagement',
-      name: 'teammanagement',
-      component: () => import('@/views/TeamManagement.vue'),  // 团队管理
-      meta: {
-        title: '团队管理',
+        title: '团队协作',
         hidden: false,
         icon: 'group'
-      }
+      },
+      redirect: '/team/teammanagement', // 默认跳转到团队管理
+      children: [
+        {
+          path: 'teammanagement',
+          name: 'teammanagement',
+          component: () => import('@/views/team/TeamManagement.vue'),  // 团队管理
+          meta: {
+            title: '团队协作',
+            hidden: false,
+            icon: 'group'
+          }
+        },
+      ]
     },
     {
       path: '/profile',
@@ -109,6 +143,16 @@ export const router = createRouter({
         icon: 'summarize'
       }
     },
+    {
+      path: '/permission',
+      name: 'permission',
+      component: () => import('@/views/PermissionManagement.vue'),  // 权限管理
+      meta: {
+        title: '权限管理',
+        hidden: false,
+        icon: 'manage_accounts'
+      }
+    }
 
 
 

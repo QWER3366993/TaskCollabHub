@@ -45,8 +45,8 @@ onMounted(fetchComments);
       <el-divider />
       <el-list>
         <el-list-item v-for="(comment, index) in comments" :key="index">
-          <el-avatar :src="comment.user.avatar" />
-          <span>{{ comment.user.name }}: {{ comment.text }}</span>
+          <el-avatar :src="comment.user?.avatar" />
+          <span>{{ comment.user?.name }}: {{ comment.text }}</span>
         </el-list-item>
       </el-list>
     </div>

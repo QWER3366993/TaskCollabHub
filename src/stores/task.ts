@@ -5,7 +5,7 @@ import {
   fetchTasksByStatus,
   fetchTasks,
   createTask,
-  updateTaskStatus,
+  updateOldTask,
   deleteTask,
   fetchCommentsByTaskId,
   addComment,
@@ -165,17 +165,19 @@ export const useTaskStore = defineStore('task', () => {
     }
   };
 
-  /** 更新任务状态 */
-  const updateTask = async (id: string, status: '待处理' | '进行中' | '已完成'): Promise<void> => {
+  /** 更新任务 */
+  const updateTask = async (taskId: string, updatedTask: Partial<Task>): Promise<void> => {
     try {
-      const updatedTask = await updateTaskStatus(id, status);
-      const task = tasks.value.find((t) => t.id === id);
-      if (task) {
-        task.status = updatedTask.status;
+      const updatedTaskResponse = await updateOldTask(taskId, updatedTask);
+
+      const taskIndex = tasks.value.findIndex((task) => task.id === taskId);
+      if (taskIndex !== -1) {
+        tasks.value[taskIndex] = { ...tasks.value[taskIndex], ...updatedTask };
       }
-      createToast('任务状态更新成功', { position: 'top-center', showIcon: true, type: 'success' });
+
+      createToast('任务更新成功', { position: 'top-center', showIcon: true, type: 'success' });
     } catch (error) {
-      errorMessage.value = '更新任务状态失败';
+      errorMessage.value = '更新任务失败';
       createToast(errorMessage.value, { position: 'top-center', showIcon: true, type: 'danger' });
     }
   };
@@ -245,7 +247,7 @@ export const useTaskStore = defineStore('task', () => {
   };
 
   /** 更新任务调度 */
-  const updateTaskSchedule = async (taskId: string, scheduledTime: Date): Promise<void> => {
+  const updateTaskSchedule = async (taskId: string, scheduledTime: string): Promise<void> => {
     try {
       await updateTaskScheduling(taskId, scheduledTime);
       await getAllTasks();
