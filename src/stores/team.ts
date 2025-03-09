@@ -9,28 +9,76 @@ import {
   updateTeam,
   deleteTeam,
   fetchTeamById,
+  fetchEmployeeById,
   addMemberToTeam,
   removeMemberFromTeam,
-  fetchTeamMembers
+  fetchTeamMembers,
+  fetchTeamByemployeeIdId
 } from '@/api/team';
+import type { Project } from '@/types/project';
 
 export const useTeamStore = defineStore('team', () => {
   // State
   const teams = ref<Map<string, Team>>(new Map()); // 团队列表（使用 Map 提高查找效率）
   const currentTeam = ref<Team | null>(null); // 当前选中的团队
+  const currentEmployee = ref<Employee | null>(null); // 当前选中的成员
   const teamMembers = ref<Employee[]>([]); // 当前团队的成员列表
-
+  const availableTeams = ref<Team[]>([]);
   // 计算属性：转换 Map 为数组（用于展示）
   const teamList = computed(() => Array.from(teams.value.values()));
+  const errorMessage = ref<string>('');
 
   // 获取团队列表
-  const getTeamList = async () => {
+  const getTeamList = async (): Promise<Team[]> => {
     try {
       const teamArray = await fetchTeams();
       teams.value = new Map(teamArray.map(team => [team.id, team]));
+      return teamArray;
     } catch (error) {
       console.error(error);
       createToast('加载团队列表失败', { position: 'top-center', showIcon: true });
+      return [];
+    }
+  };
+
+  /** 根据员工 ID 获取团队列表 */
+  const getTeamByemployId = async (employeeId: string): Promise<Team[] | null> => {
+    try {
+      const data = await fetchTeamByemployeeIdId(employeeId);
+      if (data) {
+        availableTeams.value = data;
+        return data;
+      } else {
+        availableTeams.value = [];
+        errorMessage.value = '团队不存在';
+        createToast(errorMessage.value, { position: 'top-center', showIcon: true, type: 'danger' });
+        return null;
+      }
+    } catch (error) {
+      availableTeams.value = [];
+      errorMessage.value = '获取当前团队失败';
+      createToast(errorMessage.value, { position: 'top-center', showIcon: true, type: 'danger' });
+      return null;
+    }
+  };
+
+  // 获取团队详情
+  const getTeamById = async (teamId: string) => {
+    try {
+      currentTeam.value = await fetchTeamById(teamId);
+    } catch (error) {
+      console.error(error);
+      createToast('获取团队详情失败', { position: 'top-center', showIcon: true });
+    }
+  };
+
+  //获取员工详情
+  const getEmployeeById = async (employeeId: string) => {
+    try {
+      currentEmployee.value = await fetchEmployeeById(employeeId);
+    } catch (error) {
+      console.error(error);
+      createToast('获取员工详情失败', { position: 'top-center', showIcon: true });
     }
   };
 
@@ -77,16 +125,7 @@ export const useTeamStore = defineStore('team', () => {
     }
   };
 
-  // 获取团队详情
-  const getTeamById = async (teamId: string) => {
-    try {
-      currentTeam.value = await fetchTeamById(teamId);
-    } catch (error) {
-      console.error(error);
-      createToast('获取团队详情失败', { position: 'top-center', showIcon: true });
-    }
-  };
-
+  
   // 添加成员到团队
   const addMember = async (teamId: string, memberId: string) => {
     try {
@@ -118,22 +157,24 @@ export const useTeamStore = defineStore('team', () => {
   };
 
   // 获取团队成员列表
-const getTeamMembers = async (teamId: string) => {
-  try {
-    const members = await fetchTeamMembers(teamId); // 调用 API
-    return members; // 返回团队成员列表
-  } catch (error) {
-    console.error('获取团队成员失败:', error);
-    throw error; // 抛出错误，便于调用者处理
-  }
-};
+  const getTeamMembers = async (teamId: string) => {
+    try {
+      const members = await fetchTeamMembers(teamId); // 调用 API
+      return members; // 返回团队成员列表
+    } catch (error) {
+      console.error('获取团队成员失败:', error);
+      throw error; // 抛出错误，便于调用者处理
+    }
+  };
 
   return {
     teams,
     teamList,
     currentTeam,
     teamMembers,
+    currentEmployee,
     getTeamList,
+    getTeamByemployId,
     createNewTeam,
     updateTeamInfo,
     deleteTeamById,

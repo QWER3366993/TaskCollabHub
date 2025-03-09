@@ -24,7 +24,7 @@ export const fetchTaskById = async (taskId: string): Promise<Task | null> => {
 // 根据参与人员获取任务列表
 export const fetchTasksByUser = async (): Promise<Task[]> => {
   const response = await service({
-    url: '/api/tasks?assignedTo=${userId}',
+    url: '/api/tasks?employeeId=${userId}',
     method: 'get',
   });
   return response.data;
@@ -59,7 +59,7 @@ export const addComment = async (taskId: string, comment: Comment): Promise<Comm
 };
 
 // 创建任务
-export const createTask = async (taskData: { title: string; description: string; assignedTo: string; priority: string; status: string; creator: string }): Promise<Task> => {
+export const createTask = async (taskData: { title: string; description: string; employeeId: string; priority: string; status: string; creator: string }): Promise<Task> => {
   const response = await service({
     url: '/api/tasks',
     method: 'post',

@@ -1,10 +1,20 @@
 import service from '@/utils/request'
 import type { Team, Employee } from '@/types/team'
+import type { Project } from '@/types/project';
 
 // 获取团队列表
 export const fetchTeams = async (): Promise<Team[]> => {
   const response = await service({
     url: '/api/teams',
+    method: 'get',
+  });
+  return response.data;
+};
+
+//根据成员获取所在团队列表
+export const fetchTeamByemployeeIdId = async (employeeId: string): Promise<Team[] | null> => {
+  const response = await service({
+    url: '/api/projects/${employeeId}',
     method: 'get',
   });
   return response.data;
@@ -43,6 +53,15 @@ export const deleteTeam = async (teamId: string): Promise<Team> => {
 export const fetchTeamById = async (teamId: string): Promise<Team> => {
   const response = await service({
     url: `/api/teams/${teamId}`,
+    method: 'get',
+  });
+  return response.data;
+};
+
+// 获取员工详情
+export const fetchEmployeeById = async (employeeId: string): Promise<Employee> => {
+  const response = await service({
+    url: `/api/employees/${employeeId}`,
     method: 'get',
   });
   return response.data;

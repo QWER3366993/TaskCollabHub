@@ -66,6 +66,11 @@ export const useTaskStore = defineStore('task', () => {
     time: safeDate(log.timestamp),
   });
 
+  // 根据项目筛选任务
+  const getTasksByProject = computed(() => (projectId: string) => {
+    return tasks.value.filter(t => t.projectId === projectId)
+  })
+
   /** 获取所有任务 */
   const getAllTasks = async (): Promise<Task[]> => {
     try {
@@ -296,6 +301,7 @@ export const useTaskStore = defineStore('task', () => {
     taskOverview,
     employeeTaskCompletion,
     completedTasksCount,
+    getTasksByProject,
     getAllTasks,
     getTaskById,
     getTasksByUser,

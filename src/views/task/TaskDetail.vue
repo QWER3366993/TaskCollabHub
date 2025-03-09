@@ -16,6 +16,7 @@ const taskId = route.params.id as string; // 从路由参数中获取任务 ID
 const task = ref<Task>({
   teamId: '1',
   id: '1',
+  employeeId: 'ui',
   title: '任务详情示例',
   description: '这是任务详情描述',
   status: '进行中',
@@ -24,7 +25,8 @@ const task = ref<Task>({
   creator: '王五',
   scheduledTime: dayjs().format('YYYY-MM-DD HH:mm:ss'),
   deadline: dayjs().add(3, 'day').format('YYYY-MM-DD HH:mm:ss'),
-  comments: []
+  comments: [],
+  isIndependent: true
 });
 
 const statusColor = (status?: string) => {

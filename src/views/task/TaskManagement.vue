@@ -16,6 +16,8 @@ const tasks = ref<Task[]>([
   {
     teamId: '1',
     id: '1',
+    employeeId: 'ui',
+
     title: '任务1',
     description: '这是任务1的描述',
     status: '待处理',
@@ -24,6 +26,7 @@ const tasks = ref<Task[]>([
     creator: '李四',
     scheduledTime: dayjs().format('YYYY-MM-DD HH:mm:ss'),
     deadline: dayjs().add(3, 'day').format('YYYY-MM-DD HH:mm:ss'),
+    isIndependent: true,
     comments: [
       {
         user: {
@@ -38,6 +41,8 @@ const tasks = ref<Task[]>([
   {
     teamId: '2',
     id: '2',
+    employeeId: 'ui',
+
     title: '任务2',
     description: '这是任务2的描述',
     status: '进行中',
@@ -46,6 +51,7 @@ const tasks = ref<Task[]>([
     creator: '王五11',
     scheduledTime: dayjs().format('YYYY-MM-DD HH:mm:ss'),
     deadline: dayjs().format('YYYY-MM-DD HH:mm:ss'),
+    isIndependent: true
   },
 ]);
 

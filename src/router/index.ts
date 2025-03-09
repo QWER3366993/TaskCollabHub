@@ -51,7 +51,7 @@ export const router = createRouter({
       name: 'index',
       component: () => import('@/views/layout/index.vue'),
       meta: {
-        title: '项目',
+        title: '项目管理',
         hidden: false,
         icon: 'home'
       },
@@ -92,7 +92,7 @@ export const router = createRouter({
           name: 'fileuplode',
           component: () => import('@/views/task/FileUpload.vue'), //文件总览及上传
           meta: {
-            title: '文件上传',
+            title: '文件共享',
             hidden: false,
             icon: 'upload'
           }
@@ -116,7 +116,7 @@ export const router = createRouter({
           name: 'teammanagement',
           component: () => import('@/views/team/TeamManagement.vue'),  // 团队管理
           meta: {
-            title: '团队协作',
+            title: '团队管理',
             hidden: false,
             icon: 'group'
           }
@@ -128,7 +128,7 @@ export const router = createRouter({
       name: 'profile',
       component: () => import('@/views/UserProfile.vue'),  // 个人资料
       meta: {
-        title: '个人资料',
+        title: '个人中心',
         hidden: false,
         icon: 'badge'
       }
