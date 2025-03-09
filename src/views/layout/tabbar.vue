@@ -75,18 +75,14 @@ const breadcrumbItems = computed(() => {
     <!-- 左侧 -->
     <div class="tabbar_left">
       <v-icon class="icon" @click="changeIcon">
-        {{ settingStore.fold ? 'mdi-chevron-left' : 'mdi-chevron-right' }}
+        {{ settingStore.fold ? 'menu' : 'menu_open' }}
       </v-icon>
       <v-breadcrumbs :items="breadcrumbItems" v-if="breadcrumbItems.length > 0">
         <template v-slot:divider>
-          <v-icon>mdi-chevron-right</v-icon>
+          <v-icon>???</v-icon>
         </template>
         <template v-slot:item="{ item }">
-          <v-breadcrumbs-item
-            v-if="item.title"
-            :to="item.href"
-            :disabled="item.disabled"
-          >
+          <v-breadcrumbs-item v-if="item.title" :to="item.href" :disabled="item.disabled">
             <!-- <v-icon>{{ item.icon }}</v-icon> -->
             {{ item.title }}
           </v-breadcrumbs-item>
@@ -97,15 +93,15 @@ const breadcrumbItems = computed(() => {
     <!-- 右侧 -->
     <div class="tabbar_right">
       <v-btn icon @click="refresh">
-        <v-icon>mdi-refresh</v-icon>
+        <v-icon>refresh</v-icon>
       </v-btn>
       <v-btn icon @click="fullScreen">
-        <v-icon>mdi-fullscreen</v-icon>
+        <v-icon>fullscreen</v-icon>
       </v-btn>
       <v-menu>
         <template v-slot:activator="{ props }">
           <v-btn icon v-bind="props">
-            <v-icon>mdi-cog</v-icon>
+            <v-icon>settings</v-icon>
           </v-btn>
         </template>
         <v-card>
@@ -129,7 +125,7 @@ const breadcrumbItems = computed(() => {
         <template v-slot:activator="{ props }">
           <v-btn v-bind="props">
             {{ userStore.user.username }}
-            <v-icon>mdi-chevron-down</v-icon>
+            <v-icon>keyboard_arrow_down</v-icon>
           </v-btn>
         </template>
         <v-list>
@@ -144,25 +140,32 @@ const breadcrumbItems = computed(() => {
 
 <style lang="scss" scoped>
 .tabbar {
-  width: 100%;
-  height: 100%;
+  width: calc(100% - 660px);
+  height: 50px;
+  position: absolute;
+  top: 0;
+  left: 660px;
   display: flex;
   justify-content: space-between;
   padding: 0 15px 0 20px;
   background-image: linear-gradient(to right, rgb(189, 245, 178), rgb(67, 240, 28), rgb(148, 225, 140));
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1); /* 添加阴影 */
 
   .tabbar_left {
     display: flex;
     align-items: center;
+    
 
     .icon {
       margin-right: 7px;
+      // cursor: pointer;
     }
   }
 
   .tabbar_right {
     display: flex;
     align-items: center;
+    gap: 10px; /* 按钮间距 */
 
     img {
       width: 24px;

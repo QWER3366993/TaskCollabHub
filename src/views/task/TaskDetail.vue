@@ -36,17 +36,20 @@ const statusColor = (status?: string) => {
   return colors[status || ''] || 'grey';
 };
 
-const addComment = () => {
+const addComment = async () => {
   if (commentInput.value.trim()) {
     const newComment = {
       user: {
-        name: userStore.user.name!, // 使用当前登录用户的名字
-        avatar: userStore.user.avatar! // 使用当前登录用户的头像
+        name: userStore.user.name!,
+        avatar: userStore.user.avatar!
       },
-      content: commentInput.value.trim(), // 评论内容
       // 使用 trim() 方法来去除输入内容两端的空格
-      createdAt: dayjs().format('YYYY-MM-DD HH:mm:ss') // 评论的时间戳
+      content: commentInput.value.trim(),
+      createdAt: dayjs().format('YYYY-MM-DD HH:mm:ss')
     };
+    // 提交到 store 进行持久化
+    await taskStore.submitComment(taskId, newComment);
+    // 更新本地数据
     if (task.value.comments) {
       task.value.comments.push(newComment);
     } else {
@@ -66,13 +69,7 @@ onMounted(async () => {
 
 <template>
   <v-container class="task-detail">
-    <v-btn 
-      color="grey" 
-      variant="text"
-      prepend-icon="mdi-arrow-left"
-      @click="router.back()"
-      class="mb-4"
-    >
+    <v-btn color="grey" variant="text" prepend-icon="mdi-arrow-left" @click="router.back()" class="mb-4">
       返回列表
     </v-btn>
 
@@ -135,9 +132,7 @@ onMounted(async () => {
                       <v-icon>mdi-clock-alert</v-icon>
                     </template>
                     <v-list-item-title>截止时间</v-list-item-title>
-                    <v-list-item-subtitle 
-                      :class="{ 'text-red': dayjs(task.deadline).isBefore(dayjs()) }"
-                    >
+                    <v-list-item-subtitle :class="{ 'text-red': dayjs(task.deadline).isBefore(dayjs()) }">
                       {{ dayjs(task.deadline).format('YYYY/MM/DD HH:mm') }}
                       <span class="text-caption ml-1">
                         ({{ dayjs(task.deadline).fromNow() }})
@@ -183,20 +178,9 @@ onMounted(async () => {
               </div>
             </div>
 
-            <v-textarea
-              v-model="commentInput"
-              label="添加评论"
-              variant="outlined"
-              rows="2"
-              auto-grow
-              @keydown.enter.except.prevent="addComment"
-            />
-            <v-btn 
-              color="primary"
-              prepend-icon="mdi-send"
-              @click="addComment"
-              :disabled="!commentInput.trim()"
-            >
+            <v-textarea v-model="commentInput" label="添加评论" variant="outlined" rows="2" auto-grow
+              @keydown.enter.except.prevent="addComment" />
+            <v-btn color="primary" prepend-icon="mdi-send" @click="addComment" :disabled="!commentInput.trim()">
               发送
             </v-btn>
           </v-card-text>
@@ -206,6 +190,4 @@ onMounted(async () => {
   </v-container>
 </template>
 
-<style scoped>
-
-</style>
+<style scoped></style>

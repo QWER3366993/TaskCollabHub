@@ -74,7 +74,7 @@ const loadTasks = async () => {
 
 // 创建任务
 const createTask = () => {
-  router.push({ name: 'taskdetail', params: { id: 'new' } });
+  router.push({ name: 'taskscheduling', params: { id: 'new' } });
 };
 
 // 编辑任务
@@ -155,7 +155,7 @@ onMounted(loadTasks);
         <v-select v-model="selectedStatus" :items="statusOptions" label="筛选状态" prepend-inner-icon="filter_alt" variant="outlined" />
       </v-col>
       <v-col >
-        <v-btn color="primary" prepend-icon="add" @click="createTask" v-if="isAdmin">
+        <v-btn color="primary" prepend-icon="add" @click="createTask" >
           新建任务
         </v-btn>
       </v-col>
@@ -181,7 +181,7 @@ onMounted(loadTasks);
 
             <!-- 负责人列 -->
             <template #item.assignedTo="{ item }">
-              <div class="d-flex align-center">
+              <div>
                 <v-avatar size="32" color="primary" class="mr-2">
                   <span class="text-white">{{ item.assignedTo.charAt(0) }}</span>
                 </v-avatar>
@@ -191,15 +191,17 @@ onMounted(loadTasks);
 
             <!-- 截止时间列 -->
             <template #item.deadline="{ item }">
-              <div class="d-flex align-center">
+              <div>
                 <v-icon color="grey-darken-1" class="mr-2" size="18">
-                  mdi-clock-outline
+                  alarm
                 </v-icon>
+                <!-- 任务过期则爆红 -->
                 <span :class="{ 'text-red': dayjs(item.deadline).isBefore(dayjs().add(1, 'day')) }">
                   {{ dayjs(item.deadline).format('MM/DD HH:mm') }}
                 </span>
                 <v-tooltip location="bottom">
                   <template #activator="{ props }">
+                    <!-- 任务时间提示 -->
                     <span v-bind="props" class="ml-1 text-caption text-grey">
                       ({{ dayjs(item.deadline).fromNow() }})
                     </span>
@@ -220,9 +222,9 @@ onMounted(loadTasks);
                   </template>
                 </v-tooltip>
 
-                <v-tooltip text="删除" v-if="isAdmin">
+                <v-tooltip text="删除"> // 添加v-if="isAdmin"，普通员工不可见
                   <template #activator="{ props }">
-                    <v-btn v-bind="props" icon variant="text" color="error" @click="deleteTask(item.id)">
+                    <v-btn v-bind="props" icon variant="text" color="grey" @click="deleteTask(item.id)">
                       <v-icon>delete</v-icon>
                     </v-btn>
                   </template>
