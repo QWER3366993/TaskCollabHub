@@ -29,7 +29,7 @@ const service = axios.create({
     return status >= 200 && status < 300
   },
   headers: {
-    'Content-Type': 'application/json'
+    'Content-Type': 'application/json',
   }
 })
 

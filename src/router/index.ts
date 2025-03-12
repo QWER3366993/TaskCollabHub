@@ -49,11 +49,11 @@ export const router = createRouter({
     {
       path: '/index',
       name: 'index',
-      component: () => import('@/views/layout/index.vue'),
+      component: () => import('@/views/layout/Index.vue'),
       meta: {
         title: '项目管理',
         hidden: false,
-        icon: 'home'
+        icon: 'folder'
       },
       redirect: '/index/taskmanagement', // 默认跳转到任务管理
       children: [
@@ -94,7 +94,7 @@ export const router = createRouter({
           meta: {
             title: '文件共享',
             hidden: false,
-            icon: 'upload'
+            icon: 'upload_file'
           }
         }
       ]
@@ -103,7 +103,7 @@ export const router = createRouter({
     {
       path: '/team',
       name: 'team',
-      component: () => import('@/views/layout/index.vue'),  // 团队目录
+      component: () => import('@/views/layout/Index.vue'),  // 团队目录
       meta: {
         title: '团队协作',
         hidden: false,

@@ -3,10 +3,10 @@ import { onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router';
 import { useSettingStore } from '../../stores/setting';
 import { useRouteStore } from '@/stores/route'
-import Sidebar from './sidebar.vue';
-import Sideview from './sideview.vue';
-import Tabbar from './tabbar.vue';
-import Main from './main.vue';
+import SideBar from './SideBar.vue';
+import SideView from './SideView.vue';
+import TabBar from './TabBar.vue';
+import MainContent from './MainContent.vue';
 
 const routeStore = useRouteStore()
 const settingStore = useSettingStore()
@@ -48,22 +48,23 @@ onMounted(() => {
     <!-- 侧栏菜单 -->
     <div class="layout_sidebar" :class="{ fold: settingStore.fold }">
       <div class="logo">
-        <img src="../../../public/logo.png" alt="">
+        <img src="../../../logo.png" alt="">
         <p>Planify</p>
       </div>
-      <Sidebar :menu-list="routeStore.primaryRoutes" @menu-click="handleMenuClick"></Sidebar>
+      <SideBar :menu-list="routeStore.primaryRoutes" @menu-click="handleMenuClick" ></SideBar>
     </div>
 
     <!-- 侧栏详情页 -->
     <div class="layout_sideview" :class="{ fold: settingStore.fold }">
-      <Sideview :menu-list="routeStore.secondaryRoutes" :active-menu="activeMenu"></Sideview>
+      <SideView :menu-list="routeStore.secondaryRoutes" :active-menu="activeMenu"></SideView>
     </div>
     <!-- 顶部导航 -->
-    <div class="layout_tabbar" :class="{ fold: settingStore.fold }"></div>
-    <Tabbar />
+    <div class="layout_tabbar" :class="{ fold: settingStore.fold }">
+      <TabBar />
+    </div>
     <!-- 内容详情区 -->
     <div class="layout_main" :class="{ fold: settingStore.fold }">
-      <RouterView />
+      <MainContent />
     </div>
   </div>
 </template>
@@ -128,22 +129,38 @@ onMounted(() => {
     /* 根据侧边栏宽度调整 */
   }
 
+  //导航栏样式
   .layout_tabbar {
     width: calc(100% - 660px);
-    height: 50px;
+    height: 60px;
     position: absolute;
     top: 0;
     left: 660px;
+    transition: all 0.5s; /* 添加过渡效果 */
+
+    &.fold {
+      width: calc(100% - 220px);
+      left: 220px;
+      transition: all 0.5s;
+    }
   }
 
   .layout_main {
     width: calc(100% - 660px);
-    height: calc(100vh - 50px);
+    height: calc(100vh - 60px);
     position: absolute;
-    top: 50px;
+    top: 60px; /* 确保内容不紧贴顶部(修改height后同样需要修改这里，防止页面覆盖) */ 
     left: 660px;
     padding: 20px;
     overflow: auto;
+    transition: all 0.5s;
+    background-color: white;
+ 
+    &.fold {
+      width: calc(100% - 255px);
+      left: 220px;
+      transition: all 0.5s;
+    }
   }
 }
 </style>

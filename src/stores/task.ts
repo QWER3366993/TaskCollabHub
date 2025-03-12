@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia';
-import { ref, computed } from 'vue';
+import { ref, computed, nextTick } from 'vue';
 import {
   fetchTaskById,
   fetchTasksByStatus,
@@ -10,7 +10,6 @@ import {
   fetchCommentsByTaskId,
   addComment,
   fetchTasksByUser,
-  fetchEmployees,
   fetchUserRole,
   fetchOperationLogs,
   updateTaskScheduling,
@@ -22,6 +21,7 @@ import type { Task, OperationLog } from '@/types/task';
 import type { Comment } from '@/types/comment';
 import type { Employee } from '@/types/team';
 import { safeDate } from '@/utils/convert';
+import useStore from 'element-plus/es/components/table/src/store/index.mjs';
 
 export const useTaskStore = defineStore('task', () => {
   /** 任务列表 */
@@ -66,6 +66,14 @@ export const useTaskStore = defineStore('task', () => {
     time: safeDate(log.timestamp),
   });
 
+  /** 操作日志映射表（taskId -> logs） */
+  const taskOperationLogs = ref<Record<string, OperationLog[]>>({});
+
+  /** 获取指定任务的操作日志 */
+  const getTaskOperations = computed(() => (taskId: string) => {
+    return taskOperationLogs.value[taskId] || []
+  })
+
   // 根据项目筛选任务
   const getTasksByProject = computed(() => (projectId: string) => {
     return tasks.value.filter(t => t.projectId === projectId)
@@ -87,16 +95,7 @@ export const useTaskStore = defineStore('task', () => {
   /** 根据任务 ID 获取任务详情 */
   const getTaskById = async (taskId: string): Promise<Task | null> => {
     try {
-      const data = await fetchTaskById(taskId);
-      if (data) {
-        taskDetail.value = data;
-        return data;
-      } else {
-        taskDetail.value = null;
-        errorMessage.value = '任务不存在';
-        createToast(errorMessage.value, { position: 'top-center', showIcon: true, type: 'danger' });
-        return null;
-      }
+      return await fetchTaskById(taskId); 
     } catch (error) {
       taskDetail.value = null;
       errorMessage.value = '获取任务详情失败';
@@ -106,9 +105,9 @@ export const useTaskStore = defineStore('task', () => {
   };
 
   /** 根据参与人员获取任务列表 */
-  const getTasksByUser = async (): Promise<Task[]> => {
+  const getTasksByUser = async (userId: string): Promise<Task[]> => {
     try {
-      const data = await fetchTasksByUser();
+      const data = await fetchTasksByUser(userId);
       tasks.value = data;
       return data;
     } catch (error) {
@@ -173,42 +172,85 @@ export const useTaskStore = defineStore('task', () => {
   /** 更新任务 */
   const updateTask = async (taskId: string, updatedTask: Partial<Task>): Promise<void> => {
     try {
+      // 查找原任务
+      const originalTask = tasks.value.find(t => t.id === taskId);
+      if (!originalTask) throw new Error('任务不存在');
+
+      // 检测变更
+      const changes = detectChanges(originalTask, updatedTask);
+
+      // 调用API
       const updatedTaskResponse = await updateOldTask(taskId, updatedTask);
 
-      const taskIndex = tasks.value.findIndex((task) => task.id === taskId);
+      // 更新本地数据
+      const taskIndex = tasks.value.findIndex(t => t.id === taskId);
       if (taskIndex !== -1) {
-        tasks.value[taskIndex] = { ...tasks.value[taskIndex], ...updatedTask };
+        tasks.value[taskIndex] = {
+          ...tasks.value[taskIndex],
+          ...updatedTask
+        };
       }
 
-      createToast('任务更新成功', { position: 'top-center', showIcon: true, type: 'success' });
+      // 记录操作日志
+      addOperationLog({
+        taskId,
+        employeeId: useStore().user.id,
+        operationType: 'update',
+        operation: `修改了 ${Object.keys(changes).join(', ')}`,
+        details: changes,
+        time: new Date().toISOString()
+      });
+
+      createToast('任务更新成功', {
+        position: 'top-center',
+        showIcon: true,
+        type: 'success'
+      });
     } catch (error) {
-      errorMessage.value = '更新任务失败';
-      createToast(errorMessage.value, { position: 'top-center', showIcon: true, type: 'danger' });
+      errorMessage.value = '更新任务失败: ' + (error as Error).message;
+      createToast(errorMessage.value, {
+        position: 'top-center',
+        showIcon: true,
+        type: 'danger'
+      });
     }
   };
+
 
   /** 删除任务 */
   const deleteTaskById = async (id: string): Promise<void> => {
     try {
+      // 先记录删除日志
+      addOperationLog({
+        taskId: id,
+        employeeId: useStore().user.id,
+        operationType: 'delete',
+        operation: '删除任务',
+        time: new Date().toISOString()
+      });
+
+      // 延迟删除以便日志显示
+      await nextTick();
+
+      // 执行删除操作
       await deleteTask(id);
       tasks.value = tasks.value.filter((task) => task.id !== id);
-      createToast('任务删除成功', { position: 'top-center', showIcon: true, type: 'success' });
+
+      // 清理相关日志（可选）
+      operationLogs.value = operationLogs.value.filter(log => log.taskId !== id);
+
+      createToast('任务删除成功', {
+        position: 'top-center',
+        showIcon: true,
+        type: 'success'
+      });
     } catch (error) {
       errorMessage.value = '删除任务失败';
-      createToast(errorMessage.value, { position: 'top-center', showIcon: true, type: 'danger' });
-    }
-  };
-
-  /** 获取员工列表 */
-  const getEmployees = async (): Promise<Employee[]> => {
-    try {
-      const data = await fetchEmployees();
-      employees.value = data;
-      return data;
-    } catch (error) {
-      errorMessage.value = '获取员工列表失败';
-      createToast(errorMessage.value, { position: 'top-center', showIcon: true, type: 'danger' });
-      return [];
+      createToast(errorMessage.value, {
+        position: 'top-center',
+        showIcon: true,
+        type: 'danger'
+      });
     }
   };
 
@@ -291,6 +333,37 @@ export const useTaskStore = defineStore('task', () => {
     }
   };
 
+  // 日志 
+  /** 生成唯一ID */
+  const generateLogId = () => {
+    return Date.now().toString(36) + Math.random().toString(36).substring(2);
+  };
+
+  /** 变更检测工具函数 */
+  const detectChanges = (original: Task, updated: Partial<Task>) => {
+    const changes: Record<string, { old: any; new: any }> = {};
+    Object.entries(updated).forEach(([key, newVal]) => {
+      const oldVal = original[key as keyof Task];
+      if (JSON.stringify(oldVal) !== JSON.stringify(newVal)) {
+        changes[key] = { old: oldVal, new: newVal };
+      }
+    });
+    return changes;
+  };
+
+  /** 添加操作日志 */
+  const addOperationLog = (log: Omit<OperationLog, 'id'>) => {
+    const fullLog: OperationLog = {
+      ...log,
+      id: generateLogId()
+    };
+    // 同时更新任务对象的operations字段
+    const task = tasks.value.find(t => t.id === log.taskId);
+    if (task) {
+      task.operations = [...(task.operations || []), fullLog];
+    }
+  };
+
   return {
     tasks,
     taskDetail,
@@ -302,6 +375,7 @@ export const useTaskStore = defineStore('task', () => {
     employeeTaskCompletion,
     completedTasksCount,
     getTasksByProject,
+    getTaskOperations,
     getAllTasks,
     getTaskById,
     getTasksByUser,
@@ -311,12 +385,13 @@ export const useTaskStore = defineStore('task', () => {
     createNewTask,
     updateTask,
     deleteTaskById,
-    getEmployees,
     getUserRole,
     getOperationLogs,
     updateTaskSchedule,
     startTaskScheduling,
     getTaskOverview,
     getEmployeeTaskCompletion,
+    addOperationLog,
+    detectChanges,
   };
 });

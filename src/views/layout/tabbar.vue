@@ -21,11 +21,12 @@ const refresh = () => {
 
 // 全屏
 const fullScreen = () => {
+  // DOM对象的一个属性：用于判断是否是全屏
   const full = document.fullscreenElement;
   if (!full) {
-    document.documentElement.requestFullscreen();
+    document.documentElement.requestFullscreen(); // 全屏
   } else {
-    document.exitFullscreen();
+    document.exitFullscreen(); // 退出全屏
   }
 };
 
@@ -54,6 +55,8 @@ const setColor = () => {
 
 // 暗黑模式
 const dark = ref(false);
+
+// 处理暗黑模式
 const changeDark = () => {
   const html = document.documentElement;
   dark.value ? (html.className = 'dark') : (html.className = '');
@@ -61,11 +64,11 @@ const changeDark = () => {
 
 // 处理 breadcrumbs 数据
 const breadcrumbItems = computed(() => {
-  return route.matched.map(item => ({
+  return route.matched.map(item => ({ //获取匹配到的路由
     title: String(item.meta?.title || ''), // 显式转换为字符串
     disabled: false,
     href: item.path,
-    icon: String(item.meta?.icon || '') // 显式转换为字符串
+    icon: item.meta?.icon ? String(item.meta.icon) : ''
   }));
 });
 </script>
@@ -75,15 +78,16 @@ const breadcrumbItems = computed(() => {
     <!-- 左侧 -->
     <div class="tabbar_left">
       <v-icon class="icon" @click="changeIcon">
-        {{ settingStore.fold ? 'menu' : 'menu_open' }}
+        {{ settingStore.fold ? 'menu_' : 'menu_open' }}
       </v-icon>
+      <!-- 面包屑 使用 divider 插槽自定义分隔线;使用 prepend 插槽添加前缀内容-->
       <v-breadcrumbs :items="breadcrumbItems" v-if="breadcrumbItems.length > 0">
         <template v-slot:divider>
-          <v-icon>???</v-icon>
+          <v-icon>chevron_right</v-icon>
         </template>
         <template v-slot:item="{ item }">
           <v-breadcrumbs-item v-if="item.title" :to="item.href" :disabled="item.disabled">
-            <!-- <v-icon>{{ item.icon }}</v-icon> -->
+            <v-icon size="18">{{ item.icon }}</v-icon>
             {{ item.title }}
           </v-breadcrumbs-item>
         </template>
@@ -104,16 +108,14 @@ const breadcrumbItems = computed(() => {
             <v-icon>settings</v-icon>
           </v-btn>
         </template>
-        <v-card>
+        <v-card >
           <v-card-title>主题设置</v-card-title>
           <v-card-text>
             <v-form>
-              <v-form-item label="主题颜色">
+                <v-text-field label="主题颜色" v-model="color" />
                 <v-color-picker v-model="color" @update:modelValue="setColor" show-alpha :swatches="predefineColors" />
-              </v-form-item>
-              <v-form-item label="暗黑模式">
-                <v-switch v-model="dark" @change="changeDark" />
-              </v-form-item>
+                <v-text-field label="暗黑模式" style="margin-top: 20px;"/>
+                <v-switch v-model="dark" @change="changeDark"/>
             </v-form>
           </v-card-text>
         </v-card>
@@ -140,21 +142,20 @@ const breadcrumbItems = computed(() => {
 
 <style lang="scss" scoped>
 .tabbar {
-  width: calc(100% - 660px);
-  height: 50px;
+  width: 100%;
   position: absolute;
   top: 0;
-  left: 660px;
   display: flex;
   justify-content: space-between;
   padding: 0 15px 0 20px;
   background-image: linear-gradient(to right, rgb(189, 245, 178), rgb(67, 240, 28), rgb(148, 225, 140));
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1); /* 添加阴影 */
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  /* 添加阴影 */
 
   .tabbar_left {
     display: flex;
-    align-items: center;
-    
+    align-items: center; //竖直居中
+
 
     .icon {
       margin-right: 7px;
@@ -165,7 +166,8 @@ const breadcrumbItems = computed(() => {
   .tabbar_right {
     display: flex;
     align-items: center;
-    gap: 10px; /* 按钮间距 */
+    gap: 10px;
+    /* 按钮间距 */
 
     img {
       width: 24px;

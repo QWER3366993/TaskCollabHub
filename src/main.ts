@@ -43,7 +43,6 @@ const pinia = createPinia()
 dayjs.extend(relativeTime);
 // 设置中文语言
 dayjs.locale('zh-cn');
-app.use(createPinia())
 app.use(router)
 app.use(vuetify)
 app.use(pinia)

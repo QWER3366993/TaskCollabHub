@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { defineProps, ref, computed } from 'vue';
+import { ref, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import type { RouteRecordRaw } from 'vue-router';
 
@@ -34,6 +34,8 @@ const goRoute = (vc: RouteRecordRaw) => {
 <template>
     <div class="secondary-menu-container">
         <!-- 搜索框 -->
+        <!-- placeholder 属性用于输入框为空时显示提示信息; outlined:输入框会显示为带有边框的样式 -->
+         <!-- dense:减小输入框的高度和内边距;  clearable:输入框添加一个清除按钮 -->
         <v-text-field v-model="search" label="搜索菜单" placeholder="输入菜单名称" outlined dense clearable
             class="search-box"></v-text-field>
         <!-- 菜单列表 -->
@@ -50,3 +52,11 @@ const goRoute = (vc: RouteRecordRaw) => {
         </v-list>
     </div>
 </template>
+
+<style lang="css" scoped>
+.search-box {
+    margin-bottom: 20px;
+    width: 100%;
+    height: 50px;
+}
+</style>

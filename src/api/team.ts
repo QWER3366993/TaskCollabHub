@@ -14,7 +14,7 @@ export const fetchTeams = async (): Promise<Team[]> => {
 //根据成员获取所在团队列表
 export const fetchTeamByemployeeIdId = async (employeeId: string): Promise<Team[] | null> => {
   const response = await service({
-    url: '/api/projects/${employeeId}',
+    url: `/api/projects/${employeeId}`,
     method: 'get',
   });
   return response.data;
@@ -59,9 +59,9 @@ export const fetchTeamById = async (teamId: string): Promise<Team> => {
 };
 
 // 获取员工详情
-export const fetchEmployeeById = async (employeeId: string): Promise<Employee> => {
+export const fetchEmployeeById = async (userId: string): Promise<Employee> => {
   const response = await service({
-    url: `/api/employees/${employeeId}`,
+    url: `/api/employees/${userId}`,
     method: 'get',
   });
   return response.data;
@@ -86,10 +86,19 @@ export const removeMemberFromTeam = async (teamId: string, memberId: string): Pr
   return response.data;
 };
 
-// 获取所有团队成员
+// 获取特定团队成员
 export const fetchTeamMembers = async (teamId: string): Promise<Employee[]> => {
   const response = await service({
     url: `/api/teams/${teamId}/members`,
+    method: 'get',
+  });
+  return response.data;
+};
+
+// 获取所有员工列表
+export const fetchEmployees = async (): Promise<Employee[]> => {
+  const response = await service({
+    url: '/employees',
     method: 'get',
   });
   return response.data;

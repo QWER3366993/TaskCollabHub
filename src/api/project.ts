@@ -24,7 +24,7 @@ export const updateOldProject = async (id: string, updatedProject: Partial<Proje
 // 获取团队项目列表
 export const fetchProjects = async (teamId: string): Promise<Project[]> => {
     const response = await service({
-        url: `/projects?teamId=${teamId}`,
+        url: `projects?teamId=${teamId}`,
         method: 'get'
     });
     return response.data;

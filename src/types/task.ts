@@ -12,22 +12,28 @@ export interface Task {
   creator: string; // 创建者 ID
   scheduledTime: string; // 调度时间
   deadline?: string; // 截止时间
-  image?: File | File[] | null; 
+  image?: (File | FileWithPreview)[] | null;
   reminderTime?: string; // 任务截止前提醒时间
+  operations?: OperationLog[];
+}
+
+// 文件预览类型
+export interface FileWithPreview {
+  name: string;
+  url: string; //必须包含
+  type: string;
+  size: number;
+  preview?: string;
 }
 
 export interface OperationLog {
   id: string;
-  userId: string;
-  operation: string;
-  time: Date;
+  taskId: string; // 关联的任务ID
+  employeeId: string; // 操作者ID
+  operationType: 'create' | 'update' | 'delete' | 'status_change'; // 操作类型
+  operation: string; // 操作描述，如“修改截止时间从2025-03-01到2025-05-01”
+  time: string; // 操作时间
+  details?: Record<string, { old: any; new: any }>; // 修改详情
 }
 
-// 数字字面量类型，用于表示状态
-export type WorkStatus = 0 | 1 | 2;
 
-// 状态配置类型定义
-export type StatusConfig = {
-  label: string;
-  type: 'success' | 'warning' | 'danger'; // 字面量类型
-};

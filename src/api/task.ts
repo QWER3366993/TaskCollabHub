@@ -2,11 +2,12 @@ import service from '@/utils/request'
 import type { Comment } from '@/types/comment'
 import type { Task, OperationLog } from '@/types/task'
 import type { Employee } from '@/types/team'
+import type { User } from '@/types/user'
 import dayjs from 'dayjs'
 // 获取任务列表
 export const fetchTasks = async (): Promise<Task[]> => {
   const response = await service({
-    url: '/api/tasks',
+    url: '/tasks',
     method: 'get',
   });
   return response.data;
@@ -15,16 +16,16 @@ export const fetchTasks = async (): Promise<Task[]> => {
 // 根据任务id获取任务详情
 export const fetchTaskById = async (taskId: string): Promise<Task | null> => {
   const response = await service({
-    url: '/api/tasks/${taskId}',
+    url: `/tasks/${taskId}`,
     method: 'get',
   });
   return response.data;
 };
 
 // 根据参与人员获取任务列表
-export const fetchTasksByUser = async (): Promise<Task[]> => {
+export const fetchTasksByUser = async (userId: string): Promise<Task[]> => {
   const response = await service({
-    url: '/api/tasks?employeeId=${userId}',
+    url: `/tasks?employeeId=${userId}`,
     method: 'get',
   });
   return response.data;
@@ -33,7 +34,7 @@ export const fetchTasksByUser = async (): Promise<Task[]> => {
 // 根据任务状态获取任务列表
 export const fetchTasksByStatus = async (status: '待处理' | '进行中' | '已完成'): Promise<Task[]> => {
   const response = await service({
-    url: '/api/tasks?status=${status}',
+    url: `/tasks?status=${status}`,
     method: 'get',
   });
   return response.data;
@@ -42,7 +43,7 @@ export const fetchTasksByStatus = async (status: '待处理' | '进行中' | '�
 // 获取任务评论
 export const fetchCommentsByTaskId = async (taskId: string): Promise<Comment[]> => {
   const response = await service({
-    url: `/api/tasks/${taskId}/comments`,
+    url: `/tasks/${taskId}/comments`,
     method: 'get',
   });
   return response.data;
@@ -51,7 +52,7 @@ export const fetchCommentsByTaskId = async (taskId: string): Promise<Comment[]> 
 // 提交新评论
 export const addComment = async (taskId: string, comment: Comment): Promise<Comment> => {
   const response = await service({
-    url: `/api/tasks/${taskId}/comments`,
+    url: `/tasks/${taskId}/comments`,
     method: 'post',
     data: comment,
   });
@@ -61,7 +62,7 @@ export const addComment = async (taskId: string, comment: Comment): Promise<Comm
 // 创建任务
 export const createTask = async (taskData: { title: string; description: string; employeeId: string; priority: string; status: string; creator: string }): Promise<Task> => {
   const response = await service({
-    url: '/api/tasks',
+    url: '/tasks',
     method: 'post',
     data: taskData,
   });
@@ -71,7 +72,7 @@ export const createTask = async (taskData: { title: string; description: string;
 // 更新任务
 export const updateOldTask = async (id: string, updatedTask: Partial<Task>): Promise<Task> => {
   const response = await service({
-    url: `/api/tasks/${id}`,
+    url: `/tasks/${id}`,
     method: 'patch',
     data: updatedTask,
   });
@@ -81,24 +82,15 @@ export const updateOldTask = async (id: string, updatedTask: Partial<Task>): Pro
 // 删除任务
 export const deleteTask = async (id: string): Promise<void> => {
   await service({
-    url: `/api/tasks/${id}`,
+    url: `/tasks/${id}`,
     method: 'delete',
   });
-};
-
-// 获取员工列表
-export const fetchEmployees = async (): Promise<Employee[]> => {
-  const response = await service({
-    url: '/api/employees',
-    method: 'get',
-  });
-  return response.data;
 };
 
 // 获取用户角色
 export const fetchUserRole = async (): Promise<{ authorities: string }> => {
   const response = await service({
-    url: '/api/user-role',
+    url: '/user-role',
     method: 'get',
   });
   return response.data;
@@ -107,7 +99,7 @@ export const fetchUserRole = async (): Promise<{ authorities: string }> => {
 // 获取操作日志
 export const fetchOperationLogs = async (): Promise<OperationLog[]> => {
   const response = await service({
-    url: '/api/operation-logs',
+    url: '/operation-logs',
     method: 'get',
   });
   return response.data;
@@ -116,7 +108,7 @@ export const fetchOperationLogs = async (): Promise<OperationLog[]> => {
 // 开始任务调度
 export const startTaskScheduling = async (): Promise<void> => {
   await service({
-    url: '/api/start-task-scheduling',
+    url: '/start-task-scheduling',
     method: 'post',
   });
 };
@@ -124,7 +116,7 @@ export const startTaskScheduling = async (): Promise<void> => {
 // 更新任务调度
 export const updateTaskScheduling = async (taskId: string, scheduledTime: string): Promise<void> => {
   await service({
-    url: '/api/update-task-scheduling',
+    url: '/update-task-scheduling',
     method: 'post',
     data: {
       taskId,
@@ -136,7 +128,7 @@ export const updateTaskScheduling = async (taskId: string, scheduledTime: string
 // 获取任务调度列表
 export const fetchTaskSchedulingList = async (): Promise<any[]> => {
   const response = await service({
-    url: '/api/task-scheduling-list',
+    url: '/task-scheduling-list',
     method: 'get',
   });
   return response.data;
@@ -149,7 +141,7 @@ export const fetchTaskOverview = async (): Promise<{
   overdueTasks: number;
 }> => {
   const response = await service({
-    url: '/api/task-overview',
+    url: '/task-overview',
     method: 'get',
   });
   return response.data;
@@ -160,7 +152,7 @@ export const fetchEmployeeTaskCompletion = async (): Promise<
   Array<{ name: string; completed: number; pending: number; overdue: number; month: string }>
 > => {
   const response = await service({
-    url: '/api/employee-task-completion',
+    url: '/employee-task-completion',
     method: 'get',
   });
   return response.data;

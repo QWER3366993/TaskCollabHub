@@ -45,10 +45,10 @@ export const useRouteStore = defineStore('route', (): RouteStore => {
             });
         });
 
-        // 打印数据到控制台
-        console.log('父 Routes:', primaryRoutes.value);
-        console.log('子 Routes:', secondaryRoutes.value);
-        console.log('All Routes:', router.getRoutes());
+        // // 打印数据到控制台
+        // console.log('父 Routes:', primaryRoutes.value);
+        // console.log('子 Routes:', secondaryRoutes.value);
+        // console.log('All Routes:', router.getRoutes());
     };
 
     return {

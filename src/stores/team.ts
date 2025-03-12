@@ -3,6 +3,7 @@ import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import { createToast } from 'mosha-vue-toastify';
 import type { Team, Employee } from '@/types/team';
+import type { User } from '@/types/user';
 import {
   fetchTeams,
   createTeam,
@@ -12,6 +13,7 @@ import {
   fetchEmployeeById,
   addMemberToTeam,
   removeMemberFromTeam,
+  fetchEmployees,
   fetchTeamMembers,
   fetchTeamByemployeeIdId
 } from '@/api/team';
@@ -20,10 +22,11 @@ import type { Project } from '@/types/project';
 export const useTeamStore = defineStore('team', () => {
   // State
   const teams = ref<Map<string, Team>>(new Map()); // 团队列表（使用 Map 提高查找效率）
+  const employees = ref<Employee[]>([]); //员工列表
   const currentTeam = ref<Team | null>(null); // 当前选中的团队
   const currentEmployee = ref<Employee | null>(null); // 当前选中的成员
   const teamMembers = ref<Employee[]>([]); // 当前团队的成员列表
-  const availableTeams = ref<Team[]>([]);
+  const availableTeams = ref<Team[]>([]); //可用团队
   // 计算属性：转换 Map 为数组（用于展示）
   const teamList = computed(() => Array.from(teams.value.values()));
   const errorMessage = ref<string>('');
@@ -73,9 +76,9 @@ export const useTeamStore = defineStore('team', () => {
   };
 
   //获取员工详情
-  const getEmployeeById = async (employeeId: string) => {
+  const getEmployeeById = async (userId: string) => {
     try {
-      currentEmployee.value = await fetchEmployeeById(employeeId);
+      currentEmployee.value = await fetchEmployeeById(userId);
     } catch (error) {
       console.error(error);
       createToast('获取员工详情失败', { position: 'top-center', showIcon: true });
@@ -159,12 +162,33 @@ export const useTeamStore = defineStore('team', () => {
   // 获取团队成员列表
   const getTeamMembers = async (teamId: string) => {
     try {
-      const members = await fetchTeamMembers(teamId); // 调用 API
-      return members; // 返回团队成员列表
+      const data = await fetchTeamMembers(teamId); // 调用 API
+      employees.value = data;
+      return data; // 返回团队成员列表
     } catch (error) {
       console.error('获取团队成员失败:', error);
       throw error; // 抛出错误，便于调用者处理
     }
+  };
+
+  /** 获取员工列表 */
+  const getEmployees = async (): Promise<Employee[]> => {
+    try {
+      const data = await fetchEmployees();
+      employees.value = data;
+      return data;
+    } catch (error) {
+      errorMessage.value = '获取员工列表失败';
+      createToast(errorMessage.value, { position: 'top-center', showIcon: true, type: 'danger' });
+      return [];
+    }
+  };
+  
+  // 获取员工姓名的方法(从 employees 数组中查找第一个 employeeId 匹配的员工对象)
+  const getName = (employeeId: string) => {
+    // console.log('当前查询员工ID:', employeeId);
+    const emp = employees.value.find(e => e.employeeId === employeeId);
+    return emp?.name || '未知员工';
   };
 
   return {
@@ -173,14 +197,18 @@ export const useTeamStore = defineStore('team', () => {
     currentTeam,
     teamMembers,
     currentEmployee,
+    employees,
     getTeamList,
     getTeamByemployId,
     createNewTeam,
     updateTeamInfo,
     deleteTeamById,
     getTeamById,
+    getEmployeeById,
     addMember,
     removeMember,
-    getTeamMembers
+    getTeamMembers,
+    getEmployees,
+    getName
   };
 });

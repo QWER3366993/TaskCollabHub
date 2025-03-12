@@ -6,7 +6,8 @@ export interface Team {
 
   export interface Employee {
     teamId: string; // 员工所属团队的 ID
-    employeeId: number; // 员工 ID
+    employeeId: string; // 员工 ID
+    userId: string; // 关联的 User ID
     name: string; // 员工姓名
     status: string; // 员工状态，例如: '在职', '请假'
     workload: number; // 当前任务数量
