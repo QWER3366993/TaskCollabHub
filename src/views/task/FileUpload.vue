@@ -1,79 +1,193 @@
 <script setup lang="ts">
-import { ref } from 'vue';
-import { ElMessage } from 'element-plus';
-import type { UploadFile } from 'element-plus';
+import { ref, onMounted, computed } from 'vue'
+import type { FileItem } from '@/types/task';
+import { useTaskStore } from '@/stores/task'
+import { createToast } from 'mosha-vue-toastify';
+import { useRoute } from 'vue-router'
+import { uploadPublicFile, uploadTaskFile } from '@/api/task';
+const route = useRoute();
+const taskStore = useTaskStore()
+const files = ref<FileItem[]>([])
+const taskId = route.query.id as string;
+const loading = ref(false)
+const uploadProgress = ref(0)
+const searchQuery = ref('')
+const currentScope = ref<'task' | 'public'>('task')
+const uploadInput = ref<HTMLInputElement | null>(null);
 
-interface FileItem {
-  name: string;
-  size: string;
-  url: string;
-}
+const emits = defineEmits(['update'])
 
-const fileList = ref<FileItem[]>([]);
+const headers = [
+  { title: '文件名', key: 'name' },
+  { title: '类型', key: 'type' },
+  { title: '大小', key: 'size' },
+  { title: '上传时间', key: 'createdAt' },
+  { title: '操作', key: 'actions' }
+]
 
-// 文件上传前的校验
-const beforeUpload = (file: File) => {
-  const isAllowedType = ['image/jpeg', 'image/png', 'application/pdf'].includes(file.type);
-  const isWithinSize = file.size / 1024 / 1024 < 10; // 文件大小限制为 10MB
+// 新增作用域切换
+const scopeOptions = [
+  { title: '任务文件', value: 'task' },
+  { title: '公共文件', value: 'public' }
+]
 
-  if (!isAllowedType) {
-    ElMessage.error('只支持上传 JPG、PNG 或 PDF 文件');
-    return false;
-  }
-  if (!isWithinSize) {
-    ElMessage.error('文件大小不能超过 10MB');
-    return false;
-  }
-  return true;
+// 文件类型图标映射
+const fileTypeIcons: Record<string, string> = {
+  'image/png': 'image',
+  'image/jpeg': 'image',
+  'image/jpg': 'image',
+  'application/pdf': 'picture_as_pdf',
+  'default': 'file_present'
 };
 
-// 文件上传成功后的处理
-const handleSuccess = (response: any, file: UploadFile) => {
-  ElMessage.success('文件上传成功');
-  fileList.value.push({
-    name: file.name,
-    size: `${(file.size! / 1024).toFixed(2)} KB`,
-    url: response.url, // 假设后端返回文件的 URL
-  });
+const getFileIcon = (type: string) => {
+  return fileTypeIcons[type] || fileTypeIcons.default;
 };
 
-// 文件上传失败后的处理
-const handleError = (error: Error) => {
-  ElMessage.error('文件上传失败');
-  console.error('上传失败:', error);
+
+
+// 文件列表计算属性
+const filteredFiles = computed(() => {
+  return (taskStore.files || []).filter(file =>
+    file.scope === currentScope.value &&
+    file.name.toLowerCase().includes(searchQuery.value.toLowerCase())
+  )
+})
+
+// 文件上传处理
+const handleFileUpload = async (event: Event) => {
+  const target = event.target as HTMLInputElement;
+  if (!target.files || target.files.length === 0) {
+    createToast('未选择任何文件', { position: 'top-center', showIcon: true, type: 'warning' });
+    return;
+  }
+
+  const formData = new FormData();
+  Array.from(target.files).forEach(file => formData.append('files', file));
+
+  try {
+    if (currentScope.value === 'task') {
+      await uploadTaskFile(taskId, formData); // 确保 taskId 正确传递
+    } else {
+      await uploadPublicFile(formData);
+      createToast('文件上传成功', { position: 'top-center', showIcon: true, type: 'success' });
+    }
+  } catch (error) {
+    createToast('文件上传失败', { position: 'top-center', showIcon: true, type: 'danger' });
+  }
 };
 
 // 删除文件
-const handleRemove = (file: FileItem) => {
-  fileList.value = fileList.value.filter((item) => item.url !== file.url);
-  ElMessage.success('文件删除成功');
-};
+const deleteFile = async (id: string) => {
+  if (!confirm('确定删除此文件？')) return
+  try {
+    const response = await taskStore.removeFile(id)
+    await taskStore.getFiles()
+    createToast('文件删除成功', { position: 'top-center', showIcon: true, type: 'success' });
+    return response;
+  } catch (error) {
+    createToast('文件删除失败', { position: 'top-center', showIcon: true, type: 'success' });
+  }
+}
+
+// 格式化文件大小
+const formatSize = (bytes: number) => {
+  const units = ['B', 'KB', 'MB', 'GB']
+  let size = bytes
+  let unitIndex = 0
+
+  while (size >= 1024 && unitIndex < units.length - 1) {
+    size /= 1024
+    unitIndex++
+  }
+
+  return `${size.toFixed(1)} ${units[unitIndex]}`
+}
+
+// 初始化加载
+onMounted(async () => {
+  loading.value = true
+  try {
+    await taskStore.getFiles();
+    files.value = taskStore.files
+  } finally {
+    loading.value = false
+  }
+})
+
 </script>
 
 <template>
-    <div>
-        <!-- 替换为实际的上传接口 -->
-      <el-upload
-        action="/api/upload"  
-        :before-upload="beforeUpload"
-        :on-success="handleSuccess"
-        :on-error="handleError"
-        :on-remove="handleRemove"
-        :file-list="fileList"
-        multiple
-      >
-        <el-button type="primary">上传文件</el-button>
-      </el-upload>
-  
-      <!-- 已上传文件列表 -->
-      <el-table :data="fileList" style="width: 100%; margin-top: 20px">
-        <el-table-column prop="name" label="文件名" />
-        <el-table-column prop="size" label="文件大小" />
-        <el-table-column label="操作">
-          <template #default="scope">
-            <el-button type="danger" @click="handleRemove(scope.row)">删除</el-button>
+  <v-container class="file-manager">
+    <v-card>
+      <v-card-title class="d-flex align-center">
+        <v-icon icon="folder" class="mr-2"></v-icon>
+        文件管理
+        <v-spacer></v-spacer>
+
+        <!-- 搜索框布局 -->
+        <v-text-field v-model="searchQuery" label="搜索文件..." prepend-inner-icon="search" density="compact" class="mr-4"
+          style="max-width: 300px; margin-top: 20px" />
+
+        <!-- 使用 scopeOptions 动态生成按钮 -->
+        <v-btn-toggle v-model="currentScope" mandatory class="mr-4">
+          <v-btn v-for="option in scopeOptions" :key="option.value" :value="option.value" variant="outlined">
+            {{ option.title }}
+          </v-btn>
+        </v-btn-toggle>
+
+        <v-btn color="primary" @click="uploadInput?.click()">
+          <v-icon icon="upload" class="mr-2"></v-icon>
+          上传文件
+          <input ref="uploadInput" type="file" hidden @change="handleFileUpload" multiple>
+        </v-btn>
+      </v-card-title>
+
+      <v-card-text>
+
+        <v-progress-linear v-if="uploadProgress > 0" :model-value="uploadProgress" height="20" color="light-blue"
+          striped>
+          <template v-slot:default>
+            <span class="text-white">{{ uploadProgress }}%</span>
           </template>
-        </el-table-column>
-      </el-table>
-    </div>
-  </template>
+        </v-progress-linear>
+
+        <v-data-table :headers="headers" :items="filteredFiles" :loading="loading" class="elevation-1">
+          <template v-slot:item.size="{ item }">
+            {{ formatSize(item.size) }}
+          </template>
+
+          <!-- 使用图标替换文件类型文字 -->
+          <template v-slot:item.type="{ item }">
+            <v-icon>{{ getFileIcon(item.type) }}</v-icon>
+          </template>
+
+          <template v-slot:item.createdAt="{ item }">
+            {{ new Date(item.uploadTime).toLocaleString() }}
+          </template>
+
+          <template v-slot:item.actions="{ item }">
+            <v-btn icon variant="text" color="primary" :href="item.url" target="_blank">
+              <v-icon>download</v-icon>
+            </v-btn>
+
+            <v-btn icon variant="text" color="grey" @click="deleteFile(item.id)">
+              <v-icon>delete</v-icon>
+            </v-btn>
+          </template>
+        </v-data-table>
+      </v-card-text>
+    </v-card>
+  </v-container>
+</template>
+
+<style scoped>
+.file-manager {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+:deep(.v-data-table__td) {
+  vertical-align: middle;
+}
+</style>

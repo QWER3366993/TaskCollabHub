@@ -3,7 +3,7 @@ import { ref, onMounted, watch, computed } from 'vue';
 import dayjs from 'dayjs';
 import { useRoute, useRouter } from 'vue-router';
 import { useTaskStore } from '@/stores/task';
-import type { Task } from '@/types/task';
+import type { Task, FileItem } from '@/types/task';
 import type { Project } from '@/types/project';
 import { useTeamStore } from '@/stores/team';
 import type { Employee, Team } from '@/types/team';
@@ -20,6 +20,11 @@ const deadlineMenu = ref<boolean[]>([]); // 控制每个任务的截止时间选
 const reminderMenu = ref<boolean[]>([]); // 控制每个任务的提醒时间选择器的显示
 // 动态更新当前时间
 const currentTime = ref<string>(''); // 用于存储动态更新的时间
+
+// 添加文件删除确认对话框
+const deleteConfirmDialog = ref(false);
+const deletingFileIndex = ref(-1);
+const deletingFileId = ref('');
 
 // 新增状态
 const publishMode = ref<'task' | 'project'>('task') // 默认独立任务模式
@@ -81,7 +86,7 @@ const projects = ref<Project[]>([
     tasks: [],
     scheduledTime: dayjs().format('YYYY-MM-DD HH:mm:ss'),
     deadline: dayjs().format('YYYY-MM-DD HH:mm:ss'),
-    image: undefined,
+    files: [],
     progress: 0
   }
 
@@ -101,7 +106,7 @@ const tasks = ref<Task[]>([
     scheduledTime: dayjs().format('YYYY-MM-DD HH:mm:ss'), // 初始化为当前时间
     deadline: dayjs().format('YYYY-MM-DD HH:mm:ss'),
     reminderTime: '',
-    image: undefined, // 用于存储上传的图片
+    files: [], // 用于存储上传的文件
   }
 ]);
 
@@ -119,7 +124,7 @@ const addTask = () => {
     scheduledTime: dayjs().format('YYYY-MM-DD HH:mm:ss'),
     deadline: dayjs().format('YYYY-MM-DD HH:mm:ss'),
     reminderTime: '',
-    image: undefined,
+    files: [],
   });
   deadlineMenu.value.push(false); // 为新增任务初始化截止时间选择器状态
   reminderMenu.value.push(false); // 为新增任务初始化提醒时间选择器状态
@@ -160,13 +165,46 @@ const saveAllTasks = async () => {
   }
 }
 
-// 处理图片上传
-const handleImageUpload = (event: Event, index: number) => {
+// 处理文件上传
+const handleFileUpload = (event: Event, index: number) => {
   const target = event.target as HTMLInputElement;
-  if (target.files && target.files.length > 0) {
-    const file = target.files[0];
-    tasks.value[index].image = file; // 更新对应任务的图片
+  if (!target.files?.length) return;
+
+  // 转换原生File为FileItem数组
+  const newFiles = Array.from(target.files).map(file => ({
+    id: crypto.randomUUID(),
+    name: file.name,
+    size: file.size,
+    type: file.type.split('/')[0] || 'other', // 简化类型分类
+    url: URL.createObjectURL(file),
+    uploader: teamStore.currentEmployee?.name || '未知用户',
+    uploadTime: dayjs().format('YYYY-MM-DD HH:mm:ss'),
+    scope: 'task'
+  } as FileItem));
+
+  // 合并到现有文件列表
+  tasks.value[index].files = [...(tasks.value[index].files || []), ...newFiles];
+  // 清空文件输入
+  target.value = '';
+};
+
+// 误上传时删除文件
+const confirmDeleteFile = (taskIndex: number, fileId: string) => {
+  deletingFileIndex.value = taskIndex;
+  deletingFileId.value = fileId;
+  deleteConfirmDialog.value = true;
+};
+
+// 执行文件删除
+
+const deleteFile = () => {
+  const index = deletingFileIndex.value;
+  if (index >= 0 && index < tasks.value.length) {
+    tasks.value[index].files = tasks.value[index].files?.filter(f => f.id !== deletingFileId.value);
+  } else {
+    console.error('无效的任务索引:', index);
   }
+  deleteConfirmDialog.value = false;
 };
 
 // 加载团队列表
@@ -287,7 +325,7 @@ onMounted(async () => {
                       :min="dayjs().format('YYYY-MM-DD')" />
                     <v-time-picker :model-value="dayjs(project.deadline).format('HH:mm')"
                       @update:model-value="(time) => updateDeadlineTime(time, index)" format="24hr" /> -->
-                  </v-menu> 
+                  </v-menu>
                 </v-card-text>
               </v-card>
             </template>
@@ -295,7 +333,30 @@ onMounted(async () => {
           <div v-for="(task, index) in tasks" :key="index">
             <v-text-field v-model="task.title" label="任务名称" />
             <v-textarea v-model="task.description" label="任务描述" />
-            <v-file-input v-model="task.image" label="上传图片" accept="image/*" @change="handleImageUpload" />
+            <v-file-input multiple label="上传文件" @change="handleFileUpload($event, index)" prepend-icon="upload_file"
+              :model-value="[]" />
+            <!-- 显示已上传文件 -->
+
+            <v-list v-if="task.files?.length" density="compact" class="my-2">
+              <v-list-item v-for="file in task.files" :key="file.id" :title="file.name"
+                :subtitle="`${(file.size / 1024).toFixed(2)} KB - ${file.uploader}`">
+                <template #prepend>
+                  <v-icon class="mr-2">
+                    {{
+                      file.type.startsWith('image') ? 'image' :
+                        file.type === 'pdf' ? 'picture_as_pdf' :
+                          'description'
+                    }}
+                  </v-icon>
+                </template>
+                <!-- 删除按钮 -->
+                <template #append>
+                  <v-btn icon variant="text" color="grey" size="small" @click="confirmDeleteFile(index, file.id)">
+                    <v-icon>delete</v-icon>
+                  </v-btn>
+                </template>
+              </v-list-item>
+            </v-list>
             <v-select v-model="task.priority" :items="['高', '中', '低']" label="优先级" />
             <v-select v-model="task.employeeId" :items="members" label="分配成员" />
             <!-- 调度时间：显示实时时间 -->
@@ -330,5 +391,20 @@ onMounted(async () => {
       </v-col>
     </v-row>
   </v-container>
+  <v-dialog v-model="deleteConfirmDialog" max-width="400">
+    <v-card>
+      <v-card-title class="text-h6">确认删除</v-card-title>
+      <v-card-text>
+        确定要删除这个文件吗？该操作不可撤销。
+      </v-card-text>
+      <v-card-actions>
+        <v-spacer></v-spacer>
+        <v-btn color="error" @click="deleteFile">确认删除</v-btn>
+        <v-btn color="secondary" @click="deleteConfirmDialog = false">取消</v-btn>
+      </v-card-actions>
+    </v-card>
+  </v-dialog>
 </template>
-<style scoped></style>
+
+<style scoped>
+</style>

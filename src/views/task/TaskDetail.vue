@@ -3,7 +3,7 @@ import { ref, watch, computed, onMounted, onBeforeUnmount } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useTaskStore } from '@/stores/task';
 import { useTeamStore } from '@/stores/team';
-import type { Task, FileWithPreview } from '@/types/task';
+import type { Task, FileItem } from '@/types/task';
 import dayjs from 'dayjs';
 import { useUserStore } from '@/stores/user';
 
@@ -64,40 +64,38 @@ const addComment = async () => {
       createdAt: dayjs().format('YYYY-MM-DD HH:mm:ss')
     };
     try {
-    // 提交到 store 进行持久化
-    await taskStore.submitComment(taskId, newComment);
-    // if-else写法可以替换为利用展开运算符：task.value.comments = [...(task.value.comments || []), newComment];
-    // 更新本地数据
-    if (task.value.comments) {
-      task.value.comments.push(newComment);
-    } else {
-      // 如果 task.value.comments 不存在，则将其初始化为一个包含 newComment 的数组
-      task.value.comments = [newComment];
+      // 提交到 store 进行持久化
+      await taskStore.submitComment(taskId, newComment);
+      // if-else写法可以替换为利用展开运算符：task.value.comments = [...(task.value.comments || []), newComment];
+      // 更新本地数据
+      if (task.value.comments) {
+        task.value.comments.push(newComment);
+      } else {
+        // 如果 task.value.comments 不存在，则将其初始化为一个包含 newComment 的数组
+        task.value.comments = [newComment];
+      }
+      //清空输入框
+      commentInput.value = '';
+    } catch (error) {
+      console.error('评论提交失败：', error);
     }
-    //清空输入框
-    commentInput.value = '';
-  }catch (error) {
-    console.error('评论提交失败：', error);
   }
-}
 };
 
 // 类型守卫方法
-const isFileWithPreview = (file: File | FileWithPreview): file is FileWithPreview => {
+const isFileWithPreview = (file: File | FileItem): file is FileItem => {
   return 'url' in file;
 };
 
-// 生成图片 URL
-const generatePreview = (file: File) => {
-  return URL.createObjectURL(file);
-};
+
 
 // 文件上传
 const handleUpload = async (event: Event) => {
   const input = event.target as HTMLInputElement;
   if (!input.files?.length) return;
-  const MAX_SIZE = 5 * 1024 * 1024; // 5MB
-  const files = Array.from(input.files).filter(file => {
+
+  const MAX_SIZE = 5 * 1024 * 1024;
+  const validFiles = Array.from(input.files).filter(file => {
     if (file.size > MAX_SIZE) {
       alert(`文件 ${file.name} 超过大小限制`);
       return false;
@@ -105,34 +103,41 @@ const handleUpload = async (event: Event) => {
     return true;
   });
 
-  // 转换为 FileWithPreview 格式
-  const filesWithPreview = files.map(file => ({
+  // 转换为统一FileItem格式
+  const newFiles = validFiles.map(file => ({
+    id: crypto.randomUUID(),
     name: file.name,
-    type: file.type,
     size: file.size,
+    type: file.type.split('/')[0] || 'other',
     url: URL.createObjectURL(file),
-    preview: URL.createObjectURL(file),
-    lastModified: file.lastModified
-  }));
+    uploader: userStore.user.name || '匿名用户',
+    uploadTime: dayjs().format('YYYY-MM-DD HH:mm:ss'),
+    scope: 'task'
+  } as FileItem));
 
-  // 合并现有文件和新增文件
-  const updatedFiles = [
-    ...(task.value.image || []),
-    ...filesWithPreview
-  ] as (File | FileWithPreview)[];
+  // 合并文件列表
+  task.value.files = [...(task.value.files || []), ...newFiles];
+  input.value = '';
+};
 
-  // 更新状态
-  task.value.image = updatedFiles;
+// 统一使用FileItem类型处理
+const isFileItem = (file: FileItem): file is FileItem => {
+  return 'id' in file && 'url' in file;
+};
 
-  // 在组件卸载时清理 ObjectURL
-  onBeforeUnmount(() => {
-    task.value.image?.forEach(file => {
-      if (!isFileWithPreview(file)) {
-        URL.revokeObjectURL(generatePreview(file));
-      }
-    });
-  });
-}
+
+const formatSize = (bytes: number) => {
+  const units = ['B', 'KB', 'MB', 'GB'];
+  let size = bytes;
+  let unitIndex = 0;
+
+  while (size >= 1024 && unitIndex < units.length - 1) {
+    size /= 1024;
+    unitIndex++;
+  }
+
+  return `${size.toFixed(1)} ${units[unitIndex]}`;
+};
 
 // 日志功能实现部分
 const operationTypeMap = {
@@ -147,6 +152,19 @@ const fieldMap = {
   deadline: '截止时间',
   status: '状态',
   priority: '优先级'
+};
+
+// 文件类型图标映射
+const fileTypeIcons: Record<string, string> = {
+  'image/png': 'image',
+  'image/jpeg': 'image',
+  'image/jpg': 'image',
+  'application/pdf': 'picture_as_pdf',
+  'default': 'file_present'
+};
+
+const getFileIcon = (type: string) => {
+  return fileTypeIcons[type] || fileTypeIcons.default;
 };
 
 // type 参数只能是 operationTypeMap 对象的键之一，即 "create" | "update" | "delete" | "status_change"
@@ -229,7 +247,7 @@ onMounted(async () => {
                     </template>
                     <v-list-item-title class="font-weight-bold">负责人</v-list-item-title>
                     <v-list-item-subtitle class="text-body-1">{{
-                      teamStore.getName(task.employeeId)}}</v-list-item-subtitle>
+                      teamStore.getName(task.employeeId) }}</v-list-item-subtitle>
                   </v-list-item>
 
                   <v-list-item>
@@ -326,21 +344,23 @@ onMounted(async () => {
               </v-col>
 
               <!-- 附件预览 -->
-              <v-col cols="12" v-if="task.image">
+              <v-col cols="12" v-if="task.files?.length">
                 <div class="text-h6 mb-2">📎 附件预览</div>
                 <v-row>
-                  <v-col v-for="(file, index) in Array.isArray(task.image) ? task.image : [task.image]" :key="index"
-                    cols="4">
+                  <v-col v-for="(file, index) in task.files" :key="file.id" cols="12" md="4">
                     <v-card variant="outlined" class="pa-2">
-                      <!-- 类型守卫处理 -->
-                      <template v-if="isFileWithPreview(file)">
-                        <!-- 显示静态资源 -->
-                        <v-img :src="file.url"></v-img>
-                      </template>
-                      <template v-else>
-                        <!-- 处理原生 File -->
-                        <v-img :src="generatePreview(file)"></v-img>
-                      </template>
+                      <div class="d-flex align-center">
+                        <v-icon class="mr-2">{{ getFileIcon(file.type) }}</v-icon>
+                        <div class="flex-grow-1">
+                          <div class="text-body-1 text-truncate">{{ file.name }}</div>
+                          <div class="text-caption text-grey">
+                            {{ formatSize(file.size) }} - {{ file.uploadTime }}
+                          </div>
+                        </div>
+                        <v-btn icon :href="file.url" target="_blank" download>
+                          <v-icon>mdi-download</v-icon>
+                        </v-btn>
+                      </div>
                     </v-card>
                   </v-col>
                 </v-row>
@@ -401,7 +421,8 @@ onMounted(async () => {
             操作记录（共{{ task.operations?.length || 0 }}条）
           </v-card-title>
           <v-timeline density="compact">
-            <v-timeline-item v-for="(log, index) in task.operations" :key="index" :dot-color="getLogColor(log.operationType)" size="small">
+            <v-timeline-item v-for="(log, index) in task.operations" :key="index"
+              :dot-color="getLogColor(log.operationType)" size="small">
               <div class="d-flex align-center">
                 <v-icon small class="mr-2">{{ getLogIcon(log.operationType) }}</v-icon>
                 <div>

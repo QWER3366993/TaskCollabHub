@@ -15,9 +15,14 @@ import {
   updateTaskScheduling,
   fetchTaskOverview,
   fetchEmployeeTaskCompletion,
+  fetchPublicFiles,
+  uploadPublicFile,
+  fetchTaskFiles,
+  uploadTaskFile,
+  deleteFile
 } from '@/api/task';
 import { createToast } from 'mosha-vue-toastify';
-import type { Task, OperationLog } from '@/types/task';
+import type { Task, OperationLog, FileItem } from '@/types/task';
 import type { Comment } from '@/types/comment';
 import type { Employee } from '@/types/team';
 import { safeDate } from '@/utils/convert';
@@ -46,6 +51,14 @@ export const useTaskStore = defineStore('task', () => {
     completedTasks: 0,
     overdueTasks: 0,
   });
+
+  //日志
+  const loading = ref(false);
+
+  const files = ref<FileItem[]>([]);
+  const currentTaskId = ref('');
+  const uploadProgress = ref(0);
+  const currentScope = ref<'task' | 'public'>('task'); 
 
   /** 员工任务完成情况数据 */
   const employeeTaskCompletion = ref<
@@ -79,6 +92,7 @@ export const useTaskStore = defineStore('task', () => {
     return tasks.value.filter(t => t.projectId === projectId)
   })
 
+  // ==================== 任务 ====================
   /** 获取所有任务 */
   const getAllTasks = async (): Promise<Task[]> => {
     try {
@@ -95,7 +109,7 @@ export const useTaskStore = defineStore('task', () => {
   /** 根据任务 ID 获取任务详情 */
   const getTaskById = async (taskId: string): Promise<Task | null> => {
     try {
-      return await fetchTaskById(taskId); 
+      return await fetchTaskById(taskId);
     } catch (error) {
       taskDetail.value = null;
       errorMessage.value = '获取任务详情失败';
@@ -364,6 +378,58 @@ export const useTaskStore = defineStore('task', () => {
     }
   };
 
+  // ==================== 文件 ====================
+  const getFiles = async () => {
+    loading.value = true;
+    try {
+      if (currentScope.value === 'task' && currentTaskId.value) {
+        const data = await fetchTaskFiles(currentTaskId.value);
+        files.value = data
+        return data
+      } else {
+        const data = await fetchPublicFiles();
+        files.value = data
+        return data
+      }
+    } catch (error) {
+      console.error(error);
+    } finally {
+      loading.value = false;
+    }
+  };
+
+  const uploadFile = async (formData: FormData) => {
+    loading.value = true;
+    try {
+      uploadProgress.value = 0;
+      const progressHandler = (progress: number) => {
+        uploadProgress.value = progress;
+      };
+      const config = {
+        onUploadProgress: (progressEvent: ProgressEvent) => {
+          const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+          progressHandler(percentCompleted);
+        },
+      };
+      if (currentScope.value === 'task' && currentTaskId.value) {
+        await uploadTaskFile(currentTaskId.value, formData);
+      } else {
+        await uploadPublicFile(formData);
+      }
+      await getFiles();
+    } catch (error) {
+      console.error(error);
+    } finally {
+      uploadProgress.value = 0;
+      loading.value = false;
+    }
+  };
+
+  const removeFile = async (fileId: string) => {
+    await deleteFile(fileId);
+    files.value = files.value.filter((f) => f.id !== fileId);
+  };
+
   return {
     tasks,
     taskDetail,
@@ -376,6 +442,11 @@ export const useTaskStore = defineStore('task', () => {
     completedTasksCount,
     getTasksByProject,
     getTaskOperations,
+    files,
+    loading,
+    uploadProgress,
+    currentTaskId,
+    currentScope,
     getAllTasks,
     getTaskById,
     getTasksByUser,
@@ -393,5 +464,8 @@ export const useTaskStore = defineStore('task', () => {
     getEmployeeTaskCompletion,
     addOperationLog,
     detectChanges,
+    getFiles,
+    uploadFile,
+    removeFile
   };
 });

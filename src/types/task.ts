@@ -12,18 +12,22 @@ export interface Task {
   creator: string; // 创建者 ID
   scheduledTime: string; // 调度时间
   deadline?: string; // 截止时间
-  image?: (File | FileWithPreview)[] | null;
+  files?: FileItem[];
   reminderTime?: string; // 任务截止前提醒时间
   operations?: OperationLog[];
 }
 
-// 文件预览类型
-export interface FileWithPreview {
+// 文件类型定义
+export interface FileItem {
+  id: string;
+  taskId?: string; // 关联任务ID（当scope=task时存在）
   name: string;
-  url: string; //必须包含
-  type: string;
   size: number;
-  preview?: string;
+  type: string;
+  url: string; 
+  uploadTime: string;
+  uploader: string;
+  scope: 'task' | 'public' // 文件作用域
 }
 
 export interface OperationLog {

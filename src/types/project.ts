@@ -1,3 +1,4 @@
+import type { FileItem } from './task'
 // 项目基础类型
 import type { Task } from './task'
 export interface Project {
@@ -8,14 +9,14 @@ export interface Project {
     tasks: Task[] // 直接包含任务数组
     scheduledTime: string; // 调度时间
     deadline?: string; // 截止时间
-    image?: File | string; 
+    files?: FileItem[];
     progress: number // 进度百分比
-  }
+}
 
-  export  interface ProjectCreateDTO {
-      title: string
-      description: string
-      teamId: string
-      tasks: Task[]
-      deadline?: string; // 截止时间
-  }
+export interface ProjectCreateDTO {
+    title: string
+    description: string
+    teamId: string
+    tasks: Task[]
+    deadline?: string; // 截止时间
+}

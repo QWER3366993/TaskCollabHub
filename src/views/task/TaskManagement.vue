@@ -118,7 +118,7 @@ const filteredTasks = computed(() => {
       timeRemaining: calculateTimeRemaining(task.deadline),
       isExpired: task.deadline ? dayjs(task.deadline).isBefore(dayjs()) : false
     }));
-    // console.log('任务ID列表:', result.map(task => task.id)); // 检查
+  // console.log('任务ID列表:', result.map(task => task.id)); // 检查
   return result;
 });
 
@@ -173,9 +173,10 @@ onMounted(async () => {
               <v-chip :color="statusColor(item.status)" label>
                 <v-icon start>
                   {{
-                    item.status === '待处理' ? 'mdi-alert-circle' :
-                      item.status === '进行中' ? 'mdi-progress-clock' :
-                        'mdi-check-circle'
+                    item.status === '待处理' ? 'flag_circle' :
+                      item.status === '进行中' ? 'play_circle' :
+                        item.status === '已完成' ? 'check-circle' :
+                          'help'
                   }}
                 </v-icon>
                 {{ item.status }}
@@ -186,7 +187,7 @@ onMounted(async () => {
             <template #item.employeeId="{ item }">
               <div>
                 <v-avatar size="32" color="primary" class="mr-2">
-                  <span class="text-white">{{ item.employeeId ? item.employeeId.charAt(0) : ''}}</span>
+                  <span class="text-white">{{ item.employeeId ? item.employeeId.charAt(0) : '' }}</span>
                 </v-avatar>
                 {{ teamStore.getName(item.employeeId) }}
               </div>
