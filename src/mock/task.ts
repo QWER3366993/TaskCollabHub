@@ -40,10 +40,10 @@ const mockTasks: Task[] = [
       },
       {
         id: 'f2',
-        name: '需求文档.pdf',
+        name: '封面和评分表.pdf',
         size: 2.5 * 1024 * 1024,
         type: 'application/pdf',
-        url: '/海南大学教务处关于做好2025届普通本科毕业论文（设计）相关工作的通知.pdf',
+        url: '/封面和评分表.pdf',
         uploadTime: '2025-03-22 11:00:00',
         uploader: 'u111',
         scope: 'task'
@@ -96,13 +96,65 @@ const mockTasks: Task[] = [
 
 let mockPublicFiles: FileItem[] = [
   {
-    id: 'public1',
-    name: '公司规范手册.pdf',
+    id: '1',
+    name: '封面和评分表.pdf',
     size: 2.5 * 1024 * 1024,
     type: 'application/pdf',
     url: '/public/company-handbook.pdf',
     uploadTime: '2025-03-20 09:00:00',
-    uploader: 'admin',
+    uploader: '李四',
+    scope: 'task',
+    taskId: '1'
+  },
+  {
+    id: '2',
+    name: '项目报告.docx',
+    size: 1.2 * 1024 * 1024, // 1.2 MB
+    type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    url: '/项目报告.docx',
+    uploadTime: '2025-03-19 14:30:00',
+    uploader: '王五',
+    scope: 'task',
+    taskId:'2'
+  },
+  {
+    id: '3',
+    name: '设计图.png',
+    size: 3.8 * 1024 * 1024, // 3.8 MB
+    type: 'image/png',
+    url: '/设计图.jpg',
+    uploadTime: '2025-03-18 10:45:00',
+    uploader: '猪大肠',
+    scope: 'public'
+  },
+  {
+    id: '4',
+    name: '代码示例.zip',
+    size: 5.0 * 1024 * 1024, // 5.0 MB
+    type: 'application/zip',
+    url: '/代码示例.zip',
+    uploadTime: '2025-03-17 16:00:00',
+    uploader: '狗剩',
+    scope: 'public'
+  },
+  {
+    id: '5',
+    name: '会议记录.txt',
+    size: 0.2 * 1024 * 1024, // 0.2 MB
+    type: 'text/plain',
+    url: '/会议记录.txt',
+    uploadTime: '2025-03-16 08:15:00',
+    uploader: '李秘书',
+    scope: 'public'
+  },
+  {
+    id: '6',
+    name: '未知文件类型.bin',
+    size: 0.5 * 1024 * 1024, // 0.5 MB
+    type: 'application/octet-stream', // 未知文件类型
+    url: '猜猜我是谁.bin',
+    uploadTime: '2025-03-14 11:30:00',
+    uploader: '无名氏',
     scope: 'public'
   }
 ];

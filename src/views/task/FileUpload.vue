@@ -5,6 +5,8 @@ import { useTaskStore } from '@/stores/task'
 import { createToast } from 'mosha-vue-toastify';
 import { useRoute } from 'vue-router'
 import { uploadPublicFile, uploadTaskFile } from '@/api/task';
+import { getFileIcon } from '@/types/fileTypeIcons'
+
 const route = useRoute();
 const taskStore = useTaskStore()
 const files = ref<FileItem[]>([])
@@ -21,6 +23,7 @@ const headers = [
   { title: '文件名', key: 'name' },
   { title: '类型', key: 'type' },
   { title: '大小', key: 'size' },
+  { title: '上传者', key: 'uploader' },
   { title: '上传时间', key: 'createdAt' },
   { title: '操作', key: 'actions' }
 ]
@@ -30,21 +33,6 @@ const scopeOptions = [
   { title: '任务文件', value: 'task' },
   { title: '公共文件', value: 'public' }
 ]
-
-// 文件类型图标映射
-const fileTypeIcons: Record<string, string> = {
-  'image/png': 'image',
-  'image/jpeg': 'image',
-  'image/jpg': 'image',
-  'application/pdf': 'picture_as_pdf',
-  'default': 'file_present'
-};
-
-const getFileIcon = (type: string) => {
-  return fileTypeIcons[type] || fileTypeIcons.default;
-};
-
-
 
 // 文件列表计算属性
 const filteredFiles = computed(() => {
@@ -152,6 +140,10 @@ onMounted(async () => {
           </template>
         </v-progress-linear>
 
+        <!-- v-data-table 会自动根据 headers 中定义的 key 来渲染每一列的内容。
+        如果某个 key 对应的列没有显式定义 v-slot，v-data-table 会使用默认的渲染方式，直接显示对应属性的值。 
+        在 headers 中，{ title: '上传者', key: 'uploader' } 定义了一个名为 uploader 的列。
+        v-data-table 会自动查找每个文件对象的 uploader 属性，并将其值显示在这一列中。所以在此不用显示定义-->
         <v-data-table :headers="headers" :items="filteredFiles" :loading="loading" class="elevation-1">
           <template v-slot:item.size="{ item }">
             {{ formatSize(item.size) }}
