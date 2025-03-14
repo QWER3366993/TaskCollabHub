@@ -36,12 +36,26 @@ const editDialog = ref(false);
 const editTask = ref<Task>({ ...defaultTask });
 // 删除框相关状态
 const deleteDialog = ref(false);
+// 控制是否处于编辑模式
+const isEditing = ref(false);
+let originalTask: Task = { ...defaultTask }; // 用于保存原始任务数据
 
-// 打开编辑对话框
-const openEdit = () => {
-  editTask.value = { ...task.value };
-  editDialog.value = true;
+// 打开编辑模式
+const toggleEdit = () => {
+  isEditing.value = !isEditing.value;
 };
+// 取消编辑并恢复原始数据
+const cancelEdit = () => {
+  task.value = { ...originalTask };
+  isEditing.value = false;
+};
+
+// 在打开编辑模式前保存原始数据
+watch(isEditing, (newVal) => {
+  if (newVal) {
+    originalTask = { ...task.value };
+  }
+});
 
 const task = ref<Task>(defaultTask);
 
@@ -255,26 +269,9 @@ onMounted(async () => {
             </div>
             <div>
               <!-- ‌tonal‌：按钮有颜色渐变效果 -->
-              <v-btn variant="tonal" color="primary" prepend-icon="edit" @click="openEdit">编辑</v-btn>
-              <!-- 编辑对话框 -->
-              <v-dialog v-model="editDialog" max-width="600">
-                <v-card>
-                  <v-card-title>编辑任务</v-card-title>
-                  <v-card-text>
-                    <v-text-field v-model="editTask.title" label="标题" />
-                    <v-textarea v-model="editTask.description" label="描述" />
-                    <v-select v-model="editTask.priority" :items="['高', '中', '低']" label="优先级" />
-                    <v-menu>
-
-                    </v-menu>
-                  </v-card-text>
-                  <v-card-actions>
-                    <v-btn @click="editDialog = false">取消</v-btn>
-                    <v-btn color="primary" @click="saveTask">保存</v-btn>
-                  </v-card-actions>
-                </v-card>
-              </v-dialog>
-
+              <v-btn variant="tonal" color="primary" prepend-icon="edit" @click="toggleEdit">
+                {{ isEditing ? '完成' : '编辑' }}
+              </v-btn>
               <!-- 删除按钮 -->
               <v-btn variant="tonal" color="error" prepend-icon="delete" @click="deleteDialog = true">删除</v-btn>
               <!-- 删除确认对话框 -->
@@ -393,13 +390,16 @@ onMounted(async () => {
               </v-col>
 
               <!-- 任务描述 -->
-              <v-col cols="12">
-                <div class="text-h6 mb-2">📝 任务描述</div>
-                <v-card variant="outlined" class="pa-4 rounded-lg" style="min-height: 120px">
-                  <div v-if="task.description" class="text-body-1 pre-line">{{ task.description }}</div>
-                  <div v-else class="text-grey">暂无任务描述</div>
-                </v-card>
-              </v-col>
+              <v-list-item>
+                    <template #prepend>
+                      <v-icon>description</v-icon>
+                    </template>
+                    <v-list-item-title class="font-weight-bold">描述</v-list-item-title>
+                    <v-list-item-subtitle>
+                      <div v-if="!isEditing" class="text-body-1 pre-line">{{ task.description }}</div>
+                      <v-textarea v-else v-model="task.description" label="描述" rows="3" />
+                    </v-list-item-subtitle>
+                  </v-list-item>
 
               <!-- 附件预览 -->
               <v-col cols="12" v-if="task.files?.length">
@@ -439,6 +439,12 @@ onMounted(async () => {
                     </v-chip>
                   </template>
                 </v-file-input>
+              </v-col>
+              <v-col>
+                <div class="d-flex justify-end">
+                  <v-btn v-if="isEditing" color="success" @click="saveTask">保存</v-btn>
+                  <v-btn v-if="isEditing" color="error" @click="cancelEdit">取消</v-btn>
+                </div>
               </v-col>
             </v-row>
           </v-card-text>
@@ -542,6 +548,6 @@ onMounted(async () => {
 
 /* .v-chip标签的宽度不会超过200像素,防止文字溢出或换行 */
 .uniform-file-input :deep(.v-chip) {
-    max-width: 200px;
+  max-width: 200px;
 }
 </style>
