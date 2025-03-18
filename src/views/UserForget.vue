@@ -44,7 +44,7 @@ const sendVerificationCode = async () => {
   if (!isEmailValid.value) return // 如果邮箱无效，则不发送
 
   coldTime.value = 60 // 设置冷却时间为60秒
-  post('/api/auth/valid-reset-email', { email: email.value },
+  post('/auth/valid-reset-email', { email: email.value },
     (message: string) => {
       createToast(message, { position: 'top-center', showIcon: true })
       // 设置一个定时器来减少冷却时间
@@ -66,7 +66,7 @@ const verifyCode = async () => {
   const { valid } = await formRef.value.validate() // 验证表单
   if (valid) {
     // 如果表单有效，发送请求以开始重置密码流程
-    post('/api/auth/start-reset', {
+    post('/auth/start-reset', {
       email: email.value,
       code: form.code
     }, () => {
@@ -79,7 +79,7 @@ const verifyCode = async () => {
 const resetPassword = async () => {
   const { valid } = await formRef.value.validate()
   if (valid) {
-    post('/api/auth/do-reset', { password: password.value },
+    post('/auth/do-reset', { password: password.value },
       (message: string) => {
         createToast(message, { position: 'top-center', showIcon: true })
         router.push('/') // 重置成功后重定向到登录页面

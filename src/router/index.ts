@@ -47,6 +47,16 @@ export const router = createRouter({
       ]
     },
     {
+      path: '/noticeboard',
+      name: 'noticeboard',
+      component: () => import('@/views/NoticeBoard.vue'),
+      meta: {
+        title: '公示公告',
+        hidden: false,
+        icon: 'notifications_active'
+      }
+    },
+    {
       path: '/index',
       name: 'index',
       component: () => import('@/views/layout/Index.vue'),
@@ -78,9 +88,10 @@ export const router = createRouter({
           }
         },
         {
-          path: 'taskscheduling',
+          path: 'taskscheduling/:taskId?/:projectId?', // 添加可选参数
           name: 'taskscheduling',
           component: () => import('@/views/task/TaskScheduling.vue'), //发布任务
+          props: true,
           meta: {
             title: '任务调度',
             hidden: false,
@@ -95,6 +106,16 @@ export const router = createRouter({
             title: '文件共享',
             hidden: false,
             icon: 'upload_file'
+          }
+        },
+        {
+          path: 'quickpanel',
+          name: 'quickpanel',
+          component: () => import('@/views/task/QuickPanel.vue'), //快捷操作面板
+          meta: {
+            title: '快捷面板',
+            hidden: false,
+            icon: 'switch_access_shortcut'
           }
         }
       ]
@@ -121,17 +142,90 @@ export const router = createRouter({
             icon: 'group'
           }
         },
+        {
+          path: 'teamdetail/:id',
+          name: 'teamdetail',
+          component: () => import('../views/team/TeamDetail.vue'), // 任务列表及操作
+          meta: {
+            title: '团队详情',
+            hidden: true,
+            icon: 'details'
+          }
+        },
+        {
+          path: 'communicate',
+          name: 'communicate',
+          component: () => import('@/views/team/Communicate.vue'),
+          meta: {
+            title: '实时通讯',
+            hidden: false,
+            icon: 'chat'
+          }
+        },
+        {
+          path: 'calendar',
+          name: 'calendar',
+          component: () => import('@/views/team/Calendar.vue'),
+          meta: {
+            title: '日程安排',
+            hidden: false,
+            icon: 'calendar_month'
+          }
+        }
       ]
     },
     {
-      path: '/profile',
-      name: 'profile',
-      component: () => import('@/views/UserProfile.vue'),  // 个人资料
+      path: '/person',
+      name: 'person',
+      component: () => import('@/views/layout/Index.vue'),  // 个人资料
       meta: {
         title: '个人中心',
         hidden: false,
-        icon: 'badge'
-      }
+        icon: 'manage_accounts'
+      },
+      redirect: '/person/personaldata',
+      children : [
+        {
+          path: 'personaldata',
+          name: 'personaldata',
+          component: () => import('@/views/person/PersonalData.vue'),  // 个人资料管理
+          meta: {
+            title: '个人资料',
+            hidden: false,
+            icon: 'badge'
+          }
+        },
+        {
+          path: 'todolist',
+          name: 'todolist',
+          component: () => import('@/views/person/TodoList.vue'),
+          meta: {
+            title: '待办事项',
+            hidden: false,
+            icon: 'list'
+          }
+        },
+        {
+          path: 'operationlog',
+          name: 'operationlog',
+          component: () => import('@/views/person/OperationLog.vue'),
+          meta: {
+            title: '操作日志',
+            hidden: false,
+            icon: 'construction'
+          }
+        },
+        {
+          path: 'notification',
+          name: 'notification',
+          component: () => import('@/views/person/Notification.vue'),
+          meta: {
+            title: '通知中心',
+            hidden: false,
+            icon: 'notifications'
+          }
+        }
+      ]
     },
     {
       path: '/reports',

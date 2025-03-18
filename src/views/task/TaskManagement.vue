@@ -132,6 +132,17 @@ const statusColor = (status: string) => {
   return colors[status] || 'secondary';
 };
 
+// 状态图标映射
+const statusIcon = (status: string) => {
+  const icons: Record<string, string> = {
+    '待处理': 'flag_circle',
+    '进行中': 'play_circle',
+    '已完成': 'check-circle'
+  }
+  return icons[status] || 'help'
+}
+
+
 // // 创建员工映射关系（id-name）(优化：创建store替换该方法)
 // const employeeMap = computed(() => {
 //   return new Map(
@@ -167,18 +178,11 @@ onMounted(async () => {
       <v-col>
         <v-card>
           <v-data-table :headers="headers" :items="filteredTasks" :sort-by="[{ key: 'title', order: 'asc' }]"
-            :items-per-page="10">
+            :items-per-page="10" style="width: 100%">
             <!-- 状态列 -->
             <template #item.status="{ item }">
-              <v-chip :color="statusColor(item.status)" label>
-                <v-icon start>
-                  {{
-                    item.status === '待处理' ? 'flag_circle' :
-                      item.status === '进行中' ? 'play_circle' :
-                        item.status === '已完成' ? 'check-circle' :
-                          'help'
-                  }}
-                </v-icon>
+              <v-chip :color="statusColor(item.status)" label :prepend-icon="statusIcon(item.status)"  class="status-chip">
+                
                 {{ item.status }}
               </v-chip>
             </template>
@@ -217,7 +221,7 @@ onMounted(async () => {
 
             <!-- 操作列 -->
             <template #item.actions="{ item }">
-              <div>
+              <div class="action-buttons">
                 <v-tooltip text="编辑">
                   <template #activator="{ props }">
                     <v-btn v-bind="props" icon variant="text" color="primary" @click="editTask(item.id)">
@@ -242,4 +246,34 @@ onMounted(async () => {
   </v-container>
 </template>
 
-<style scoped></style>
+<style scoped>
+/* 状态徽章样式 */
+.status-chip {
+  transition: all 0.3s ease;
+  &:hover {
+    transform: scale(1.05);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  }
+}
+
+/* 悬停操作按钮 */
+.action-buttons {
+  opacity: 0.5;
+  transition: opacity 0.3s ease;
+  .v-data-table__tr:hover & {
+    opacity: 1;
+  }
+}
+
+/* 统计卡片 */
+.stat-card {
+  display: flex;
+  align-items: center;
+  padding: 16px;
+  min-width: 200px;
+  
+  &.待处理 { background: linear-gradient(135deg, #fff3e0, #ffe0b2); }
+  &.进行中 { background: linear-gradient(135deg, #e3f2fd, #bbdefb); }
+  &.已完成 { background: linear-gradient(135deg, #e8f5e9, #c8e6c9); }
+}
+</style>

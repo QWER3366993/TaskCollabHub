@@ -18,7 +18,7 @@ watch(() => settingStore.refresh, () => {
 </script>
 
 <template>
-  <div>
+<div class="main-content-wrapper">
     <router-view v-slot="{ Component }">
       <transition name="fade">
         <!-- v-if 可以控制组件重建与销毁 -->
@@ -29,6 +29,12 @@ watch(() => settingStore.refresh, () => {
 </template>
 
 <style lang="scss" scoped>
+.main-content-wrapper {
+  width: 100%;
+  max-width: 2628px; /* 统一最大宽度 */
+  margin: 0 auto;    /* 居中 */
+}
+
 .fade-enter-from {
   opacity: 0; //透明度
   transform: scale(0);

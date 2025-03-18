@@ -16,7 +16,7 @@ export interface Project {
 export interface ProjectCreateDTO {
     title: string
     description: string
+    scheduledTime: string; // 调度时间
     teamId: string
-    tasks: Task[]
     deadline?: string; // 截止时间
 }

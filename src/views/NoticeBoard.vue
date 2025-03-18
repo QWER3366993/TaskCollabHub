@@ -1,4 +1,4 @@
-<!-- 日程安排 -->
+<!-- 通告栏组件 -->
  <script lang='ts' setup>
  </script>
  <template>

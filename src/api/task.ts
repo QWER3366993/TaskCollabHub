@@ -1,6 +1,6 @@
 import service from '@/utils/request'
 import type { Comment } from '@/types/comment'
-import type { Task, OperationLog, FileItem } from '@/types/task'
+import type { Task, TaskCreateDTO, OperationLog, FileItem } from '@/types/task'
 import type { Employee } from '@/types/team'
 import type { User } from '@/types/user'
 import dayjs from 'dayjs'
@@ -33,17 +33,17 @@ export const fetchTasksByUser = async (userId: string): Promise<Task[]> => {
   return response.data;
 };
 
-// 根据任务状态获取任务列表
-export const fetchTasksByStatus = async (status: '待处理' | '进行中' | '已完成'): Promise<Task[]> => {
-  const response = await service({
-    url: `/tasks?status=${status}`,
-    method: 'get',
-  });
-  return response.data;
-};
+// // 根据任务状态获取任务列表
+// export const fetchTasksByStatus = async (status: '待处理' | '进行中' | '已完成'): Promise<Task[]> => {
+//   const response = await service({
+//     url: `/tasks?status=${status}`,
+//     method: 'get',
+//   });
+//   return response.data;
+// };
 
 // 创建任务
-export const createTask = async (taskData: { title: string; description: string; employeeId: string; priority: string; status: string; creator: string }): Promise<Task> => {
+export const createTask = async (taskData: TaskCreateDTO): Promise<Task> => {
   const response = await service({
     url: '/tasks',
     method: 'post',
@@ -193,6 +193,39 @@ export const uploadTaskFile = async (taskId: string, formData: FormData): Promis
   })
   return response.data
 }
+
+// 文件下载接口（公共/任务通用）
+export const downloadFile = async (fileId: string, fileName: string): Promise<void> => {
+  const response = await service.get<Blob>(`/files/${fileId}/download`, {
+    responseType: 'blob',
+    transformResponse: [(data) => data] // 禁用默认 JSON 解析
+  });
+
+  // 获取原始文件名
+  const contentDisposition = response.headers['content-disposition'];
+  const serverFileName = contentDisposition?.split('filename=')[1]?.replace(/"/g, '') || fileName;
+
+  // 创建 Blob
+  const blob = new Blob([response.data], { type: response.headers['content-type'] });
+
+  // 创建对象 URL
+  const url = URL.createObjectURL(blob);
+  
+  // 创建隐藏链接
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = decodeURIComponent(serverFileName); // 解码中文文件名
+  link.style.display = 'none';
+
+  // 添加清理监听器
+  link.addEventListener('load', () => {
+    URL.revokeObjectURL(url);
+    document.body.removeChild(link);
+  });
+
+  document.body.appendChild(link);
+  link.click();
+};
 
 // 统一删除接口
 export const deleteFile = async (fileId: string): Promise<void> => {

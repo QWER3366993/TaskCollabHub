@@ -17,12 +17,12 @@ export const usernameRules = ref([
 
 export const passwordRules = ref([
   (v: string) => !!v || '必须输入密码!',
-  (v: string) => (v && v.length <= 20 && v.length >= 8) || '密码的长度为8到20个字符!'
+  (v: string) => (v && v.length <= 20 && v.length >= 6) || '密码的长度为6到20个字符!'
 ])
 
 export const confirmPasswordRules = ref([
   (v: string) => !!v || '必须输入确认密码!',
-  (v: string) => (v && v.length <= 20 && v.length >= 8) || '确认密码的长度为8到20个字符!',
+  (v: string) => (v && v.length <= 20 && v.length >= 6) || '确认密码的长度为6到20个字符!',
   (v: string) => v === password.value || '密码和确认密码不一致'
 ])
 

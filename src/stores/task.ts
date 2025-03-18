@@ -2,7 +2,7 @@ import { defineStore } from 'pinia';
 import { ref, computed, nextTick } from 'vue';
 import {
   fetchTaskById,
-  fetchTasksByStatus,
+  // fetchTasksByStatus,
   fetchTasks,
   createTask,
   updateOldTask,
@@ -19,10 +19,11 @@ import {
   uploadPublicFile,
   fetchTaskFiles,
   uploadTaskFile,
+  downloadFile,
   deleteFile
 } from '@/api/task';
 import { createToast } from 'mosha-vue-toastify';
-import type { Task, OperationLog, FileItem } from '@/types/task';
+import type { Task, OperationLog, FileItem, TaskCreateDTO } from '@/types/task';
 import type { Comment } from '@/types/comment';
 import type { Employee } from '@/types/team';
 import { safeDate } from '@/utils/convert';
@@ -32,7 +33,7 @@ export const useTaskStore = defineStore('task', () => {
   /** 任务列表 */
   const tasks = ref<Task[]>([]);
   /** 单个任务详情 */
-  const taskDetail = ref<Task | null>(null);
+  const taskDetail = ref<Task>();
   /** 任务评论 */
   const comments = ref<Comment[]>([]);
   /** 员工列表 */
@@ -58,7 +59,13 @@ export const useTaskStore = defineStore('task', () => {
   const files = ref<FileItem[]>([]);
   const currentTaskId = ref('');
   const uploadProgress = ref(0);
-  const currentScope = ref<'task' | 'public'>('task'); 
+  const currentScope = ref<'task' | 'public'>('task');
+  //  保持全局加载状态
+  const downloadLoading = ref(false);
+  // 高亮显示当前操作项
+  const currentDownloadingId = ref<string | null>(null);
+  // 跟踪所有进行中的下载
+  const downloadingIds = ref<string[]>([])
 
   /** 员工任务完成情况数据 */
   const employeeTaskCompletion = ref<
@@ -78,6 +85,10 @@ export const useTaskStore = defineStore('task', () => {
     ...log,
     time: safeDate(log.timestamp),
   });
+
+  interface FileState {
+    downloadingIds: string[] // 正在下载的文件ID列表
+  }
 
   /** 操作日志映射表（taskId -> logs） */
   const taskOperationLogs = ref<Record<string, OperationLog[]>>({});
@@ -109,10 +120,15 @@ export const useTaskStore = defineStore('task', () => {
   /** 根据任务 ID 获取任务详情 */
   const getTaskById = async (taskId: string): Promise<Task | null> => {
     try {
-      return await fetchTaskById(taskId);
+      const data = await fetchTaskById(taskId);
+      if (!data) {
+        throw new Error('任务不存在');
+      }
+      taskDetail.value = data; // 确保 data 不为 null
+      return data;
     } catch (error) {
-      taskDetail.value = null;
-      errorMessage.value = '获取任务详情失败';
+      taskDetail.value = {} as Task; // 清空任务详情
+      errorMessage.value = '获取任务详情失败: ' + (error as Error).message;
       createToast(errorMessage.value, { position: 'top-center', showIcon: true, type: 'danger' });
       return null;
     }
@@ -131,18 +147,18 @@ export const useTaskStore = defineStore('task', () => {
     }
   };
 
-  /** 根据任务状态获取任务列表 */
-  const getTasksByStatus = async (status: '待处理' | '进行中' | '已完成'): Promise<Task[]> => {
-    try {
-      const data = await fetchTasksByStatus(status);
-      tasks.value = data;
-      return data;
-    } catch (error) {
-      errorMessage.value = '获取任务列表失败';
-      createToast(errorMessage.value, { position: 'top-center', showIcon: true, type: 'danger' });
-      return [];
-    }
-  };
+  // /** 根据任务状态获取任务列表 */
+  // const getTasksByStatus = async (status: '待处理' | '进行中' | '已完成'): Promise<Task[]> => {
+  //   try {
+  //     const data = await fetchTasksByStatus(status);
+  //     tasks.value = data;
+  //     return data;
+  //   } catch (error) {
+  //     errorMessage.value = '获取任务列表失败';
+  //     createToast(errorMessage.value, { position: 'top-center', showIcon: true, type: 'danger' });
+  //     return [];
+  //   }
+  // };
 
   /** 获取任务评论 */
   const getCommentsByTaskId = async (taskId: string): Promise<Comment[]> => {
@@ -170,7 +186,7 @@ export const useTaskStore = defineStore('task', () => {
   };
 
   /** 创建新任务 */
-  const createNewTask = async (taskData: Task): Promise<Task> => {
+  const createNewTask = async (taskData: TaskCreateDTO): Promise<Task> => {
     try {
       const newTask = await createTask(taskData);
       tasks.value.push(newTask);
@@ -188,8 +204,9 @@ export const useTaskStore = defineStore('task', () => {
     try {
       // 查找原任务
       const originalTask = tasks.value.find(t => t.id === taskId);
-      if (!originalTask) throw new Error('任务不存在');
-
+      if (!originalTask) {
+        throw new Error('任务不存在');
+      }
       // 检测变更
       const changes = detectChanges(originalTask, updatedTask);
 
@@ -197,13 +214,12 @@ export const useTaskStore = defineStore('task', () => {
       const updatedTaskResponse = await updateOldTask(taskId, updatedTask);
 
       // 更新本地数据
-      const taskIndex = tasks.value.findIndex(t => t.id === taskId);
-      if (taskIndex !== -1) {
-        tasks.value[taskIndex] = {
-          ...tasks.value[taskIndex],
-          ...updatedTask
-        };
-      }
+      tasks.value = tasks.value.map(task => {
+        if (task.id === taskId) {
+          return { ...task, ...updatedTaskResponse };
+        }
+        return task;
+      });
 
       // 记录操作日志
       addOperationLog({
@@ -425,6 +441,33 @@ export const useTaskStore = defineStore('task', () => {
     }
   };
 
+  const downloadFiles = async (file: FileItem) => {
+    try {
+      downloadingIds.value.push(file.id)
+      downloadLoading.value = true
+      currentDownloadingId.value = file.id
+
+      // 添加扩展名补全逻辑
+      const fileNameWithExtension = file.name.includes('.')
+        ? file.name
+        : `${file.name}.${file.type.split('/')[1] || ''}`
+
+      await downloadFile(file.id, fileNameWithExtension)
+
+      createToast(`文件 ${file.name} 下载成功`, { type: 'success' })
+    } catch (error) {
+      console.error('下载失败:', error)
+      createToast('文件损坏或下载失败', {
+        position: 'top-center',
+        type: 'danger',
+      })
+    } finally {
+      downloadingIds.value = downloadingIds.value.filter(id => id !== file.id)
+      downloadLoading.value = downloadingIds.value.length > 0
+      currentDownloadingId.value = downloadingIds.value[0] || null
+    }
+  }
+
   const removeFile = async (fileId: string) => {
     await deleteFile(fileId);
     files.value = files.value.filter((f) => f.id !== fileId);
@@ -447,10 +490,11 @@ export const useTaskStore = defineStore('task', () => {
     uploadProgress,
     currentTaskId,
     currentScope,
+    downloadingIds,
     getAllTasks,
     getTaskById,
     getTasksByUser,
-    getTasksByStatus,
+    // getTasksByStatus,
     getCommentsByTaskId,
     submitComment,
     createNewTask,
@@ -466,6 +510,7 @@ export const useTaskStore = defineStore('task', () => {
     detectChanges,
     getFiles,
     uploadFile,
+    downloadFiles,
     removeFile
   };
 });

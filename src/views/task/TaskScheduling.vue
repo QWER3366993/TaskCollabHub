@@ -1,21 +1,24 @@
 <script setup lang="ts">
-import { ref, onMounted, watch, computed } from 'vue';
+import { ref, onMounted, watch, computed, onUnmounted } from 'vue';
 import dayjs from 'dayjs';
 import { useRoute, useRouter } from 'vue-router';
 import { useTaskStore } from '@/stores/task';
-import type { Task, FileItem } from '@/types/task';
-import type { Project } from '@/types/project';
+import type { TaskCreateDTO, FileItem } from '@/types/task';
+import type { ProjectCreateDTO } from '@/types/project';
 import { useTeamStore } from '@/stores/team';
 import type { Employee, Team } from '@/types/team';
 import { useProjectStore } from '@/stores/project';
+import { createToast } from 'mosha-vue-toastify';
+import { useRouteStore } from '@/stores/route';
+import { useUserStore } from '@/stores/user';
 
-const route = useRoute();
 const router = useRouter();
 const taskStore = useTaskStore();
 const projectStore = useProjectStore();
 const team = ref<Team[]>([])
 const members = ref<Employee[]>([]); // 分配成员列表
 const teamStore = useTeamStore();
+const userStore = useUserStore();
 const deadlineMenu = ref<boolean[]>([]); // 控制每个任务的截止时间选择器的显示
 const reminderMenu = ref<boolean[]>([]); // 控制每个任务的提醒时间选择器的显示
 // 动态更新当前时间
@@ -41,13 +44,6 @@ const formatDate = (date: string | undefined): string => {
   return date ? dayjs(date).format('YYYY-MM-DD HH:mm:ss') : '';
 };
 
-// 定时更新当前时间
-setInterval(updateTime, 1000); // 每秒更新一次
-
-// 初始化时更新一次时间
-onMounted(() => {
-  updateTime();
-});
 
 // 更新截止日期
 const updateDeadlineDate = (date: Date | string, index: number) => {
@@ -76,51 +72,48 @@ const updateReminderTime = (time: string, index: number) => {
   tasks.value[index].reminderTime = time;
 };
 
-//当前项目列表
-const projects = ref<Project[]>([
-  {
-    id: '',
-    title: '',
-    description: '',
-    teamId: '',
-    tasks: [],
-    scheduledTime: dayjs().format('YYYY-MM-DD HH:mm:ss'),
-    deadline: dayjs().format('YYYY-MM-DD HH:mm:ss'),
-    files: [],
-    progress: 0
-  }
+const currentProjectIndex = ref<number>(0); // 默认监听第一个项目
 
-]);
+//当前项目列表
+const projects = ref<ProjectCreateDTO>({
+  title: '',
+  description: '',
+  teamId: teamStore.currentTeam?.id || '',
+  scheduledTime: dayjs().format('YYYY-MM-DD HH:mm:ss'),
+  deadline: dayjs().format('YYYY-MM-DD HH:mm:ss'), // 添加默认截止时间
+
+});
 
 // 当前任务列表
-const tasks = ref<Task[]>([
+const tasks = ref<TaskCreateDTO[]>([
   {
-    id: '',
+    projectId: '',
+    teamId: teamStore.currentTeam?.id || '',
     title: '',
     description: '',
     employeeId: '',
     status: '待处理',
     priority: '低',
     creator: '',
-    teamId: '', // 任务所属团队 ID
-    scheduledTime: dayjs().format('YYYY-MM-DD HH:mm:ss'), // 初始化为当前时间
+    scheduledTime: dayjs().format('YYYY-MM-DD HH:mm:ss'),
     deadline: dayjs().format('YYYY-MM-DD HH:mm:ss'),
     reminderTime: '',
-    files: [], // 用于存储上传的文件
+    files: []
   }
-]);
+])
+
 
 // 添加新任务
 const addTask = () => {
   tasks.value.push({
-    id: '',
+    projectId: '',
+    teamId: teamStore.currentTeam?.id || '',
     title: '',
     description: '',
     employeeId: '',
     status: '待处理',
     priority: '低',
     creator: '',
-    teamId: '',
     scheduledTime: dayjs().format('YYYY-MM-DD HH:mm:ss'),
     deadline: dayjs().format('YYYY-MM-DD HH:mm:ss'),
     reminderTime: '',
@@ -131,15 +124,17 @@ const addTask = () => {
 };
 
 const props = defineProps<{
-  taskId: string;
-  projectId: string;
+  taskId?: string;
+  projectId?: string;
 }>();
-// 保存所有任务
-const saveAllTasks = async () => {
+
+// 提交项目/任务
+const handleSubmit = async () => {
   if (publishMode.value === 'task') {
     try {
+      const isNewTask = !props.taskId || props.taskId === 'new';
       for (const task of tasks.value) {
-        if (!task.id) {
+        if (isNewTask) {
           await taskStore.createNewTask(task);
         } else {
           await taskStore.updateTask(props.taskId, task);
@@ -151,19 +146,29 @@ const saveAllTasks = async () => {
     }
   } else if (publishMode.value === 'project') {
     try {
-      for (const project of projects.value) {
-        if (!project.id) {
-          await projectStore.createNewProject(project);
-        } else {
-          await projectStore.updateProject(props.projectId, project);
-        }
+      if (!projects.value.teamId) {
+        createToast('请选择所属团队', { type: 'warning' })
+        return
       }
-      router.push({ name: 'taskmanagement' }); // 返回任务列表页面
+      // 映射每个任务
+      const projectTasks = tasks.value.map(task => ({
+        ...task, // 展开原始任务数据
+        creator: teamStore.currentEmployee?.employeeId || '', // 添加创建者
+        teamId: projects.value.teamId // 添加团队 ID
+      }));
+
+      // 同时提交项目信息和关联任务
+      const newProject = await projectStore.createNewProject(
+        projects.value,
+        projectTasks
+      );
+
+      createToast(`项目 ${newProject.title} 创建成功`, { type: 'success' })
     } catch (error) {
-      console.error('保存项目失败:', error);
+      createToast('项目创建失败', { type: 'danger' })
     }
   }
-}
+};
 
 // 处理文件上传
 const handleFileUpload = (event: Event, index: number) => {
@@ -222,13 +227,21 @@ const loadTeams = async () => {
 // 获取分配成员列表
 const fetchMembers = async (teamId: string): Promise<Employee[]> => {
   try {
-    const teamMembers = await teamStore.getTeamMembers(teamId); // 替换为你的后端接口
+    const teamMembers = await teamStore.getTeamMembers(teamId);
     return teamMembers; // 返回团队成员列表
   } catch (error) {
     console.error('获取成员列表失败:', error);
     throw error; // 抛出错误，便于调用者处理
   }
 };
+
+// 团队成员映射
+const memberOptions = computed(() => {
+  return teamStore.teamMembers.map(m => ({
+    title: m.name,
+    value: m.employeeId
+  }))
+})
 
 // 根据任务数量自动计算预计进度
 const calculateProgress = computed(() => {
@@ -239,7 +252,7 @@ const calculateProgress = computed(() => {
 
 // 当选择项目模式时，自动填充团队
 watch(
-  () => projects.value[0].id,
+  () => projects.value.teamId,
   (newVal) => {
     if (newVal) {
       tasks.value.forEach(t => {
@@ -250,31 +263,40 @@ watch(
   }
 )
 
+let intervalId: any;
 // 初始化
 onMounted(async () => {
   updateTime();
+  intervalId = setInterval(updateTime, 1000);
   // 初始化时间选择器
   reminderMenu.value = tasks.value.map(() => false);
-  // 加载用户所属团队
-  const employeeId = route.params.teamId as string;
-  await teamStore.getTeamByemployId(employeeId);
-  // 默认选中第一个团队
-  if (teamStore.teamList.length > 0) {
-    projects.value[0].id = teamStore.teamList[0].id
-    await teamStore.getTeamMembers(projects.value[0].id)
-  }
-
-  const teamId = route.params.teamId as string;
-  if (teamId) { // 假设任务对象中有 teamId 字段
-    try {
-      members.value = await fetchMembers(teamId); // 获取团队成员并赋值
-    } catch (error) {
-      console.error('加载团队成员失败:', error);
-    }
-  } else {
-    console.error('任务未分配团队');
-  }
+  // 动态获取团队数据
+  await loadTeams();
 })
+
+onUnmounted(() => {
+  clearInterval(intervalId);
+});
+
+// 动态监听当前项目的 teamId
+watch(
+  () => projects.value.teamId,
+  async (newVal) => {
+    if (newVal && currentProjectIndex.value !== null) {
+      try {
+      members.value = await fetchMembers(newVal); // 更新成员列表
+      const projectTasks = tasks.value.filter(task => task.teamId === projects.value.teamId);
+      projectTasks.forEach(t => {
+        t.teamId = newVal; // 更新任务的 teamId
+        t.employeeId = members.value[0]?.employeeId || ''; // 默认分配第一个成员
+      });
+      } catch (error) {
+        console.error('加载团队成员失败:', error);
+      }
+    }
+  }
+);
+
 </script>
 
 <template>
@@ -283,7 +305,7 @@ onMounted(async () => {
       <v-col cols="12">
         <h2>任务下发</h2>
       </v-col>
-      <v-col cols="12">
+      <v-col cols="12" class="mx-auto"> <!-- 添加居中限制 -->
         <v-form>
           <!-- 模式切换 -->
           <div class="mode-switch mb-4">
@@ -298,33 +320,34 @@ onMounted(async () => {
               <v-card class="mb-4">
                 <v-card-title>项目信息</v-card-title>
                 <v-card-text>
-                  <v-text-field v-model="project.title" label="项目名称" required />
-                  <v-select v-model="project.teamId" :items="team" label="所属团队" item-title="name" item-value="id"
-                    :loading="!team.length" />
-                  <!-- loading 状态，当团队列表为空时，显示加载中状态 -->
+                  <v-text-field v-model="projects.title" label="项目名称" required />
+                  <v-select v-model="projects.teamId" :items="loadTeams" label="所属团队" item-title="name" item-value="id"
+                    :loading="!team.length" @update:modelValue="fetchMembers">
+                    <!-- loading 状态，当团队列表为空时，显示加载中状态 -->
+                    <template v-slot:no-data>
+                      <v-list-item>
+                        <v-list-item-title>无可用团队</v-list-item-title>
+                      </v-list-item>
+                    </template>
+                  </v-select>
                   <v-menu v-model="deadlineMenu[index]" :close-on-content-click="false">
                     <template #activator="{ props }">
-                      <v-text-field :model-value="formatDate(project.deadline)" label="整体项目截止时间" readonly
+                      <v-text-field :model-value="formatDate(projects.deadline)" label="整体项目截止时间" readonly
                         v-bind="props" />
                     </template>
                     <!-- 成员选择器绑定 -->
                     <template v-for="(task, index) in tasks" :key="index">
-                      <v-select v-model="task.employeeId" :items="teamStore.teamMembers" label="分配成员" item-title="name"
-                        item-value="id" :disabled="!project.teamId" :rules="[v => !!v || '必须选择成员']">
+                      <v-select v-model="task.employeeId" :items="teamStore.teamMembers" label="负责人" item-title="name"
+                        item-value="employeeId" :disabled="!projects.teamId" :rules="[v => !!v || '必须选择成员']">
                         <template v-slot:no-data>
                           <v-list-item>
                             <v-list-item-title>
-                              {{ project.teamId ? '暂无成员' : '请先选择团队' }}
+                              {{ projects.teamId ? '暂无成员' : '请先选择团队' }}
                             </v-list-item-title>
                           </v-list-item>
                         </template>
                       </v-select>
                     </template>
-                    <!-- <v-date-picker :model-value="dayjs(project.deadline).toDate()"
-                      @update:model-value="(date) => updateDeadlineDate(date, index)"
-                      :min="dayjs().format('YYYY-MM-DD')" />
-                    <v-time-picker :model-value="dayjs(project.deadline).format('HH:mm')"
-                      @update:model-value="(time) => updateDeadlineTime(time, index)" format="24hr" /> -->
                   </v-menu>
                 </v-card-text>
               </v-card>
@@ -386,7 +409,7 @@ onMounted(async () => {
       </v-col>
       <v-col cols="12">
         <v-btn color="primary" @click="addTask">添加任务</v-btn>
-        <v-btn color="success" @click="saveAllTasks">保存所有任务</v-btn>
+        <v-btn color="success" @click="handleSubmit">提交</v-btn>
         <v-btn @click="router.push({ name: 'taskmanagement' })">取消</v-btn>
       </v-col>
     </v-row>
@@ -406,5 +429,4 @@ onMounted(async () => {
   </v-dialog>
 </template>
 
-<style scoped>
-</style>
+<style scoped></style>

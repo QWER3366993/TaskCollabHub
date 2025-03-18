@@ -1,7 +1,7 @@
 import type { MockMethod } from 'vite-plugin-mock';
 import type { Task, OperationLog, FileItem } from '@/types/task';
-import type { Comment } from '@/types/comment';
-import { createRouter } from 'vue-router';
+import type { Employee } from '@/types/team';
+import type { User } from '@/types/user';
 
 
 // // 自定义路径参数类型
@@ -10,11 +10,36 @@ interface MockParams {
     id?: string;
     taskId?: string;
     fileId?: string;
+    teamId?: string;
   };
-  body?:any;
+  body?: any;
 }
 
 // 统一的任务数据源
+const mockUsers: User[] = [
+  {
+    username: 'admin',
+    password: '123456',
+    name: '系统管理员',
+    authorities: ['admin'],
+    avatar: '/admin.png',
+    email: 'admin@example.com',
+    phone: '13800138000'
+  },
+  {
+    username: 'pdx',
+    password: '123456',
+    name: '派大星',
+    authorities: ['manager'],
+    avatar: '/派大星.jpg',
+    email: 'pdx@example.com',
+    phone: '13800138001'
+  }
+];
+
+
+
+
 const mockTasks: Task[] = [
   {
     id: '1',
@@ -115,7 +140,7 @@ let mockPublicFiles: FileItem[] = [
     uploadTime: '2025-03-19 14:30:00',
     uploader: '王五',
     scope: 'task',
-    taskId:'2'
+    taskId: '2'
   },
   {
     id: '3',
@@ -159,9 +184,131 @@ let mockPublicFiles: FileItem[] = [
   }
 ];
 
+// 团队成员列表
+const mockTeamMembers: Employee[] = [
+  {
+    employeeId: 'u111',
+    name: '派大星',
+    avatar: '/派大星.jpg',
+    teamId: '1', // 补充团队 ID
+    userId: 'user111', // 补充用户 ID
+    status: '在职', // 补充状态
+    workload: 50, // 补充工作负载 (假设值)
+    position: '开发工程师', // 补充职位
+    authorities: ['manager'],
+  },
+  {
+    employeeId: 'i',
+    name: '海绵宝宝',
+    avatar: '/海绵宝宝.jpg',
+    teamId: '2', // 补充团队 ID
+    userId: 'user222', // 补充用户 ID
+    status: '在职', // 补充状态
+    workload: 70, // 补充工作负载 (假设值)
+    position: '测试工程师',// 补充职位
+    authorities: ['manager'],
+  }
+];
 
+// JWT密钥
+const JWT_SECRET = 'mock_secret';
 
 export default [
+
+// 登录接口
+{
+  url: '/auth/login',
+  method: 'post',
+  response: ({ body }: { body: User }) => {
+    console.log('收到登录请求:', body);
+
+    const user = mockUsers.find(u => 
+      u.username === body.username && 
+      u.password === body.password
+    );
+
+    if (!user) {
+      return {
+        code: 401,
+        message: '用户名或密码错误'
+      };
+    }
+
+    // 生成模拟JWT Token
+    const payload = {
+      sub: user.username,
+      name: encodeURIComponent(user.name || ''), // 编码中文
+      authorities: user.authorities
+    };
+
+    const token = `mock_jwt.${Buffer.from(JSON.stringify(payload)).toString('base64')}`;
+
+    return {
+      code: 200,
+      data: {
+        token,
+        user: {
+          username: user.username,
+          name: user.name,
+          avatar: user.avatar
+        }
+      },
+      msg: '登录成功'
+    };
+  }
+},
+
+// 用户信息接口
+{
+  url: '/auth/userinfo',
+  method: 'get',
+  response: (request: { headers: { Authorization?: string } }) => {
+    const authHeader = request.headers.Authorization;
+    if (!authHeader?.startsWith('mock_jwt.')) {
+      return { code: 401 };
+    }
+
+    const tokenPayload = JSON.parse(
+      Buffer.from(authHeader.split('.')[1], 'base64').toString()
+    );
+    tokenPayload.name = decodeURIComponent(tokenPayload.name);
+
+    const user = mockUsers.find(u => 
+      u.username === tokenPayload.sub
+    );
+
+    if (!user) return { code: 404 };
+
+    return {
+      code: 200,
+      data: {
+        username: user.username,
+        name: user.name,
+        avatar: user.avatar,
+        email: user.email,
+        phone: user.phone,
+        authorities: user.authorities
+      }
+    };
+  }
+},
+
+
+// 根据用户ID获取员工信息
+{
+  url: '/employees/:userId',
+  method: 'get',
+  response: (request: { query: { userId: string } }) => {
+    const employee = mockTeamMembers.find(
+      e => e.userId === request.query.userId
+    );
+    
+    return employee 
+      ? { code: 200, data: employee }
+      : { code: 404 };
+  }
+},
+
   // 任务列表接口（返回精简数据）
   {
     url: '/tasks',
@@ -183,26 +330,8 @@ export default [
     method: 'get',
     response: (request: { query: { id: string } }) => {
       const taskId = request.query.id;
-      if (!taskId) {
-        return {
-          status: 400,
-          body: {
-            code: 400,
-            message: "缺少任务ID参数"
-          }
-        };
-      }
       const task = mockTasks.find(t => t.id === taskId);
-      if (!task) {
-        return {
-          status: 404,
-          body: {
-            code: 404,
-            message: '任务不存在'
-          }
-        };
-      }
-      return task;
+      return task || null;
     }
   },
 
@@ -274,6 +403,69 @@ export default [
       return { code: 200 };
     }
   },
+
+  // 文件下载接口
+  {
+    url: '/files/download/:fileId',
+    method: 'get',
+    response: ({ params }: MockParams) => {
+      // 合并所有文件源
+      const allFiles = [
+        ...mockPublicFiles,
+        ...mockTasks.flatMap(t => t.files || [])
+      ];
+      const file = allFiles.find(f => f.id === params.fileId);
+
+      if (!file) return { code: 404 };
+
+      // 关键修改：返回 public 目录真实文件
+      return {
+        headers: {
+          'Content-Type': file.type,
+          'Content-Disposition': `attachment; filename="${encodeURIComponent(file.name)}"`
+        },
+        // 返回 public 目录文件的实际二进制流
+        rawResponse: async () => {
+          const res = await fetch(file.url); // 从 public 目录获取真实文件
+          const buffer = await res.arrayBuffer();
+          return new Response(buffer, {
+            headers: {
+              'Content-Type': file.type
+            }
+          });
+        }
+      };
+    }
+  },
+
+
+
+
+  {
+    url: '/employees',
+    method: 'get',
+    response: () => mockTeamMembers.map(employee => ({
+      employeeId: employee.employeeId,
+      name: employee.name,
+      avatar: employee.avatar,
+      teamId: employee.teamId,
+      userId: employee.userId,
+      status: employee.status,
+      workload: employee.workload,
+      position: employee.position
+    }))
+  },
+
+  // 获取团队成员列表
+  {
+    url: '/teams/:teamId/members',
+    method: 'get',
+    response: (request: { query: { teamId: string } }) => {
+      const teamId = request.query.teamId;
+      const members = mockTeamMembers.filter(m => m.teamId === teamId);
+      return members || null;
+    }
+  }
 
 ] as MockMethod[];
 

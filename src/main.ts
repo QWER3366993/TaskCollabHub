@@ -11,13 +11,17 @@ import 'material-design-icons-iconfont/dist/material-design-icons.css'
 import { aliases, md } from 'vuetify/iconsets/md'
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
+import { VTimePicker } from 'vuetify/labs/VTimePicker';
 import 'dayjs/locale/zh-cn';
 // 引入echarts
 import Echarts from 'vue-echarts'
 import * as echarts from 'echarts'
 
 const vuetify = createVuetify({
-    components,
+    components: {
+      ...components,
+      VTimePicker
+    },
     directives,
     icons: {
       defaultSet: 'md',

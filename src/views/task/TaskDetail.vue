@@ -4,6 +4,7 @@ import { useRoute, useRouter } from 'vue-router';
 import { useTaskStore } from '@/stores/task';
 import { useTeamStore } from '@/stores/team';
 import type { Task, FileItem } from '@/types/task';
+import type { Employee } from '@/types/team';
 import dayjs from 'dayjs';
 import { useUserStore } from '@/stores/user';
 import { getFileIcon } from '@/types/fileTypeIcons'
@@ -16,6 +17,7 @@ const commentInput = ref('');
 const userStore = useUserStore();
 const teamStore = useTeamStore();
 const taskId = route.params.id as string; // 从路由参数中获取任务 ID
+const teamId = ref<string>('');
 
 const defaultTask: Task = {
   id: '',
@@ -32,32 +34,36 @@ const defaultTask: Task = {
 };
 
 // 编辑相关状态
-const editDialog = ref(false);
 const editTask = ref<Task>({ ...defaultTask });
 // 删除框相关状态
 const deleteDialog = ref(false);
 // 控制是否处于编辑模式
 const isEditing = ref(false);
-let originalTask: Task = { ...defaultTask }; // 用于保存原始任务数据
+const originalTask = ref<Task>({ ...defaultTask });
 
 // 打开编辑模式
 const toggleEdit = () => {
   isEditing.value = !isEditing.value;
+  // 进入编辑模式时初始化编辑数据
+  if (isEditing.value) {
+    editTask.value = { ...task.value };  // 同步当前数据到编辑副本
+  }
 };
-// 取消编辑并恢复原始数据
+// 取消编辑
 const cancelEdit = () => {
-  task.value = { ...originalTask };
   isEditing.value = false;
 };
-
-// 在打开编辑模式前保存原始数据
+// 观察编辑模式变化时保存原始数据
 watch(isEditing, (newVal) => {
   if (newVal) {
-    originalTask = { ...task.value };
+    originalTask.value = { ...task.value };
+    editTask.value = { ...task.value }; // 同步初始化编辑数据
+
   }
 });
 
 const task = ref<Task>(defaultTask);
+const teamMembers = ref<Employee[]>([]);
 
 // 状态颜色映射
 const statusColor = (status?: string) => {
@@ -111,13 +117,6 @@ const addComment = async () => {
   }
 };
 
-// 类型守卫方法
-const isFileWithPreview = (file: File | FileItem): file is FileItem => {
-  return 'url' in file;
-};
-
-
-
 // 文件上传
 const handleUpload = async (event: Event) => {
   const input = event.target as HTMLInputElement;
@@ -148,12 +147,6 @@ const handleUpload = async (event: Event) => {
   task.value.files = [...(task.value.files || []), ...newFiles];
   input.value = '';
 };
-
-// 统一使用FileItem类型处理
-const isFileItem = (file: FileItem): file is FileItem => {
-  return 'id' in file && 'url' in file;
-};
-
 
 const formatSize = (bytes: number) => {
   const units = ['B', 'KB', 'MB', 'GB'];
@@ -209,27 +202,47 @@ const formatValue = (value: string | number | Date) => {
 // 日志功能部分结束
 
 // 加载任务详情的方法
+// 加载任务详情的方法
 const loadTaskDetail = async (taskId: string) => {
   try {
-    // ✅ 清空旧数据，展示加载状态
+    // 先加载员工数据
+    if (teamStore.employees.length === 0) {
+      await teamStore.getEmployees();
+    }
+    // 清空旧数据，展示加载状态
     task.value = { ...defaultTask };
     // 从Store或API获取数据，确保使用 taskId
     const taskDetails = await taskStore.getTaskById(taskId);
+    console.log('加载任务详情:', taskDetails);
     if (taskDetails) {
       task.value = taskDetails;
-      console.log('加载的任务数据:', task.value); // 🔍 验证数据是否正确
+      teamId.value = taskDetails.teamId;
+      // 加载团队成员
+      if (taskDetails.teamId) {
+        teamMembers.value = await teamStore.getTeamMembers(taskDetails.teamId);
+      } else {
+        teamMembers.value = teamStore.employees;
+      }
     }
+    console.log('当前团队成员:',teamMembers.value);
   } catch (error) {
-    console.error('加载任务失败:', error);
+    createToast('任务加载失败', { type: 'danger' });
   }
 };
 
 // 保存修改
 const saveTask = async () => {
   try {
+    // 空值校验
+    if (JSON.stringify(editTask.value) === JSON.stringify(originalTask.value)) {
+      createToast('未检测到内容修改', { type: 'warning' });
+      return;
+    }
+    // 发送更新请求
     await taskStore.updateTask(taskId, editTask.value);
-    task.value = editTask.value;
-    editDialog.value = false;
+
+    // 退出编辑模式
+    isEditing.value = false;
     createToast('任务更新成功', { type: 'success' });
   } catch (error) {
     createToast('更新失败', { type: 'danger' });
@@ -247,8 +260,18 @@ const confirmDelete = async () => {
   }
 };
 
+// 员工头像
+const responsibleAvatar = computed(() => {
+  // 从全局员工列表查找
+  const employee = teamStore.employees.find(
+    e => e.employeeId === task.value.employeeId
+  );
+  return employee?.avatar ? employee.avatar : '/unknown.png'; // 确保默认头像存在
+});
+
+
 onMounted(async () => {
-  await loadTaskDetail(taskId);
+  await loadTaskDetail(taskId);  // 加载任务数据
 });
 </script>
 
@@ -263,9 +286,13 @@ onMounted(async () => {
       <v-col cols="12" md="8">
         <v-card elevation="2">
           <v-card-title class="d-flex justify-space-between align-center">
-            <div class="d-flex align-center">
-              <v-icon large class="mr-2">titlecase</v-icon>
-              <span class="text-h5">{{ task.title }}</span>
+            <div class="d-flex align-center" style="min-width: 300px;">
+              <template v-if="!isEditing">
+                <v-icon large class="mr-2">titlecase</v-icon>
+                <span class="text-h5">{{ task.title }}</span>
+              </template>
+              <v-text-field v-else v-model="editTask.title" label="任务标题" density="compact" variant="outlined"
+                class="title-field" />
             </div>
             <div>
               <!-- ‌tonal‌：按钮有颜色渐变效果 -->
@@ -298,11 +325,18 @@ onMounted(async () => {
                 <v-list density="comfortable">
                   <v-list-item>
                     <template #prepend>
-                      <v-icon>man</v-icon>
+                      <v-avatar :image="responsibleAvatar" size="36px">
+                      </v-avatar>
                     </template>
                     <v-list-item-title class="font-weight-bold">负责人</v-list-item-title>
-                    <v-list-item-subtitle class="text-body-1">{{
-                      teamStore.getName(task.employeeId) }}</v-list-item-subtitle>
+                    <v-list-item-subtitle class="text-body-1">
+                      <template v-if="!isEditing">
+                        {{ teamStore.getName(task.employeeId) }}
+                      </template>
+                      <v-select v-else v-model="editTask.employeeId" :items="teamStore.employees" item-title="name"
+                        item-value="employeeId" density="compact" variant="outlined" label="选择负责人" class="edit-field"
+                        :hint="task.teamId ? `所属团队：${task.teamId}` : '全平台员工'" persistent-hint />
+                    </v-list-item-subtitle>
                   </v-list-item>
 
                   <v-list-item>
@@ -339,13 +373,17 @@ onMounted(async () => {
 
                       <v-list-item>
                         <template #prepend>
-                          <v-icon color="amber">bolt</v-icon>
+                          <v-icon :color="priorityColor(task.priority)">bolt</v-icon>
                         </template>
                         <v-list-item-title class="font-weight-bold">优先级</v-list-item-title>
                         <v-list-item-subtitle>
-                          <v-chip :color="priorityColor(task.priority)" label>
-                            {{ task.priority }}
-                          </v-chip>
+                          <template v-if="!isEditing">
+                            <v-chip :color="priorityColor(task.priority)" label>
+                              {{ task.priority }}
+                            </v-chip>
+                          </template>
+                          <v-select v-else v-model="editTask.priority" :items="['高', '中', '低']" density="compact"
+                            variant="outlined" label="选择优先级" class="edit-field" />
                         </v-list-item-subtitle>
                       </v-list-item>
 
@@ -354,8 +392,14 @@ onMounted(async () => {
                           <v-icon color="purple">alarm</v-icon>
                         </template>
                         <v-list-item-title class="font-weight-bold">提醒时间</v-list-item-title>
-                        <v-list-item-subtitle class="text-body-1">
-                          {{ task.reminderTime ? dayjs(task.reminderTime).format('YYYY/MM/DD HH:mm') : '未设置提醒' }}
+                        <v-list-item-subtitle>
+                          <div class="d-flex align-center">
+                            <template v-if="!isEditing">
+                              {{ task.reminderTime ? dayjs(task.reminderTime).format('YYYY/MM/DD HH:mm') : '未设置' }}
+                            </template>
+                            <v-text-field v-else v-model="editTask.reminderTime" type="datetime-local" density="compact"
+                              variant="outlined" clearable class="edit-field edit-time-field" />
+                          </div>
                         </v-list-item-subtitle>
                       </v-list-item>
                     </v-list>
@@ -378,12 +422,15 @@ onMounted(async () => {
                     <template #icon>
                       <v-icon>schedule</v-icon>
                     </template>
-                    <div class="text-body-1 font-weight-bold">截止时间</div>
-                    <div :class="{ 'text-red': dayjs(task.deadline).isBefore(dayjs()) }">
-                      {{ dayjs(task.deadline).format('YYYY/MM/DD HH:mm') }}
-                      <v-chip v-if="dayjs(task.deadline).isBefore(dayjs())" color="red" size="small" class="ml-2">
-                        已过期
-                      </v-chip>
+                    <div class="d-flex flex-column">
+                      <div class="text-body-1 font-weight-bold mb-1">截止时间</div>
+                      <div>
+                        <template v-if="!isEditing">
+                          {{ dayjs(task.deadline).format('YYYY/MM/DD HH:mm') }}
+                        </template>
+                        <v-text-field v-else v-model="editTask.deadline" type="datetime-local" density="compact"
+                          variant="outlined" class="edit-field edit-time-field" />
+                      </div>
                     </div>
                   </v-timeline-item>
                 </v-timeline>
@@ -391,16 +438,15 @@ onMounted(async () => {
 
               <!-- 任务描述 -->
               <v-list-item>
-                    <template #prepend>
-                      <v-icon>description</v-icon>
-                    </template>
-                    <v-list-item-title class="font-weight-bold">描述</v-list-item-title>
-                    <v-list-item-subtitle>
-                      <div v-if="!isEditing" class="text-body-1 pre-line">{{ task.description }}</div>
-                      <v-textarea v-else v-model="task.description" label="描述" rows="3" />
-                    </v-list-item-subtitle>
-                  </v-list-item>
-
+                <template #prepend>
+                  <v-icon>description</v-icon>
+                </template>
+                <v-list-item-title class="font-weight-bold">描述</v-list-item-title>
+                <v-list-item-subtitle>
+                  <div v-if="!isEditing">{{ task.description }}</div>
+                  <v-textarea v-else v-model="editTask.description" label="详情描述" width="300px" rows="3" />
+                </v-list-item-subtitle>
+              </v-list-item>
               <!-- 附件预览 -->
               <v-col cols="12" v-if="task.files?.length">
                 <div class="text-h6 mb-2">📎 附件预览</div>
@@ -429,8 +475,7 @@ onMounted(async () => {
                   </v-col>
                 </v-row>
               </v-col>
-              <v-col cols="12">
-                <!-- multiple属性：允许用户选择多个文件进行上传。 -->
+              <v-col cols="12" v-if="isEditing">
                 <v-file-input multiple label="添加附件" @change="handleUpload" prepend-icon="attach_file"
                   class="uniform-file-input">
                   <template #selection="{ fileNames }">
@@ -549,5 +594,18 @@ onMounted(async () => {
 /* .v-chip标签的宽度不会超过200像素,防止文字溢出或换行 */
 .uniform-file-input :deep(.v-chip) {
   max-width: 200px;
+}
+
+
+/* 统一编辑字段宽度 */
+.edit-field {
+  min-width: 220px;
+  max-width: 280px;
+}
+
+/* 确保 v-select 组件有足够的空间显示完整的标签 */
+.edit-field {
+  padding: 8px;
+  /* 调整内边距 */
 }
 </style>

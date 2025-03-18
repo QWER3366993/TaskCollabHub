@@ -56,14 +56,26 @@ const handleFileUpload = async (event: Event) => {
   try {
     if (currentScope.value === 'task') {
       await uploadTaskFile(taskId, formData); // 确保 taskId 正确传递
+      createToast('任务文件上传成功', { type: 'success' });
     } else {
       await uploadPublicFile(formData);
-      createToast('文件上传成功', { position: 'top-center', showIcon: true, type: 'success' });
+      createToast('公共文件上传成功', { type: 'success' });
     }
+    await taskStore.getFiles()
   } catch (error) {
     createToast('文件上传失败', { position: 'top-center', showIcon: true, type: 'danger' });
   }
 };
+
+// 下载方法
+const handleDownload = async (file: FileItem) => {
+  try {
+    await taskStore.downloadFiles(file)
+    createToast('下载已开始', { type: 'success' })
+  } catch {
+    createToast('下载失败', { type: 'danger' })
+  }
+}
 
 // 删除文件
 const deleteFile = async (id: string) => {
@@ -144,7 +156,7 @@ onMounted(async () => {
         如果某个 key 对应的列没有显式定义 v-slot，v-data-table 会使用默认的渲染方式，直接显示对应属性的值。 
         在 headers 中，{ title: '上传者', key: 'uploader' } 定义了一个名为 uploader 的列。
         v-data-table 会自动查找每个文件对象的 uploader 属性，并将其值显示在这一列中。所以在此不用显示定义-->
-        <v-data-table :headers="headers" :items="filteredFiles" :loading="loading" class="elevation-1">
+        <v-data-table :headers="headers" :items="filteredFiles" :loading="loading" class="elevation-1" style="width: 100%">
           <template v-slot:item.size="{ item }">
             {{ formatSize(item.size) }}
           </template>
@@ -159,7 +171,8 @@ onMounted(async () => {
           </template>
 
           <template v-slot:item.actions="{ item }">
-            <v-btn icon variant="text" color="primary" :href="item.url" target="_blank">
+            <v-btn icon variant="text" color="primary" @click="handleDownload(item)"
+              :loading="taskStore.downloadingIds.includes(item.id)">
               <v-icon>download</v-icon>
             </v-btn>
 
@@ -175,7 +188,6 @@ onMounted(async () => {
 
 <style scoped>
 .file-manager {
-  max-width: 1200px;
   margin: 0 auto;
 }
 

@@ -17,6 +17,22 @@ export interface Task {
   operations?: OperationLog[];
 }
 
+
+export interface TaskCreateDTO {
+  projectId?: string
+  teamId: string; 
+  title: string
+  description: string
+  employeeId: string
+  priority: '高' | '中' | '低';
+  status: '待处理' | '进行中' | '已完成';
+  creator: string
+  scheduledTime: string; 
+  deadline?: string; 
+  reminderTime?: string;
+  files?: FileItem[];
+}
+
 // 文件类型定义
 export interface FileItem {
   id: string;
@@ -24,10 +40,11 @@ export interface FileItem {
   name: string;
   size: number;
   type: string;
-  url: string; 
+  url: string;
   uploadTime: string;
   uploader: string;
   scope: 'task' | 'public' // 文件作用域
+  downloadCount?: number
 }
 
 export interface OperationLog {

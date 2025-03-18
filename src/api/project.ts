@@ -4,7 +4,7 @@ import type { Project, ProjectCreateDTO } from '@/types/project';
 export const createProject = async (project: ProjectCreateDTO): Promise<Project> => {
     // 创建项目（批量任务）
     const response = await service({
-        url: '/projects/batch',
+        url: '/projects',
         method: 'post',
         data: project
     });
@@ -14,7 +14,7 @@ export const createProject = async (project: ProjectCreateDTO): Promise<Project>
 //更新项目
 export const updateOldProject = async (id: string, updatedProject: Partial<Project>): Promise<Project> => {
     const response = await service({
-        url: `/api/projects/${id}`,
+        url: `/projects/${id}`,
         method: 'patch',
         data: updatedProject,
     });

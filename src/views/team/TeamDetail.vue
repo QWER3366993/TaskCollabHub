@@ -1,4 +1,3 @@
-<!-- 权限管理（admin） -->
 <script lang='ts' setup>
 </script>
 <template>

@@ -27,7 +27,17 @@ const filteredMenuList = computed(() => {
 });
 
 const goRoute = (vc: RouteRecordRaw) => {
+    if (vc.name === 'taskscheduling') {
+    router.push({
+      name: 'taskscheduling',
+      params: { 
+        taskId: 'new',  // 创建新任务时传递标识
+        projectId: 'default' 
+      }
+    });
+  } else {
     router.push(vc.path);
+  }
 };
 </script>
 

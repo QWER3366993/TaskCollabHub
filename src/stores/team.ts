@@ -15,9 +15,8 @@ import {
   removeMemberFromTeam,
   fetchEmployees,
   fetchTeamMembers,
-  fetchTeamByemployeeIdId
+  fetchTeamByemployeeId
 } from '@/api/team';
-import type { Project } from '@/types/project';
 
 export const useTeamStore = defineStore('team', () => {
   // State
@@ -47,7 +46,7 @@ export const useTeamStore = defineStore('team', () => {
   /** 根据员工 ID 获取团队列表 */
   const getTeamByemployId = async (employeeId: string): Promise<Team[] | null> => {
     try {
-      const data = await fetchTeamByemployeeIdId(employeeId);
+      const data = await fetchTeamByemployeeId(employeeId);
       if (data) {
         availableTeams.value = data;
         return data;
@@ -78,10 +77,20 @@ export const useTeamStore = defineStore('team', () => {
   //获取员工详情
   const getEmployeeById = async (userId: string) => {
     try {
-      currentEmployee.value = await fetchEmployeeById(userId);
+      const employee = await fetchEmployeeById(userId);
+      if (employee) {
+        currentEmployee.value = employee; // 更新当前选中的员工
+        return employee; // 返回单个员工对象
+      } else {
+        errorMessage.value = '员工不存在';
+        createToast(errorMessage.value, { position: 'top-center', showIcon: true, type: 'danger' });
+        return null;
+      }
     } catch (error) {
       console.error(error);
-      createToast('获取员工详情失败', { position: 'top-center', showIcon: true });
+      errorMessage.value = '获取员工详情失败';
+      createToast(errorMessage.value, { position: 'top-center', showIcon: true, type: 'danger' });
+      return null;
     }
   };
 
@@ -128,7 +137,7 @@ export const useTeamStore = defineStore('team', () => {
     }
   };
 
-  
+
   // 添加成员到团队
   const addMember = async (teamId: string, memberId: string) => {
     try {
@@ -163,7 +172,18 @@ export const useTeamStore = defineStore('team', () => {
   const getTeamMembers = async (teamId: string) => {
     try {
       const data = await fetchTeamMembers(teamId); // 调用 API
-      employees.value = data;
+      // 二次类型校验
+      if (!Array.isArray(data)) {
+        throw new Error('团队成员数据格式异常');
+      }
+      // 使用更安全的数组合并方式
+      const newMembers = data.filter(newMember =>
+        !employees.value.some(existing => existing.employeeId === newMember.employeeId)
+      );
+      // 同时更新employees列表用于全局查找
+      employees.value = [...employees.value, ...data.filter(e =>
+        !employees.value.some(existing => existing.employeeId === e.employeeId)
+      )];
       return data; // 返回团队成员列表
     } catch (error) {
       console.error('获取团队成员失败:', error);
@@ -183,12 +203,16 @@ export const useTeamStore = defineStore('team', () => {
       return [];
     }
   };
-  
+
   // 获取员工姓名的方法(从 employees 数组中查找第一个 employeeId 匹配的员工对象)
   const getName = (employeeId: string) => {
-    // console.log('当前查询员工ID:', employeeId);
-    const emp = employees.value.find(e => e.employeeId === employeeId);
-    return emp?.name || '未知员工';
+    // 优先从当前团队成员查找
+    const teamMember = teamMembers.value.find(e => e.employeeId === employeeId);
+    if (teamMember) return teamMember.name;
+
+    // 全局查找（含缓存数据）
+    const globalEmployee = employees.value.find(e => e.employeeId === employeeId);
+    return globalEmployee?.name || '未知成员';
   };
 
   return {
