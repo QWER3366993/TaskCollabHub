@@ -3,6 +3,8 @@ export interface Comment {
     avatar: string;
     name: string;
   };
+  commentId: string;
+  taskId: string;
   content: string;
   createdAt: string;
 }

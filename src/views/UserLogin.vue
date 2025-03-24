@@ -2,7 +2,7 @@
 import { onMounted, ref } from 'vue';
 import { createToast } from 'mosha-vue-toastify';
 import { useRouter } from 'vue-router';
-import { useUserStore } from '@/stores/user';  
+import { useUserStore } from '@/stores/user';
 import { login } from '@/api/user';
 import { usernameRules, passwordRules, username, password, show1 } from '@/hooks/useValidRule';
 import { VForm } from 'vuetify/components/VForm'; // 明确导入类型
@@ -26,30 +26,35 @@ const forgotPassword: () => void = () => {
 
 // 登录处理
 const handleLogin = async () => {
-  console.log('开始登录流程');
-
-  if (!formRef.value) {    
+  if (!formRef.value) {
     console.error('表单引用未初始化');
-
-  return;
-}
+    return;
+  }
   const { valid } = await formRef.value.validate();
   console.log('表单验证结果:', valid); // 查看控制台输出
-
   if (valid) {
     if (username.value == '' || password.value == '') {
       createToast('用户名或密码不能为空！', { position: 'top-center', showIcon: true });
       return;
     } else {
       try {
-        const res = await login({ username: username.value, password: password.value });
-        createToast(res.data.msg, { position: 'top-center', showIcon: true });
-            // 等待用户信息加载
-    await userStore.getUserInfo();
+        const { data } = await login({ username: username.value, password: password.value });
+        // 1. 确保 Token 存储完成
+        await userStore.loginUser({
+          username: username.value,
+          password: password.value
+        });
+        // 2. 显式等待用户信息加载
+        await userStore.getUserInfo();
 
-        router.push('/index'); // 登录成功后跳转到主页
-      } catch (e) {
-        createToast('登录失败，请检查用户名和密码', { position: 'top-center', showIcon: true, type: 'danger' });
+        // 3. 检查用户信息是否有效
+        if (!userStore.user.userId) {
+          throw new Error('用户信息加载失败');
+        }
+        // 4. 执行跳转
+        router.push('/index');
+      } catch (error) {
+        createToast('登录失败，请检查凭证', { type: 'danger' });
         reset(); // 调用 reset 函数重置表单
       }
     }
@@ -71,7 +76,7 @@ onMounted(async () => {
   // 第二步：用户数据存在时加载关联员工数据
   if (userStore.user?.userId) {
     await teamStore.getEmployeeById(userStore.user.userId)
-  }  
+  }
 }
 )
 
@@ -93,7 +98,8 @@ onMounted(async () => {
           <div class="inputBox">
             <v-text-field variant="underlined" v-model="password" placeholder="Password"
               :append-icon="show1 ? 'search' : 'search_off'" :rules="passwordRules" required :counter="20" label="密码"
-              @click:append="show1 = !show1" :type="show1 ? 'text' : 'password'" autocomplete="current-password"></v-text-field>
+              @click:append="show1 = !show1" :type="show1 ? 'text' : 'password'"
+              autocomplete="current-password"></v-text-field>
           </div>
 
           <!-- 登录按钮 -->

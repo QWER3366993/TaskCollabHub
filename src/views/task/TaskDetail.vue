@@ -94,6 +94,8 @@ const addComment = async () => {
         avatar: userStore.user.avatar!,
         userId: teamStore.currentEmployee?.userId// 添加用户ID
       },
+      commentId: crypto.randomUUID(), // 补充 commentId
+      taskId: taskStore.currentTaskId,
       // 使用 trim() 方法来去除输入内容两端的空格
       content: commentInput.value.trim(),
       createdAt: dayjs().format('YYYY-MM-DD HH:mm:ss')
@@ -166,7 +168,9 @@ const operationTypeMap = {
   create: '创建',
   update: '修改',
   delete: '删除',
-  status_change: '状态变更'
+  status_change: '状态变更',
+  view: '查看',
+  file_upload: '文件上传'
 };
 
 const fieldMap = {
@@ -182,7 +186,10 @@ const getLogColor = (type: keyof typeof operationTypeMap): string => {
     create: 'green',
     update: 'blue',
     delete: 'red',
-    status_change: 'orange'
+    status_change: 'orange',
+    view: 'brown',
+    file_upload: 'purple' // 新增对 "file_upload" 的支持
+
   };
   return colors[type] || 'grey'; // 提供默认值
 };
@@ -192,7 +199,9 @@ const getLogIcon = (type: keyof typeof operationTypeMap) => {
     create: 'add_circle',
     update: 'update',
     delete: 'delete',
-    status_change: 'query_stats'
+    status_change: 'query_stats',
+    view: 'visibility',
+    file_upload: 'attach_file'
   }[type];
 };
 
@@ -202,20 +211,23 @@ const formatValue = (value: string | number | Date) => {
 // 日志功能部分结束
 
 // 加载任务详情的方法
-// 加载任务详情的方法
 const loadTaskDetail = async (taskId: string) => {
   try {
+    console.log('[Component] 调用getTaskById前Store状态:', taskStore.taskDetail);
+
     // 先加载员工数据
     if (teamStore.employees.length === 0) {
       await teamStore.getEmployees();
     }
-    // 清空旧数据，展示加载状态
-    task.value = { ...defaultTask };
     // 从Store或API获取数据，确保使用 taskId
     const taskDetails = await taskStore.getTaskById(taskId);
-    console.log('加载任务详情:', taskDetails);
+    console.log('[Component] 调用getTaskById后Store状态:',taskDetails);
+    console.log('[Component] 最终数据:', task.value);
+    console.log('[Component] 调用getTaskById后Store状态:', taskStore.taskDetail);
+    console.log('[Component]taskDetails ',taskDetails);
     if (taskDetails) {
-      task.value = taskDetails;
+      console.log('加载任务详情:', taskDetails);
+      task.value = taskDetails || taskStore.taskDetail; //新数据优先，旧数据兜底
       teamId.value = taskDetails.teamId;
       // 加载团队成员
       if (taskDetails.teamId) {
@@ -224,7 +236,7 @@ const loadTaskDetail = async (taskId: string) => {
         teamMembers.value = teamStore.employees;
       }
     }
-    console.log('当前团队成员:',teamMembers.value);
+    console.log('当前团队成员:', teamMembers.value);
   } catch (error) {
     createToast('任务加载失败', { type: 'danger' });
   }

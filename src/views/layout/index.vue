@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref, watch } from 'vue'
+import { onMounted, ref, watch, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router';
 import { useSettingStore } from '../../stores/setting';
 import { useRouteStore } from '@/stores/route'
@@ -51,21 +51,27 @@ onMounted(() => {
         <img src="../../../logo.png" alt="">
         <p>Planify</p>
       </div>
-      <SideBar :menu-list="routeStore.primaryRoutes" @menu-click="handleMenuClick" ></SideBar>
+      <SideBar :menu-list="routeStore.primaryRoutes" @menu-click="handleMenuClick"></SideBar>
     </div>
-
-    <!-- 侧栏详情页 -->
-    <div class="layout_sideview" :class="{ fold: settingStore.fold }">
-      <SideView :menu-list="routeStore.secondaryRoutes" :active-menu="activeMenu"></SideView>
+    <!-- 全宽内容区域 (当fullWidth为true时) -->
+    <div v-if="route.meta.fullWidth" class="layout_fullwidth" :class="{ fold: settingStore.fold }">
+      <router-view />
     </div>
-    <!-- 顶部导航 -->
-    <div class="layout_tabbar" :class="{ fold: settingStore.fold }">
-      <TabBar />
-    </div>
-    <!-- 内容详情区 -->
-    <div class="layout_main" :class="{ fold: settingStore.fold }">
-      <MainContent />
-    </div>
+    <!-- 标准布局 (当fullWidth为false时) -->
+    <template v-else>
+      <!-- 侧栏详情页 -->
+      <div class="layout_sideview" :class="{ fold: settingStore.fold }">
+        <SideView :menu-list="routeStore.secondaryRoutes" :active-menu="activeMenu"></SideView>
+      </div>
+      <!-- 顶部导航 -->
+      <div class="layout_tabbar" :class="{ fold: settingStore.fold }">
+        <TabBar />
+      </div>
+      <!-- 内容详情区 -->
+      <div class="layout_main" :class="{ fold: settingStore.fold }">
+        <MainContent />
+      </div>
+    </template>
   </div>
 </template>
 
@@ -136,7 +142,8 @@ onMounted(() => {
     position: absolute;
     top: 0;
     left: 660px;
-    transition: all 0.5s; /* 添加过渡效果 */
+    transition: all 0.5s;
+    /* 添加过渡效果 */
 
     &.fold {
       width: calc(100% - 220px);
@@ -149,18 +156,27 @@ onMounted(() => {
     width: calc(100% - 660px);
     height: calc(100vh - 60px);
     position: absolute;
-    top: 60px; /* 确保内容不紧贴顶部(修改height后同样需要修改这里，防止页面覆盖) */ 
+    top: 60px;
+    /* 确保内容不紧贴顶部(修改height后同样需要修改这里，防止页面覆盖) */
     left: 660px;
     padding: 20px;
     overflow: auto;
     transition: all 0.5s;
     background-color: white;
- 
+
     &.fold {
       width: calc(100% - 255px);
       left: 220px;
       transition: all 0.5s;
     }
+  }
+
+  .layout_fullwidth {
+    position: absolute;
+    top: 0;
+    left: 160px;
+    width: calc(100% - 160px);
+    height: 100vh;
   }
 }
 </style>

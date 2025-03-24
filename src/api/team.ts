@@ -8,6 +8,11 @@ export const fetchTeams = async (): Promise<Team[]> => {
     url: '/teams',
     method: 'get',
   });
+  // 确保返回的是一个数组
+  if (!Array.isArray(response.data)) {
+    console.error('接口返回异常数据格式:', response.data);
+    return [];
+  }
   return response.data;
 };
 

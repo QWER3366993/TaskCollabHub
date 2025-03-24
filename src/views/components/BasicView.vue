@@ -3,21 +3,21 @@ import { ref, onMounted } from 'vue';
 import '@/assets/main.css'
 
 // src（图片路径）、alt（图片描述）属性
-const slides = ref([
-    { src: '/carousel/1.png', alt: 'Slide 1' },
-    { src: '/carousel/2.png', alt: 'Slide 2' },
-    { src: '/carousel/3.png', alt: 'Slide 3' },
-    { src: '/carousel/4.png', alt: 'Slide 4' },
-    { src: '/carousel/5.png', alt: 'Slide 5' },
-]);
+// const slides = ref([
+//     { src: '/carousel/1.png', alt: 'Slide 1' },
+//     { src: '/carousel/2.png', alt: 'Slide 2' },
+//     { src: '/carousel/3.png', alt: 'Slide 3' },
+//     { src: '/carousel/4.png', alt: 'Slide 4' },
+//     { src: '/carousel/5.png', alt: 'Slide 5' },
+// ]);
 
 // 在组件加载时预加载图片，避免轮播时出现空白
-onMounted(() => {
-  slides.value.forEach(slide => {
-    const img = new Image();
-    img.src = slide.src;
-  });
-});
+// onMounted(() => {
+//   slides.value.forEach(slide => {
+//     const img = new Image();
+//     img.src = slide.src;
+//   });
+// });
 </script>
 
 <template>
@@ -25,12 +25,12 @@ onMounted(() => {
         <v-container fluid class="fill-container">
             <!-- Vuetify 的轮播图组件 -->
             <!--导航控制部分仅在鼠标悬停时才出现、cycle属性自动轮播、interval设置其轮播间隔、隐藏轮播分隔符 hide-delimiters -->
-            <v-carousel show-arrows="hover" cycle interval='5000' hide-delimiters>
+            <!-- <v-carousel show-arrows="hover" cycle interval='5000' hide-delimiters>
                 <v-carousel-item v-for="(slide, i) in slides" :key="i">
                     <div>
                         <img :src="slide.src" :alt="slide.alt" class="carousel-image" loading="lazy" />                    </div>
                 </v-carousel-item>
-            </v-carousel>
+            </v-carousel> -->
         </v-container>
         <!-- 覆盖层，放在轮播图之上 -->
         <div class="overlay">

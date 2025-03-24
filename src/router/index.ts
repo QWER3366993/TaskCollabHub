@@ -46,16 +46,7 @@ export const router = createRouter({
         }
       ]
     },
-    {
-      path: '/noticeboard',
-      name: 'noticeboard',
-      component: () => import('@/views/NoticeBoard.vue'),
-      meta: {
-        title: '公示公告',
-        hidden: false,
-        icon: 'notifications_active'
-      }
-    },
+
     {
       path: '/index',
       name: 'index',
@@ -67,6 +58,18 @@ export const router = createRouter({
       },
       redirect: '/index/taskmanagement', // 默认跳转到任务管理
       children: [
+        // 公示公告放在项目管理下只为占据第一栏菜单（使用宽屏布局）
+        {
+          path: '/noticeboard',
+          name: 'noticeboard',
+          component: () => import('@/views/NoticeBoard.vue'),
+          meta: {
+            title: '公示公告',
+            hidden: false,
+            icon: 'notifications_active',
+            fullWidth: true // 添加自定义标识(特殊布局)
+          }
+        },
         {
           path: 'taskmanagement',
           name: 'taskmanagement',
@@ -184,7 +187,7 @@ export const router = createRouter({
         icon: 'manage_accounts'
       },
       redirect: '/person/personaldata',
-      children : [
+      children: [
         {
           path: 'personaldata',
           name: 'personaldata',
@@ -237,15 +240,30 @@ export const router = createRouter({
         icon: 'summarize'
       }
     },
+
     {
+      // 此父路由只为权限管理能使用特殊布局（保留侧边栏）
       path: '/permission',
       name: 'permission',
-      component: () => import('@/views/PermissionManagement.vue'),  // 权限管理
+      component: () => import('@/views/layout/Index.vue'),  // 个人资料
       meta: {
         title: '权限管理',
-        hidden: false,
+        hidden: true,
         icon: 'manage_accounts'
-      }
+      },
+      redirect: '/person/personaldata',
+      children: [
+        {
+          path: '/permission1',
+          name: 'permission1',
+          component: () => import('@/views/PermissionManagement.vue'),  // 权限管理
+          meta: {
+            title: '权限管理',
+            hidden: false,
+            icon: 'manage_accounts',
+            fullWidth: true
+          }
+        }]
     }
 
 

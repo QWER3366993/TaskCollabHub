@@ -34,19 +34,18 @@ const service = axios.create({
 })
 
 // request拦截器
-
 service.interceptors.request.use(config => {
-    const token = getToken()
-    if (token) {
-      // 让每个请求携带自定义token 根据实际情况自行修改
-      config.headers['Authorization'] = 'Bearer ' + token
-    }
-    // 动态设置Content-Type，允许在特定请求中覆盖
-    if (!config.headers['Content-Type']) {
-      config.headers['Content-Type'] = 'application/json'
-    }
-    return config
-  },
+  const token = getToken()
+  if (token) {
+    // 让每个请求携带自定义token 根据实际情况自行修改
+    config.headers['Authorization'] = `Bearer ${token}`
+  }
+  // 动态设置Content-Type，允许在特定请求中覆盖
+  if (!config.headers['Content-Type']) {
+    config.headers['Content-Type'] = 'application/json'
+  }
+  return config
+},
   (error) => {
     // 移除错误信息打印，改为合适的错误处理
     Promise.reject(error)

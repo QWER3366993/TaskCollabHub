@@ -7,9 +7,7 @@ import type { Employee } from '@/types/team'
 export function login(data: User) {
   return service({
     url: '/auth/login',
-
     method: 'post',
-
     data: data
   })
 }
@@ -17,8 +15,7 @@ export function login(data: User) {
 // 获取用户信息接口
 export async function getInfo() {
   return service({
-    url: 'auth/userinfo',
-
+    url: '/auth/userinfo',
     method: 'get'
   })
 }

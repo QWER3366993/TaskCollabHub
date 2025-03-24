@@ -51,7 +51,7 @@ export interface OperationLog {
   id: string;
   taskId: string; // 关联的任务ID
   employeeId: string; // 操作者ID
-  operationType: 'create' | 'update' | 'delete' | 'status_change'; // 操作类型
+  operationType: 'create' | 'update' | 'delete' | 'status_change' | 'view' | "file_upload"; // 操作类型
   operation: string; // 操作描述，如“修改截止时间从2025-03-01到2025-05-01”
   time: string; // 操作时间
   details?: Record<string, { old: any; new: any }>; // 修改详情

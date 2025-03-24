@@ -27,8 +27,9 @@ import type { Task, OperationLog, FileItem, TaskCreateDTO } from '@/types/task';
 import type { Comment } from '@/types/comment';
 import type { Employee } from '@/types/team';
 import { safeDate } from '@/utils/convert';
-import useStore from 'element-plus/es/components/table/src/store/index.mjs';
+import { useUserStore } from '@/stores/user';
 
+const userStore = useUserStore();
 export const useTaskStore = defineStore('task', () => {
   /** 任务列表 */
   const tasks = ref<Task[]>([]);
@@ -55,7 +56,7 @@ export const useTaskStore = defineStore('task', () => {
 
   //日志
   const loading = ref(false);
-
+  const recentVisits = ref<Array<{ id: string; title: string; time: string }>>([]);
   const files = ref<FileItem[]>([]);
   const currentTaskId = ref('');
   const uploadProgress = ref(0);
@@ -121,16 +122,18 @@ export const useTaskStore = defineStore('task', () => {
   const getTaskById = async (taskId: string): Promise<Task | null> => {
     try {
       const data = await fetchTaskById(taskId);
+      console.log('[Store] 原始API响应:', data);
       if (!data) {
         throw new Error('任务不存在');
       }
       taskDetail.value = data; // 确保 data 不为 null
-      return data;
+      console.log('[Store] 更新后数据:', taskDetail.value);
+      // 记录查看日志
+      recordViewLog(data);
+      return taskDetail.value;
     } catch (error) {
-      taskDetail.value = {} as Task; // 清空任务详情
-      errorMessage.value = '获取任务详情失败: ' + (error as Error).message;
-      createToast(errorMessage.value, { position: 'top-center', showIcon: true, type: 'danger' });
-      return null;
+      console.error('获取任务失败:', error);
+      throw error; // 抛出错误，由组件决定是否清空数据
     }
   };
 
@@ -224,7 +227,7 @@ export const useTaskStore = defineStore('task', () => {
       // 记录操作日志
       addOperationLog({
         taskId,
-        employeeId: useStore().user.id,
+        employeeId: userStore.user.userId as string, // 类型断言
         operationType: 'update',
         operation: `修改了 ${Object.keys(changes).join(', ')}`,
         details: changes,
@@ -247,13 +250,58 @@ export const useTaskStore = defineStore('task', () => {
   };
 
 
+  // 查看日志记录
+  const recordViewLog = (task: Task) => {
+    // 1. 检查 store 是否存在
+    if (!userStore) {
+      console.warn('Store 未初始化，无法记录日志');
+      return;
+    }
+
+    // 2. 检查用户数据是否存在
+    if (!userStore.user.userId) {
+      console.warn('用户未登录，跳过日志记录');
+      return;
+    }
+
+    // 3. 检查任务数据是否存在
+    if (!task?.id) {
+      console.warn('任务数据无效，无法记录日志');
+      return;
+    }
+
+    // 安全执行日志记录
+    addOperationLog({
+      taskId: task.id,
+      employeeId: userStore.user.userId,
+      operationType: 'view',
+      operation: `查看任务：${task.title || '无标题任务'}`,
+      time: new Date().toISOString()
+    });
+
+    // 更新访问记录（示例逻辑）
+    if (recentVisits.value) {
+      const existingIndex = recentVisits.value.findIndex(v => v.id === task.id);
+      if (existingIndex > -1) {
+        recentVisits.value[existingIndex].time = new Date().toISOString();
+      } else {
+        recentVisits.value.unshift({
+          id: task.id,
+          title: task.title || '新任务',
+          time: new Date().toISOString()
+        });
+      }
+      recentVisits.value = recentVisits.value.slice(0, 5);
+    }
+  };
+
   /** 删除任务 */
   const deleteTaskById = async (id: string): Promise<void> => {
     try {
       // 先记录删除日志
       addOperationLog({
         taskId: id,
-        employeeId: useStore().user.id,
+        employeeId: userStore.user.userId as string, // 类型断言
         operationType: 'delete',
         operation: '删除任务',
         time: new Date().toISOString()
@@ -266,7 +314,7 @@ export const useTaskStore = defineStore('task', () => {
       await deleteTask(id);
       tasks.value = tasks.value.filter((task) => task.id !== id);
 
-      // 清理相关日志（可选）
+      // 清理相关日志
       operationLogs.value = operationLogs.value.filter(log => log.taskId !== id);
 
       createToast('任务删除成功', {
@@ -300,15 +348,22 @@ export const useTaskStore = defineStore('task', () => {
   /** 获取操作日志 */
   const getOperationLogs = async (): Promise<OperationLog[]> => {
     try {
-      const data = await fetchOperationLogs();
-      operationLogs.value = data;
-      return data.map(processLog);
+      const data = await fetchOperationLogs()
+      console.log("操作日志数据：", data);
+
+      // 添加类型校验
+      if (!Array.isArray(data)) {
+        throw new Error('Invalid operation logs format')
+      }
+      operationLogs.value = data.map(processLog) // 确保处理后的数据格式正确
+
+      return operationLogs.value
     } catch (error) {
-      errorMessage.value = '获取操作日志失败';
-      createToast(errorMessage.value, { position: 'top-center', showIcon: true, type: 'danger' });
-      return [];
+      console.error('获取操作日志失败:', error)
+      operationLogs.value = [] // 确保重置为空数组
+      return []
     }
-  };
+  }
 
   /** 开始任务调度 */
   const startTaskScheduling = async (): Promise<void> => {
@@ -491,6 +546,7 @@ export const useTaskStore = defineStore('task', () => {
     currentTaskId,
     currentScope,
     downloadingIds,
+    recentVisits,
     getAllTasks,
     getTaskById,
     getTasksByUser,
@@ -498,6 +554,7 @@ export const useTaskStore = defineStore('task', () => {
     getCommentsByTaskId,
     submitComment,
     createNewTask,
+    recordViewLog,
     updateTask,
     deleteTaskById,
     getUserRole,

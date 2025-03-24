@@ -30,6 +30,15 @@ const fullScreen = () => {
   }
 };
 
+// 面包屑图标类型定义
+interface BreadcrumbItemWithIcon {
+  title: string;
+  href?: string;
+  disabled?: boolean;
+  icon?: string
+}
+
+
 // 退出登录
 const logout = async () => {
   await userStore.logout();
@@ -87,7 +96,7 @@ const breadcrumbItems = computed(() => {
         </template>
         <template v-slot:item="{ item }">
           <v-breadcrumbs-item v-if="item.title" :to="item.href" :disabled="item.disabled">
-            <v-icon size="18">{{ item.icon }}</v-icon>
+            <v-icon size="18">{{ (item as BreadcrumbItemWithIcon ).icon }}</v-icon>
             {{ item.title }}
           </v-breadcrumbs-item>
         </template>
@@ -96,32 +105,32 @@ const breadcrumbItems = computed(() => {
 
     <!-- 右侧 -->
     <div class="tabbar_right">
-      <v-btn icon @click="refresh">
+      <v-btn icon size="35px" @click="refresh">
         <v-icon>refresh</v-icon>
       </v-btn>
-      <v-btn icon @click="fullScreen">
+      <v-btn icon size="35px" @click="fullScreen">
         <v-icon>fullscreen</v-icon>
       </v-btn>
       <v-menu>
         <template v-slot:activator="{ props }">
-          <v-btn icon v-bind="props">
+          <v-btn icon size="35px" v-bind="props">
             <v-icon>settings</v-icon>
           </v-btn>
         </template>
-        <v-card >
+        <v-card>
           <v-card-title>主题设置</v-card-title>
           <v-card-text>
             <v-form>
-                <v-text-field label="主题颜色" v-model="color" />
-                <v-color-picker v-model="color" @update:modelValue="setColor" show-alpha :swatches="predefineColors" />
-                <v-text-field label="暗黑模式" style="margin-top: 20px;"/>
-                <v-switch v-model="dark" @change="changeDark"/>
+              <v-text-field label="主题颜色" v-model="color" />
+              <v-color-picker v-model="color" @update:modelValue="setColor" show-alpha :swatches="predefineColors" />
+              <v-text-field label="暗黑模式" style="margin-top: 20px;" />
+              <v-switch v-model="dark" @change="changeDark" />
             </v-form>
           </v-card-text>
         </v-card>
       </v-menu>
-      <v-avatar size="32">
-        <img :src="userStore.user.avatar" alt="User Avatar" />
+      <v-avatar size="38" >
+        <img :src="userStore.user.avatar" alt="用户头像" />
       </v-avatar>
       <v-menu>
         <template v-slot:activator="{ props }">
@@ -170,10 +179,10 @@ const breadcrumbItems = computed(() => {
     /* 按钮间距 */
 
     img {
-      width: 24px;
-      height: 24px;
-      margin: 0 10px;
-      border-radius: 50%;
+      width: 100%;
+      height:100%;
+      object-fit: cover; /* 保持比例填充容器 */
+      
     }
   }
 }

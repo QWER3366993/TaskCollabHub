@@ -67,7 +67,7 @@ const editTask = (taskId: string) => {
     console.error('任务 ID 未定义');
     return;
   }
-  console.log('跳转任务ID:', taskId); // 🔍 验证点击时传递的ID
+  console.log('跳转任务ID:', taskId); // 验证点击时传递的ID
   router.push({ name: 'taskdetail', params: { id: taskId } });
 };
 
@@ -118,7 +118,6 @@ const filteredTasks = computed(() => {
       timeRemaining: calculateTimeRemaining(task.deadline),
       isExpired: task.deadline ? dayjs(task.deadline).isBefore(dayjs()) : false
     }));
-  // console.log('任务ID列表:', result.map(task => task.id)); // 检查
   return result;
 });
 
@@ -151,24 +150,31 @@ const statusIcon = (status: string) => {
 // });
 
 onMounted(async () => {
+  userStore.getUserInfo();
   await loadEmployees(); //先加载员工数据再加载任务（防止getName在员工数据未就绪时被调用）
   await loadTasks();
 });
 </script>
 
 <template>
-  <v-container>
-    <v-row align="center">
-      <v-col>
+  <v-container class="task-management">
+    <!-- 顶部操作栏 -->
+    <v-row class="mb-3">
+      <!-- 左侧搜索和筛选 -->
+      <v-col cols="12" md="8" class="d-flex align-center gap-4" style="gap: 16px;">
         <v-text-field v-model="searchQuery" label="搜索任务" prepend-inner-icon="search" density="comfortable"
-          variant="outlined" />
-      </v-col>
-      <v-col>
+          variant="outlined" class="search-box" hide-details single-line></v-text-field>
+
         <v-select v-model="selectedStatus" :items="statusOptions" label="筛选状态" prepend-inner-icon="filter_alt"
-          variant="outlined" />
+          density="comfortable" hide-details variant="outlined" class="filter-box"></v-select>
       </v-col>
-      <v-col>
-        <v-btn color="primary" prepend-icon="add" @click="createTask">
+
+      <!-- 右侧新建按钮 -->
+      <v-col cols="12" md="4" class="d-flex justify-end">
+        <v-btn color="primary" @click="createTask" class="new-task-btn" height="48" prepend-icon="add">
+          <template #prepend>
+            <v-icon size="24"></v-icon>
+          </template>
           新建任务
         </v-btn>
       </v-col>
@@ -181,8 +187,9 @@ onMounted(async () => {
             :items-per-page="10" style="width: 100%">
             <!-- 状态列 -->
             <template #item.status="{ item }">
-              <v-chip :color="statusColor(item.status)" label :prepend-icon="statusIcon(item.status)"  class="status-chip">
-                
+              <v-chip :color="statusColor(item.status)" label :prepend-icon="statusIcon(item.status)"
+                class="status-chip">
+
                 {{ item.status }}
               </v-chip>
             </template>
@@ -247,12 +254,43 @@ onMounted(async () => {
 </template>
 
 <style scoped>
-/* 状态徽章样式 */
+/* 统一搜索框和筛选框的样式 */
+.search-box,
+.filter-box {
+  :deep(.v-field) {
+    height: 48px;
+    /* 设置统一高度 */
+    align-items: center;
+    /* 垂直居中 */
+  }
+}
+
+/* 新建任务按钮样式 */
+.new-task-btn {
+  /* 添加圆角 */
+  border-radius: 8px;
+  /* 调整内边距 */
+  padding: 0 24px;
+  /* 调整字体大小 */
+  font-size: 18px;
+  letter-spacing: normal;
+
+  transition: all 0.3s ease;
+
+  /* 鼠标悬停时，向下移动1像素 */
+  &:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  }
+}
+
+/* 状态图标样式 */
 .status-chip {
   transition: all 0.3s ease;
+
   &:hover {
     transform: scale(1.05);
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   }
 }
 
@@ -260,20 +298,9 @@ onMounted(async () => {
 .action-buttons {
   opacity: 0.5;
   transition: opacity 0.3s ease;
+
   .v-data-table__tr:hover & {
     opacity: 1;
   }
-}
-
-/* 统计卡片 */
-.stat-card {
-  display: flex;
-  align-items: center;
-  padding: 16px;
-  min-width: 200px;
-  
-  &.待处理 { background: linear-gradient(135deg, #fff3e0, #ffe0b2); }
-  &.进行中 { background: linear-gradient(135deg, #e3f2fd, #bbdefb); }
-  &.已完成 { background: linear-gradient(135deg, #e8f5e9, #c8e6c9); }
 }
 </style>

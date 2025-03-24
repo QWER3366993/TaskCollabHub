@@ -44,7 +44,7 @@ export const useTeamStore = defineStore('team', () => {
   };
 
   /** 根据员工 ID 获取团队列表 */
-  const getTeamByemployId = async (employeeId: string): Promise<Team[] | null> => {
+  const getTeamByemployId = async (employeeId: string): Promise<Team[]> => {
     try {
       const data = await fetchTeamByemployeeId(employeeId);
       if (data) {
@@ -54,13 +54,13 @@ export const useTeamStore = defineStore('team', () => {
         availableTeams.value = [];
         errorMessage.value = '团队不存在';
         createToast(errorMessage.value, { position: 'top-center', showIcon: true, type: 'danger' });
-        return null;
+        return [];
       }
     } catch (error) {
       availableTeams.value = [];
       errorMessage.value = '获取当前团队失败';
       createToast(errorMessage.value, { position: 'top-center', showIcon: true, type: 'danger' });
-      return null;
+      return [];
     }
   };
 

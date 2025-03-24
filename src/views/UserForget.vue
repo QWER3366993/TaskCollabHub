@@ -3,7 +3,7 @@
 import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { createToast } from 'mosha-vue-toastify'
-import { post } from '@/utils/request'
+import service from '@/utils/request'
 import {
   emailRules,
   passwordRules,
@@ -35,30 +35,35 @@ const form = reactive({
 
 // 验证电子邮件格式
 const isEmailValid = ref(false)
-const onEmailValidate = (valid: boolean) => {
-  isEmailValid.value = valid
+const onEmailValidate = (value: string) => {
+  // 使用 emailRules 验证当前值
+  isEmailValid.value = emailRules.value.every(rule =>
+    rule(value) === true || typeof rule(value) === 'string'
+  )
 }
-
 // 发送验证码
 const sendVerificationCode = async () => {
   if (!isEmailValid.value) return // 如果邮箱无效，则不发送
 
   coldTime.value = 60 // 设置冷却时间为60秒
-  post('/auth/valid-reset-email', { email: email.value },
-    (message: string) => {
-      createToast(message, { position: 'top-center', showIcon: true })
+  try {
+    const { data } = await service.post('/auth/valid-reset-email', { email: email.value })
+    if (data.success) {
+      createToast(data.message, { position: 'top-center', showIcon: true })
       // 设置一个定时器来减少冷却时间
       const timer = setInterval(() => {
         coldTime.value--
         // 冷却时间结束则停止定时器
         if (coldTime.value <= 0) clearInterval(timer)
       }, 1000)
-    },
-    (error: string) => {
-      createToast(error, { position: 'top-center', showIcon: true, type: 'danger' })
+    } else {
+      createToast(data.message, { position: 'top-center', showIcon: true, type: 'danger' })
       coldTime.value = 0 // 重置冷却时间
     }
-  )
+  } catch (error) {
+    createToast('发生了一些错误，请联系管理员', { position: 'top-center', showIcon: true, type: 'danger' })
+    coldTime.value = 0
+  }
 }
 
 // 提交验证
@@ -66,25 +71,38 @@ const verifyCode = async () => {
   const { valid } = await formRef.value.validate() // 验证表单
   if (valid) {
     // 如果表单有效，发送请求以开始重置密码流程
-    post('/auth/start-reset', {
-      email: email.value,
-      code: form.code
-    }, () => {
-      activeStep.value = 1 // 成功则切换到密码重置步骤
-    })
+    try {
+      const { data } = await service.post('/auth/start-reset', {
+        email: email.value,
+        code: form.code
+      })
+      if (data.success) {
+        activeStep.value = 1 // 成功则切换到密码重置步骤
+      } else {
+        createToast(data.message, { position: 'top-center', showIcon: true, type: 'danger' })
+      }
+    } catch (error) {
+      createToast('发生了一些错误，请联系管理员', { position: 'top-center', showIcon: true, type: 'danger' })
+    }
   }
 }
+
 
 // 执行密码重置
 const resetPassword = async () => {
   const { valid } = await formRef.value.validate()
   if (valid) {
-    post('/auth/do-reset', { password: password.value },
-      (message: string) => {
-        createToast(message, { position: 'top-center', showIcon: true })
+    try {
+      const { data } = await service.post('/auth/do-reset', { password: password.value })
+      if (data.success) {
+        createToast(data.message, { position: 'top-center', showIcon: true })
         router.push('/') // 重置成功后重定向到登录页面
+      } else {
+        createToast(data.message, { position: 'top-center', showIcon: true, type: 'danger' })
       }
-    )
+    } catch (error) {
+      createToast('发生了一些错误，请联系管理员', { position: 'top-center', showIcon: true, type: 'danger' })
+    }
   }
 }
 </script>
@@ -110,7 +128,7 @@ const resetPassword = async () => {
             <v-form ref="formRef" @submit.prevent="verifyCode">
               <div class="inputBox">
                 <v-text-field v-model="email" label="电子邮箱" placeholder="example@domain.com" :rules="emailRules"
-                  @update:modelValue="onEmailValidate" variant="underlined"></v-text-field>
+                  @update:modelValue="(val: string) => onEmailValidate(val)" variant="underlined"></v-text-field>
               </div>
 
               <div class="inputBox">
