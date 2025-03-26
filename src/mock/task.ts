@@ -3,8 +3,8 @@ import type { Task, OperationLog, FileItem } from '@/types/task';
 import type { Employee } from '@/types/team';
 import type { User } from '@/types/user';
 import type { Team } from '@/types/team';
-import { i } from 'node_modules/vite/dist/node/types.d-aGj9QkWt';
-
+import type { Notice, NoticeType } from '@/types/notice'
+import { id } from 'element-plus/es/locale/index.mjs';
 
 // // 自定义路径参数类型
 interface MockParams {
@@ -13,9 +13,100 @@ interface MockParams {
     taskId?: string;
     fileId?: string;
     teamId?: string;
+    type?: string;
   };
   body?: any;
 }
+
+export const mockNotices: Notice[] = [
+  {
+    id: "1",
+    title: "轮播图1",
+    coverImage: "/default-cover.jpg",
+    type: "carousel",
+    content: "这是轮播图1的详细内容...",      // 新增
+    summary: "轮播图1的摘要说明",            // 新增
+    createdAt: "2025-11-20T14:20:00Z",
+    hit: 120
+  },
+  {
+    id: "2",
+    title: "轮播图2",
+    coverImage: "/海绵宝宝.jpg",
+    content: "这是轮播图2的详细内容...",      // 新增
+    summary: "轮播图2的摘要说明",            // 新增
+    type: "carousel",
+    createdAt: "2025-11-10T14:20:00Z",
+    hit: 120
+  },
+
+
+
+  // 政策法规 mock 数据
+  {
+    id: "4",
+    title: "国家数据安全管理办法",
+    type: "policy",
+    url: "https://example.com/data-security",
+    createdAt: "2024-11-20T14:20:00Z",
+    summary: "为加强数据安全管理",            // 新增
+    content: "为加强数据安全管理，保障国家安全和公民权益，特制定本办法。",
+    hit: 120
+  },
+  {
+    id: "5",
+    title: "科技企业税收优惠政策",
+    type: "policy",
+    url: "https://example.com/tech-tax",
+    createdAt: "2024-11-18T16:45:00Z",
+    summary: "对符合条件的科技企业给予税收减免优惠",            // 新增
+    content: "对符合条件的科技企业给予税收减免优惠，鼓励科技创新。",
+    hit: 95
+  },
+  {
+    id: "6",
+    title: "人工智能伦理规范",
+    type: "policy",
+    url: "https://example.com/ai-ethics",
+    createdAt: "2024-11-15T10:30:00Z",
+    summary: "发布人工智能开发和应用的伦理规范",            // 新增
+    content: "发布人工智能开发和应用的伦理规范，指导行业健康发展。",
+    hit: 110
+  },
+
+
+  // 科技热点 mock 数据
+  {
+    id: "7",
+    title: "人工智能最新突破",
+    type: "technology",
+    url: "https://example.com/ai-breakthrough",
+    createdAt: "2024-11-22T08:15:00Z",
+    summary: "新型 AI 模型在医疗影像分析中表现优异",           
+    content: "新型 AI 模型在医疗影像分析中表现优异，准确率提升 30%。",
+    hit: 250
+  },
+  {
+    id: "8",
+    title: "量子计算商业化进程",
+    type: "technology",
+    url: "https://example.com/quantum-computing",
+    createdAt: "2024-11-21T15:30:00Z",
+    summary: "多家科技巨头发布量子计算新成果",           
+    content: "多家科技巨头发布量子计算新成果，商业化进程加速。",
+    hit: 190
+  },
+  {
+    id: "9",
+    title: "6G 通信技术研究进展",
+    type: "technology",
+    url: "https://example.com/6g-communication",
+    createdAt: "2024-11-20T12:00:00Z",
+    summary: "6G 通信技术研究取得新突破",          
+    content: "6G 通信技术研究取得新突破，预计 2030 年实现商用。",
+    hit: 160
+  }
+];
 
 // 统一的任务数据源
 const mockUsers = [
@@ -42,6 +133,7 @@ const mockUsers = [
     token: 'pdx-token'
   }
 ];
+
 
 const mockTasks: Task[] = [
   {
@@ -544,6 +636,61 @@ export default [
         data: allOperations
       };
     }
+  },
+  // 直接按照固定类型对应公告（静态）
+  // {
+  //   url: '/notices/carousel',
+  //   method: 'get',
+  //   response: () => ({ code: 200, data: mockNotices.filter(n => n.type === 'carousel') })
+  // },
+  // {
+  //   url: '/notices/technology',
+  //   method: 'get',
+  //   response: () => ({ code: 200, data: mockNotices.filter(n => n.type === 'technology') })
+  // },
+  // {
+  //   url: '/notices/policy',
+  //   method: 'get',
+  //   response: () => ({ code: 200, data: mockNotices.filter(n => n.type === 'policy') })
+  // },
+
+  // 获取分类公告(动态判断公告类型)
+  {
+    url: '/notices/:type',
+    method: 'get',
+    response: (request: { query: { type?: string } }) => {
+      const type = request.query.type as NoticeType
+      return {
+        code: 200,
+        data: mockNotices.filter(n => n.type === type)
+      }
+    }
+  },
+
+  // 获取公告详情
+  {
+    url: '/notice/:id',
+    method: 'get',
+    response: (request: { query: { id: string } }) => {
+      const noticeId = request.query.id;
+      const notice = mockNotices.find(n => n.id === noticeId)
+      return notice || null;
+    }
+  },
+
+  // 更新点击量
+  {
+    url: '/notices/:id/hit',
+    method: 'put',
+    response: (request: { query: { id:string } } )=> {
+      const noticeId = request.query.id;
+      const notice = mockNotices.find(n => n.id === noticeId)
+      if (notice)
+        notice.hit++
+      return { code: 200 }
+    }
   }
+
+
 ] as MockMethod[];
 

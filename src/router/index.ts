@@ -46,7 +46,42 @@ export const router = createRouter({
         }
       ]
     },
-
+    {
+      // 此父路由只为权限管理能使用特殊布局（保留侧边栏）
+      path: '/noticeboard',
+      name: 'noticeboard',
+      component: () => import('@/views/layout/Index.vue'),  //公示公告
+      meta: {
+        title: '公示公告',
+        hidden: true,
+        icon: 'notifications_active'
+      },
+      redirect: '/noticeboard/noticeboard1',
+      children: [
+        {
+          path: '/noticeboard1',
+          name: 'noticeboard1',
+          component: () => import('@/views/notice/NoticeBoard.vue'),  // 公示公告
+          meta: {
+            title: '公示公告',
+            hidden: false,
+            icon: 'notifications_active',
+            fullWidth: true
+          }
+        },
+        {
+          path: 'noticedetail/:id',
+          name: 'noticedetail',
+          component: () => import('../views/notice/NoticeDetail.vue'), // 任务列表及操作
+          meta: {
+            title: '公告详情',
+            hidden: true,
+            icon: 'details',
+            fullWidth: true
+          }
+        },
+      ]
+    },
     {
       path: '/index',
       name: 'index',
@@ -58,18 +93,6 @@ export const router = createRouter({
       },
       redirect: '/index/taskmanagement', // 默认跳转到任务管理
       children: [
-        // 公示公告放在项目管理下只为占据第一栏菜单（使用宽屏布局）
-        {
-          path: '/noticeboard',
-          name: 'noticeboard',
-          component: () => import('@/views/NoticeBoard.vue'),
-          meta: {
-            title: '公示公告',
-            hidden: false,
-            icon: 'notifications_active',
-            fullWidth: true // 添加自定义标识(特殊布局)
-          }
-        },
         {
           path: 'taskmanagement',
           name: 'taskmanagement',
