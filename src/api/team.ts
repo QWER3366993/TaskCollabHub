@@ -1,6 +1,5 @@
 import service from '@/utils/request'
 import type { Team, Employee } from '@/types/team'
-import type { Project } from '@/types/project';
 
 // 获取团队列表
 export const fetchTeams = async (): Promise<Team[]> => {
@@ -16,6 +15,15 @@ export const fetchTeams = async (): Promise<Team[]> => {
   return response.data;
 };
 
+// 根据团队id获取团队详情
+export const fetchTeamById = async (teamId: string): Promise<Team> => {
+  const response = await service({
+    url: `/teams/${teamId}`,
+    method: 'get',
+  });
+  return response.data;
+};
+
 //根据成员获取所在团队列表
 export const fetchTeamByemployeeId = async (employeeId: string): Promise<Team[] | null> => {
   const response = await service({
@@ -26,21 +34,32 @@ export const fetchTeamByemployeeId = async (employeeId: string): Promise<Team[] 
 };
 
 // 创建新团队
-export const createTeam = async (teamData: { name: string; description: string }): Promise<Team> => {
+export const createTeam = async (teamData: {
+  name: string;
+  description: string;
+  employees?: Employee[]
+}
+): Promise<Team> => {
   const response = await service({
     url: '/teams',
     method: 'post',
-    data: teamData,
+    data: {
+      ...teamData,
+      members: teamData.employees // 根据后端字段命名调整
+    },
   });
   return response.data;
 };
 
 // 更新团队信息
-export const updateTeam = async (teamId: string, teamData: { name: string; description: string }): Promise<Team> => {
+export const updateTeam = async (teamId: string, teamData: { name: string; description: string; employees: Employee[] }): Promise<Team> => {
   const response = await service({
     url: `/teams/${teamId}`,
     method: 'put',
-    data: teamData,
+    data: {
+      ...teamData,
+      members: teamData.employees
+    },
   });
   return response.data;
 };
@@ -50,15 +69,6 @@ export const deleteTeam = async (teamId: string): Promise<Team> => {
   const response = await service({
     url: `/teams/${teamId}`,
     method: 'delete',
-  });
-  return response.data;
-};
-
-// 获取团队详情
-export const fetchTeamById = async (teamId: string): Promise<Team> => {
-  const response = await service({
-    url: `/teams/${teamId}`,
-    method: 'get',
   });
   return response.data;
 };
@@ -73,11 +83,12 @@ export const fetchEmployeeById = async (userId: string): Promise<Employee> => {
 };
 
 // 添加成员到团队
-export const addMemberToTeam = async (teamId: string, memberId: string): Promise<Team> => {
+export const addMemberToTeam = async (teamId: string, employeeIds: string | string[]): Promise<Team> => {
+  const ids = Array.isArray(employeeIds) ? employeeIds : [employeeIds];
   const response = await service({
-    url: `/teams/${teamId}/members`,
+    url: `/teams/${teamId}/employees`,
     method: 'post',
-    data: { memberId },
+    data: { employeeIds: ids },
   });
   return response.data;
 };

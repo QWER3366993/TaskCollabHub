@@ -1,129 +1,185 @@
 <script lang="ts" setup>
-import { ref, onMounted, watchEffect } from 'vue'; 
+import { ref, computed, onMounted, watchEffect } from 'vue';
 import { useTeamStore } from '@/stores/team';
 import { useRouter } from 'vue-router';
+import type { Team, Employee } from '@/types/team';
+import { useUserStore } from '@/stores/user';
+import { createToast } from 'mosha-vue-toastify';
 
-// 引入 team store 和 router 实例
 const teamStore = useTeamStore();
 const router = useRouter();
+const userStore = useUserStore();
+const teams = ref<Team[]>([]);
+const employees = ref<Employee[]>([]);
 
 // 控制创建团队对话框的显隐
 const createTeamDialogVisible = ref(false);
-// 新团队数据
-const newTeam = ref({ name: '', description: '' });
-// 当前选中的团队ID
-const selectedTeamId = ref('');
+// Omit<Team, 'id'> 是一个类型操作符，用于从 Team 类型中排除 id 属性
+const newTeam = ref<Omit<Team, 'id'>>({ name: '', description: '', employees: [] });
 
-// 获取团队列表
-onMounted(() => {
-  teamStore.getTeamList();  // 加载团队列表
-});
-
-// 监听 teams 数据变化，保证每次获取后更新 UI
-watchEffect(() => {
-  if (teamStore.teams.size > 0) {
-    const firstTeam = Array.from(teamStore.teams.values())[0];
-    if (firstTeam) {
-      selectedTeamId.value = firstTeam.id || '';  // 设置默认选中的团队ID
-      teamStore.getTeamMembers(selectedTeamId.value);  // 加载默认团队成员
-    }
-  }
-});
+const isManager = computed(
+  () => userStore.user.authorities?.includes('manager'));
 
 // 创建团队
 const createTeam = async () => {
-  await teamStore.createNewTeam(newTeam.value);
-  createTeamDialogVisible.value = false;  // 关闭对话框
-  teamStore.getTeamList();  // 重新加载团队列表
+  try {
+    await teamStore.createNewTeam(newTeam.value);
+    createTeamDialogVisible.value = false;
+    newTeam.value = { name: '', description: '', employees: [] };
+    createToast('创建成功', { type: 'success' });
+  } catch (error) {
+    createToast('创建失败', { type: 'danger' });
+  } finally {
+    await teamStore.getTeamList();
+  }
 };
 
-// 编辑团队
+// 加载团队列表
+const loadTeams = async () => {
+  try {
+    await teamStore.getTeamList();
+    if (Array.isArray(teamStore.teams)) {
+      teams.value = teamStore.teams;
+    }
+  } catch (error) {
+    console.error('加载团队列表失败:', error);
+    throw error;
+  }
+};
+
+// 加载员工列表
+const loadEmployees = async () => {
+  try {
+    const result = await teamStore.getEmployees();
+    if (Array.isArray(result)) {
+      employees.value = result;
+    } else {
+      console.error('接口返回值异常:', result);
+    }
+  } catch (error) {
+    console.error('加载员工失败:', error);
+  }
+};
+
+
+// 编辑跳转
 const editTeam = (teamId: string) => {
-  router.push(`/teams/${teamId}/edit`);  // 跳转到编辑团队页面
+  router.push({ name: 'teamdetail', params: { id: teamId } });
 };
 
-// 加载团队成员
-const getTeamMembers = async (teamId: string) => {
-  await teamStore.getTeamMembers(teamId);  // 调用 store 获取成员
-  selectedTeamId.value = teamId;  // 更新当前团队ID
+// 删除团队
+const deleteTeam = async (teamId: string) => {
+  try {
+    await teamStore.deleteTeamById(teamId);
+    await loadTeams();  // 重新加载团队列表
+  } catch (error) {
+    console.error('删除团队失败:', error);
+  }
 };
 
-// 添加成员
-const addMember = async (teamId: string, memberId: string) => {
-  await teamStore.addMember(teamId, memberId);  // 调用 store 添加成员
-};
+// 获取团队列表
+onMounted(async () => {
+  await userStore.getUserInfo();
+  await Promise.all([loadEmployees(), loadTeams()]);
+});
 
-// 删除成员
-const removeMember = async (teamId: string, memberId: string) => {
-  await teamStore.removeMember(teamId, memberId);  // 调用 store 移除成员
-};
 </script>
 
 <template>
   <v-container>
-    <h2>Teams</h2>
-    <v-btn color="primary" @click="createTeamDialogVisible = true">Create Team</v-btn>
-
-    <v-data-table :items="Array.from(teamStore.teams.values())" style="width: 100%">
-      <v-data-table-column header="Name" key="name">
-        <template v-slot:item="{ item }">
-          {{ item.name }}
+    <!-- 顶部操作栏 -->
+    <div class="d-flex align-center mb-4">
+      <h2 class="text-h5 flex-grow-1">团队列表</h2>
+      <v-btn color="primary" @click="createTeamDialogVisible = true">
+        <v-icon>add</v-icon>
+        新建团队
+      </v-btn>
+    </div>
+    <v-card>
+      <v-data-table :items="teams" :headers="[
+        { title: '团队名称', key: 'name' },
+        { title: '描述', key: 'description' },
+        { title: '成员', key: 'memberName' },
+        { title: '操作', key: 'actions' }
+      ]">
+        <!-- 成员列显示 -->
+        <template #item.memberName="{ item }">
+          <div class="member-list">
+            <template v-if="item.employees?.length">
+              <div v-for="(member, index) in item.employees" :key="index" variant="outlined" class="ma-1">
+                <v-avatar size="24" class="mr-2">
+                  <img :src="member.avatar" v-if="member.avatar">
+                  <v-icon v-else>account</v-icon>
+                </v-avatar>
+                {{ member.name }}
+              </div>
+            </template>
+            <span v-else class="text-grey">暂无成员</span>
+          </div>
         </template>
-      </v-data-table-column>
-      <v-data-table-column header="Description" key="description">
-        <template v-slot:item="{ item }">
-          {{ item.description }}
+        <!-- 操作列  -->
+        <template #item.actions="{ item }">
+          <div class="action-buttons">
+            <v-tooltip text="编辑">
+              <template #activator="{ props }">
+                <v-btn v-bind="props" icon variant="text" color="primary" @click="editTeam(item.id)">
+                  <v-icon>edit</v-icon>
+                </v-btn>
+              </template>
+            </v-tooltip>
+            <!--  添加v-if="isAdmin"，普通员工不可见 -->
+            <v-tooltip text="删除">
+              <template #activator="{ props }">
+                <v-btn v-bind="props" icon variant="text" color="grey" @click="deleteTeam(item.id)">
+                  <v-icon>delete</v-icon>
+                </v-btn>
+              </template>
+            </v-tooltip>
+          </div>
         </template>
-      </v-data-table-column>
-      <v-data-table-column header="Actions" key="actions">
-        <template v-slot:item="{ item }">
-          <v-btn @click="editTeam(item.id)">Edit</v-btn>
-          <v-btn @click="getTeamMembers(item.id)">View Members</v-btn>
-        </template>
-      </v-data-table-column>
-    </v-data-table>
-
+      </v-data-table>
+    </v-card>
     <!-- 创建团队对话框 -->
-    <v-dialog v-model="createTeamDialogVisible" max-width="500px">
+    <v-dialog v-model="createTeamDialogVisible" max-width="600">
       <v-card>
-        <v-card-title>
-          <span class="text-h5">Create Team</span>
+        <v-card-title class="d-flex justify-space-between align-center">
+          <span class="text-h5">新建团队</span>
+          <v-btn variant="text" color="grey" @click="createTeamDialogVisible = false">
+            取消
+          </v-btn>
         </v-card-title>
         <v-card-text>
-          <v-form>
-            <v-container>
-              <v-row>
-                <v-col cols="12">
-                  <v-text-field v-model="newTeam.name" label="Name" required></v-text-field>
-                </v-col>
-                <v-col cols="12">
-                  <v-text-field v-model="newTeam.description" label="Description" required></v-text-field>
-                </v-col>
-              </v-row>
-            </v-container>
+          <v-form @submit.prevent="createTeam">
+            <v-text-field v-model="newTeam.name" label="团队名称" required :rules="[v => !!v || '必填项']" />
+            <v-textarea v-model="newTeam.description" label="团队描述" rows="3" />
+            <v-combobox v-model="newTeam.employees" :items="employees" item-title="name" item-value="employeeId"
+              label="选择成员" multiple chips clearable>
+              <!-- multiple：允许选择多个选项； chips：显示为标签形式； clearable：显示清除按钮 -->
+              <template #selection="{ item }">
+                <v-chip>
+                  <v-avatar size="24" class="mr-2">
+                    <!-- 标签形式下不显示头像 -->
+                    <img :src="item.raw.avatar">
+                  </v-avatar>
+                  {{ item.title }}
+                </v-chip>
+              </template>
+            </v-combobox>
+            <v-btn type="submit" color="primary" block>创建</v-btn>
           </v-form>
         </v-card-text>
-        <v-card-actions>
-          <v-spacer></v-spacer>
-          <v-btn color="blue darken-1"  @click="createTeamDialogVisible = false">Cancel</v-btn>
-          <v-btn color="blue darken-1"  @click="createTeam">Create</v-btn>
-        </v-card-actions>
       </v-card>
     </v-dialog>
-
-    <!-- 显示团队成员 -->
-    <v-data-table v-if="teamStore.teamMembers.length" :items="teamStore.teamMembers" style="width: 100%">
-      <v-data-table-column header="Member Name" key="name">
-        <template v-slot:item="{ item }">
-          {{ item.name }}
-        </template>
-      </v-data-table-column>
-      <v-data-table-column header="Actions" key="actions">
-        <template v-slot:item="{ item }">
-          <v-btn @click="removeMember(selectedTeamId, item.id)">Remove</v-btn>
-          <v-btn @click="addMember(selectedTeamId, 'newMemberId')">Add Member</v-btn>
-        </template>
-      </v-data-table-column>
-    </v-data-table>
   </v-container>
 </template>
+
+<style scoped>
+.action-buttons {
+  opacity: 0.5;
+  transition: opacity 0.3s ease;
+
+  .v-data-table__tr:hover & {
+    opacity: 1;
+  }
+}
+</style>

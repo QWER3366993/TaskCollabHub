@@ -294,17 +294,57 @@ const mockTeams: Team[] = [
   {
     id: '1',
     name: '前端开发组',
-    description: '专注于前端技术开发'
+    description: '专注于前端技术开发',
+    employees: [
+      {
+        employeeId: 'i',
+        name: '海绵宝宝',
+        avatar: '/海绵宝宝.jpg',
+        teamId: '2', // 补充团队 ID
+        userId: 'user111', // 补充用户 ID
+        status: '在职', // 补充状态
+        workload: 70, // 补充工作负载 (假设值)
+        position: '测试工程师',// 补充职位
+        authorities: ['admin'],
+      
+      }
+    ]
   },
   {
     id: '2',
     name: '后端开发组',
-    description: '负责后端架构和 API 开发'
+    description: '负责后端架构和 API 开发',
+    employees: [
+      {  
+        employeeId: 'u111',
+        name: '派大星',
+        avatar: '/派大星.jpg',
+        teamId: '1', // 补充团队 ID
+        userId: 'user222', // 补充用户 ID
+        status: '在职', // 补充状态
+        workload: 50, // 补充工作负载 (假设值)
+        position: '开发工程师', // 补充职位
+        authorities: ['manager'],
+      }
+    ]
   },
   {
     id: '3',
     name: '测试团队',
-    description: '进行系统测试和质量保障'
+    description: '进行系统测试和质量保障',
+    employees: [
+      {
+        employeeId: 'u333',
+        name: '章鱼哥',
+        avatar: '/章鱼哥.jpg',
+        teamId: '2',
+        userId: 'user333',
+        status: '在职',
+        workload: 30,
+        position: '后端工程师',
+        authorities: ['admin'],
+      }
+    ]
   }
 ];
 

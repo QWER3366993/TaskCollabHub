@@ -20,26 +20,43 @@ import {
 
 export const useTeamStore = defineStore('team', () => {
   // State
-  const teams = ref<Map<string, Team>>(new Map()); // 团队列表（使用 Map 提高查找效率）
+  const teams = ref<Team[]>([]); // 团队列表（使用 Map 提高查找效率）
+  const teamDetail = ref<Team>();
   const employees = ref<Employee[]>([]); //员工列表
-  const currentTeam = ref<Team | null>(null); // 当前选中的团队
   const currentEmployee = ref<Employee | null>(null); // 当前选中的成员
   const teamMembers = ref<Employee[]>([]); // 当前团队的成员列表
   const availableTeams = ref<Team[]>([]); //可用团队
   // 计算属性：转换 Map 为数组（用于展示）
-  const teamList = computed(() => Array.from(teams.value.values()));
   const errorMessage = ref<string>('');
 
   // 获取团队列表
   const getTeamList = async (): Promise<Team[]> => {
     try {
-      const teamArray = await fetchTeams();
-      teams.value = new Map(teamArray.map(team => [team.id, team]));
-      return teamArray;
+      const data = await fetchTeams();
+      teams.value = data;
+      return data;
     } catch (error) {
       console.error(error);
       createToast('加载团队列表失败', { position: 'top-center', showIcon: true });
       return [];
+    }
+  };
+
+  // 获取团队id获取团队详情
+  const getTeamById = async (teamId: string): Promise<Team> => {
+    try {
+      const data = await fetchTeamById(teamId);
+      // 同时加载成员列表
+      const members = await fetchTeamMembers(teamId);
+      teamDetail.value = {
+        ...data,
+        employees: members // 合并成员数据
+      };
+      return teamDetail.value;
+    } catch (error) {
+      console.error(error);
+      createToast('获取团队详情失败', { position: 'top-center', showIcon: true });
+      throw error;
     }
   };
 
@@ -64,16 +81,6 @@ export const useTeamStore = defineStore('team', () => {
     }
   };
 
-  // 获取团队详情
-  const getTeamById = async (teamId: string) => {
-    try {
-      currentTeam.value = await fetchTeamById(teamId);
-    } catch (error) {
-      console.error(error);
-      createToast('获取团队详情失败', { position: 'top-center', showIcon: true });
-    }
-  };
-
   //获取员工详情
   const getEmployeeById = async (userId: string) => {
     try {
@@ -95,10 +102,13 @@ export const useTeamStore = defineStore('team', () => {
   };
 
   // 创建新团队
-  const createNewTeam = async (teamData: { name: string; description: string }) => {
+  const createNewTeam = async (teamData: { name: string; description: string; employees?: Employee[] }) => {
     try {
       const newTeam = await createTeam(teamData);
-      teams.value.set(newTeam.id, newTeam);
+      teams.value.push({
+        ...newTeam,
+        employees: [] // 初始化为空数组，后续通过 getTeamMembers 加载
+      });
       createToast('团队创建成功', { position: 'top-center', showIcon: true });
     } catch (error) {
       console.error(error);
@@ -106,13 +116,27 @@ export const useTeamStore = defineStore('team', () => {
     }
   };
 
-  // 更新团队信息
-  const updateTeamInfo = async (teamId: string, teamData: { name: string; description: string }) => {
+  // 更新团队信息(通过索引替换特定位置的对象)
+  const updateTeamInfo = async (teamId: string, teamData: { name: string; description: string; employees: Employee[] }) => {
     try {
       const updatedTeam = await updateTeam(teamId, teamData);
-      teams.value.set(teamId, updatedTeam);
-      if (currentTeam.value?.id === teamId) {
-        currentTeam.value = updatedTeam;
+
+      // 找到需要更新的团队索引
+      const teamIndex = teams.value.findIndex(team => team.id === teamId);
+      if (teamIndex !== -1) {
+        teams.value[teamIndex] = {
+          ...teams.value[teamIndex],
+          ...updatedTeam,
+          employees: teamMembers.value // 保持本地成员数据同步
+        };
+      }
+      // 更新详情数据
+      if (teamDetail.value?.id === teamId) {
+        teamDetail.value = {
+          ...teamDetail.value,
+          ...updatedTeam,
+          employees: teamMembers.value
+        };
       }
       createToast('团队信息更新成功', { position: 'top-center', showIcon: true });
     } catch (error) {
@@ -125,11 +149,8 @@ export const useTeamStore = defineStore('team', () => {
   const deleteTeamById = async (teamId: string) => {
     try {
       await deleteTeam(teamId);
-      teams.value.delete(teamId);
-      if (currentTeam.value?.id === teamId) {
-        currentTeam.value = null;
-        teamMembers.value = [];
-      }
+      // 过滤掉被删除的团队
+      teams.value = teams.value.filter(team => team.id !== teamId);
       createToast('团队删除成功', { position: 'top-center', showIcon: true });
     } catch (error) {
       console.error(error);
@@ -137,15 +158,17 @@ export const useTeamStore = defineStore('team', () => {
     }
   };
 
-
   // 添加成员到团队
-  const addMember = async (teamId: string, memberId: string) => {
+  const addMember = async (teamId: string, employeeIds: string | string[]) => {
     try {
-      const updatedTeam = await addMemberToTeam(teamId, memberId);
-      if (currentTeam.value?.id === teamId) {
-        currentTeam.value = updatedTeam;
+      const updatedTeam = await addMemberToTeam(teamId, employeeIds);
+      // 更新本地数据
+      const teamIndex = teams.value.findIndex(t => t.id === teamId);
+      if (teamIndex !== -1) {
+        teams.value[teamIndex].employees = updatedTeam.employees;
       }
-      await getTeamMembers(teamId); // 重新获取成员列表
+      // 更新当前成员列表
+      teamMembers.value = updatedTeam.employees;
       createToast('成员添加成功', { position: 'top-center', showIcon: true });
     } catch (error) {
       console.error(error);
@@ -157,10 +180,14 @@ export const useTeamStore = defineStore('team', () => {
   const removeMember = async (teamId: string, memberId: string) => {
     try {
       const updatedTeam = await removeMemberFromTeam(teamId, memberId);
-      if (currentTeam.value?.id === teamId) {
-        currentTeam.value = updatedTeam;
+      // 更新本地数据
+      const teamIndex = teams.value.findIndex(t => t.id === teamId);
+      if (teamIndex !== -1) {
+        teams.value[teamIndex].employees =
+          teams.value[teamIndex].employees.filter(e => e.employeeId !== memberId);
       }
-      await getTeamMembers(teamId); // 重新获取成员列表
+      // 更新当前成员列表
+      teamMembers.value = teamMembers.value.filter(m => m.employeeId !== memberId);
       createToast('成员移除成功', { position: 'top-center', showIcon: true });
     } catch (error) {
       console.error(error);
@@ -217,8 +244,7 @@ export const useTeamStore = defineStore('team', () => {
 
   return {
     teams,
-    teamList,
-    currentTeam,
+    teamDetail,
     teamMembers,
     currentEmployee,
     employees,

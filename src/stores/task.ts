@@ -3,6 +3,7 @@ import { ref, computed, nextTick } from 'vue';
 import {
   fetchTaskById,
   // fetchTasksByStatus,
+  fetchTasksByTeam,
   fetchTasks,
   createTask,
   updateOldTask,
@@ -122,12 +123,10 @@ export const useTaskStore = defineStore('task', () => {
   const getTaskById = async (taskId: string): Promise<Task | null> => {
     try {
       const data = await fetchTaskById(taskId);
-      console.log('[Store] 原始API响应:', data);
       if (!data) {
         throw new Error('任务不存在');
       }
       taskDetail.value = data; // 确保 data 不为 null
-      console.log('[Store] 更新后数据:', taskDetail.value);
       // 记录查看日志
       recordViewLog(data);
       return taskDetail.value;
@@ -136,6 +135,20 @@ export const useTaskStore = defineStore('task', () => {
       throw error; // 抛出错误，由组件决定是否清空数据
     }
   };
+
+  // 新的 API 方法，基于团队ID获取任务列表
+const getTasksByTeam = async (teamId: string): Promise<Task[]> => {
+  try {
+    const data = await fetchTasksByTeam(teamId); // 这里使用根据团队ID获取任务的接口
+    tasks.value = data;
+    return data;
+  } catch (error) {
+    errorMessage.value = '获取团队任务列表失败';
+    createToast(errorMessage.value, { position: 'top-center', showIcon: true, type: 'danger' });
+    return [];
+  }
+};
+
 
   /** 根据参与人员获取任务列表 */
   const getTasksByUser = async (userId: string): Promise<Task[]> => {
@@ -202,7 +215,7 @@ export const useTaskStore = defineStore('task', () => {
     }
   };
 
-  /** 更新任务 */
+  /** 更新任务(通过 map 方法全量更新，原任务对象被替换为新的任务数据) */
   const updateTask = async (taskId: string, updatedTask: Partial<Task>): Promise<void> => {
     try {
       // 查找原任务
@@ -550,6 +563,7 @@ export const useTaskStore = defineStore('task', () => {
     getAllTasks,
     getTaskById,
     getTasksByUser,
+    getTasksByTeam,
     // getTasksByStatus,
     getCommentsByTaskId,
     submitComment,

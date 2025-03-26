@@ -24,6 +24,14 @@ export const fetchTaskById = async (taskId: string): Promise<Task | null> => {
   return response.data;
 };
 
+export const fetchTasksByTeam = async (teamId: string): Promise<Task[]> => {
+  const response = await service({
+    url: `/tasks?teamId=${teamId}`,
+    method: 'get',
+  });
+  return response.data;
+};
+
 // 根据参与人员获取任务列表
 export const fetchTasksByUser = async (userId: string): Promise<Task[]> => {
   const response = await service({
@@ -210,7 +218,7 @@ export const downloadFile = async (fileId: string, fileName: string): Promise<vo
 
   // 创建对象 URL
   const url = URL.createObjectURL(blob);
-  
+
   // 创建隐藏链接
   const link = document.createElement('a');
   link.href = url;

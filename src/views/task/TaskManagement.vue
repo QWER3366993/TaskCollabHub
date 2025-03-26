@@ -15,7 +15,7 @@ const teamStore = useTeamStore();
 const tasks = ref<Task[]>([]);
 const employees = ref<Employee[]>([]);
 
-const isAdmin = computed(
+const isManager = computed(
   () => userStore.user.authorities?.includes('manager'));
 
 // 定义 headers
@@ -35,10 +35,11 @@ const loadTasks = async () => {
     await taskStore.getAllTasks(); // 确保先加载数据
     if (Array.isArray(taskStore.tasks)) {
       tasks.value = taskStore.tasks;
-      // console.log('任务数据已加载:', tasks.value); // 验证数据
+      console.log('任务数据已加载:', tasks.value); // 验证数据
     }
   } catch (error) {
     console.error('加载任务失败:', error);
+    throw error;
   }
 };
 
@@ -150,7 +151,7 @@ const statusIcon = (status: string) => {
 // });
 
 onMounted(async () => {
-  userStore.getUserInfo();
+  await userStore.getUserInfo();
   await loadEmployees(); //先加载员工数据再加载任务（防止getName在员工数据未就绪时被调用）
   await loadTasks();
 });
