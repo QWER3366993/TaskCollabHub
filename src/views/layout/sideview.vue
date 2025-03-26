@@ -64,9 +64,17 @@ const goRoute = (vc: RouteRecordRaw) => {
 </template>
 
 <style lang="css" scoped>
-.search-box {
-    margin-bottom: 20px;
-    width: 100%;
-    height: 50px;
+.secondary-menu-container {
+  display: flex;
+  flex-direction: column;
+  gap: 5px; /* 控制搜索框与菜单的间距 */
 }
+
+.search-box {
+  width: 100%;
+  min-height: 82px; 
+  flex-shrink: 0;
+}
+
+
 </style>

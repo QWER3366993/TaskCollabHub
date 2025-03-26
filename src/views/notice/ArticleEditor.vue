@@ -102,6 +102,8 @@ onBeforeUnmount(() => {
   border: 1px solid #e5e7eb;
   border-radius: 6px;
   overflow: hidden;
+   max-height: 350px; /* 限制高度 */
+  overflow-y: auto; /* 启用滚动条 */
 }
 
 .editor-toolbar {

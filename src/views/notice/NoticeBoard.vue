@@ -187,8 +187,8 @@ onMounted(async () => {
   <div class="news-container">
     <!-- 轮播图区域 -->
     <v-carousel cycle height="500" interval="5000">
-      <v-carousel-item v-for="item in noticeStore.carouselNotices" :key="item.id" :src="item.coverImage" :aspect-ratio="16 / 9"
-        cover loading="lazy">
+      <v-carousel-item v-for="item in noticeStore.carouselNotices" :key="item.id" :src="item.coverImage"
+        :aspect-ratio="16 / 9" cover loading="lazy">
         <div class="carousel-overlay" @click="viewDetail(item)">
           <div class="carousel-content">
             <h2 class="text-h4 font-weight-bold mb-4">{{ item.title }}</h2>
@@ -214,26 +214,27 @@ onMounted(async () => {
             科技热点
           </h3>
           <div class="news-list">
-          <v-card v-for="notice in noticeStore.techNotices" :key="notice.id" class="news-card mb-4" @click="viewDetail(notice)">
-            <v-card-title>{{ notice.title }}</v-card-title>
-            <v-card-subtitle>
-              <v-icon small>schedule</v-icon>
-              {{ dayjs(notice.createdAt).format('YYYY-MM-DD') }}
-              <v-spacer />
-              <v-icon small>visibility</v-icon>
-              {{ notice.hit }}
-            </v-card-subtitle>
-            <v-card-text>{{ notice.summary }}</v-card-text>
-            <!-- 编辑删除按钮 -->
-            <v-card-actions v-if="isAdmin">
-              <v-spacer />
-              <v-btn color="primary" icon="edit" variant="tonal" @click.stop="openEditor(notice)">
-              </v-btn>
-              <v-btn color="error" icon="delete" variant="tonal" @click.stop="confirmDelete(notice.id)">
-              </v-btn>
-            </v-card-actions>
-          </v-card>
-        </div>
+            <v-card v-for="notice in noticeStore.techNotices" :key="notice.id" class="news-card mb-4"
+              @click="viewDetail(notice)">
+              <v-card-title>{{ notice.title }}</v-card-title>
+              <v-card-subtitle>
+                <v-icon small>schedule</v-icon>
+                {{ dayjs(notice.createdAt).format('YYYY-MM-DD') }}
+                <v-spacer />
+                <v-icon small>visibility</v-icon>
+                {{ notice.hit }}
+              </v-card-subtitle>
+              <v-card-text>{{ notice.summary }}</v-card-text>
+              <!-- 编辑删除按钮 -->
+              <v-card-actions v-if="isAdmin">
+                <v-spacer />
+                <v-btn color="primary" icon="edit" variant="tonal" @click.stop="openEditor(notice)">
+                </v-btn>
+                <v-btn color="error" icon="delete" variant="tonal" @click.stop="confirmDelete(notice.id)">
+                </v-btn>
+              </v-card-actions>
+            </v-card>
+          </div>
         </v-col>
 
         <!-- 政策新闻 -->
@@ -243,33 +244,34 @@ onMounted(async () => {
             政策法规
           </h3>
           <div class="news-list">
-          <v-card v-for="notice in noticeStore.policyNotices" :key="notice.id" class="news-card mb-4" @click="viewDetail(notice)">
-            <v-card-title>{{ notice.title }}</v-card-title>
-            <v-card-subtitle>
-              <v-icon small>schedule</v-icon>
-              {{ dayjs(notice.createdAt).format('YYYY-MM-DD') }}
-              <v-spacer />
-              <v-icon small>visibility</v-icon>
-              {{ notice.hit }}
-            </v-card-subtitle>
-            <v-card-text>{{ notice.summary }}</v-card-text>
-            <!-- 编辑删除按钮 -->
-            <v-card-actions v-if="isAdmin">
-              <v-spacer />
-              <v-btn color="primary" icon="edit" variant="tonal" @click.stop="openEditor(notice)">
-              </v-btn>
-              <v-btn color="error" icon="delete" variant="tonal" @click.stop="confirmDelete(notice.id)">
-              </v-btn>
-            </v-card-actions>
-          </v-card>
-        </div>
+            <v-card v-for="notice in noticeStore.policyNotices" :key="notice.id" class="news-card mb-4"
+              @click="viewDetail(notice)">
+              <v-card-title>{{ notice.title }}</v-card-title>
+              <v-card-subtitle>
+                <v-icon small>schedule</v-icon>
+                {{ dayjs(notice.createdAt).format('YYYY-MM-DD') }}
+                <v-spacer />
+                <v-icon small>visibility</v-icon>
+                {{ notice.hit }}
+              </v-card-subtitle>
+              <v-card-text>{{ notice.summary }}</v-card-text>
+              <!-- 编辑删除按钮 -->
+              <v-card-actions v-if="isAdmin">
+                <v-spacer />
+                <v-btn color="primary" icon="edit" variant="tonal" @click.stop="openEditor(notice)">
+                </v-btn>
+                <v-btn color="error" icon="delete" variant="tonal" @click.stop="confirmDelete(notice.id)">
+                </v-btn>
+              </v-card-actions>
+            </v-card>
+          </div>
         </v-col>
       </v-row>
     </v-container>
 
-    管理员发布按钮
-    <v-btn v-if="isAdmin" color="primary" @click="openEditor">
+    <v-btn v-if="isAdmin" class="admin-toolbar" density="compact" @click="openEditor">
       <v-icon>add</v-icon>
+      新建公示公告
     </v-btn>
     <!-- 编辑器弹窗 -->
     <v-dialog v-model="editorDialog" max-width="800px">
@@ -290,7 +292,7 @@ onMounted(async () => {
           ]" item-title="text" item-value="value" :rules="[v => !!v || '请选择公告类型']" required></v-select>
 
           <!-- 封面图上传 -->
-          <v-file-input v-model="coverImageFile" label="封面图片" accept="image/*" prepend-icon="mdi-image"
+          <v-file-input v-model="coverImageFile" label="封面图片" accept="image/*" prepend-icon="image"
             @change="handleCoverUpload">
             <template v-slot:append>
               <v-chip v-if="newArticle.coverImage" color="success" size="small">
@@ -301,11 +303,11 @@ onMounted(async () => {
 
           <!-- 外部链接 -->
           <v-text-field v-model="newArticle.url" label="相关链接" placeholder="https://example.com"
-            prepend-icon="mdi-link"></v-text-field>
+            prepend-icon="link"></v-text-field>
 
           <!-- 摘要 -->
           <v-textarea v-model="newArticle.summary" label="内容摘要" placeholder="请输入不超过200字的摘要" :counter="200" rows="3"
-            prepend-icon="mdi-text-box-outline"></v-textarea>
+            prepend-icon="summarize"></v-textarea>
           <!-- 正文编辑器 -->
           <div class="editor-section">
             <h4 class="text-subtitle-1 mb-2">
@@ -336,11 +338,11 @@ onMounted(async () => {
         </v-card-text>
         <v-card-actions>
           <v-spacer />
-          <v-btn color="grey" @click="deleteDialog = false">
-            取消
-          </v-btn>
           <v-btn color="error" @click="handleDelete">
             确认删除
+          </v-btn>
+          <v-btn color="grey" @click="deleteDialog = false">
+            取消
           </v-btn>
         </v-card-actions>
       </v-card>
@@ -381,8 +383,10 @@ onMounted(async () => {
 
 /* 新闻列表固定高度（启用滚动条） */
 .news-list {
-  max-height: 350px; /* 限制高度 */
-  overflow-y: auto; /* 启用滚动条 */
+  max-height: 350px;
+  /* 限制高度 */
+  overflow-y: auto;
+  /* 启用滚动条 */
   padding-right: 10px;
 }
 
@@ -390,13 +394,19 @@ onMounted(async () => {
 .news-list::-webkit-scrollbar {
   width: 6px;
 }
+
 .news-list::-webkit-scrollbar-thumb {
-  background-color: #cff3e3; /* 滑块背景颜色 */
-  border-radius: 3px; /* 滑块圆角 */
-  opacity: 0.5; /* 滑块透明度 */
+  background-color: #cff3e3;
+  /* 滑块背景颜色 */
+  border-radius: 3px;
+  /* 滑块圆角 */
+  opacity: 0.5;
+  /* 滑块透明度 */
 }
+
 .news-list::-webkit-scrollbar-track {
-  background-color: #bef4ba; /* 轨道背景颜色 */
+  background-color: #bef4ba;
+  /* 轨道背景颜色 */
 }
 
 /* 编辑删除操作按钮 */
@@ -404,5 +414,18 @@ onMounted(async () => {
   position: absolute;
   right: 16px;
   backdrop-filter: blur(2px);
+}
+
+.admin-toolbar {
+  position: fixed;
+  /* 固定在页面 */
+  bottom: 20px;
+  /* 离底部20px */
+  right: 20px;
+  background: rgba(149, 166, 210, 0.8) !important;
+  backdrop-filter: blur(4px);
+  border-bottom: 1px solid rgba(66, 72, 86, 0.12);
+  border-radius: 24px;
+  /* 圆角 */
 }
 </style>
