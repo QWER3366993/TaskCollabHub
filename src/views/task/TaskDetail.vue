@@ -16,7 +16,7 @@ const taskStore = useTaskStore();
 const commentInput = ref('');
 const userStore = useUserStore();
 const teamStore = useTeamStore();
-const taskId = route.params.id as string; // 从路由参数中获取任务 ID
+const taskId = computed(() => route.params.id as string); // 从路由参数中获取任务 ID
 const teamId = ref<string>('');
 
 const defaultTask: Task = {
@@ -102,7 +102,7 @@ const addComment = async () => {
     };
     try {
       // 提交到 store 进行持久化
-      await taskStore.submitComment(taskId, newComment);
+      await taskStore.submitComment(taskId.value, newComment);
       // if-else写法可以替换为利用展开运算符：task.value.comments = [...(task.value.comments || []), newComment];
       // 更新本地数据
       if (task.value.comments) {
@@ -123,7 +123,6 @@ const addComment = async () => {
 const handleUpload = async (event: Event) => {
   const input = event.target as HTMLInputElement;
   if (!input.files?.length) return;
-
   const MAX_SIZE = 5 * 1024 * 1024;
   const validFiles = Array.from(input.files).filter(file => {
     if (file.size > MAX_SIZE) {
@@ -132,21 +131,25 @@ const handleUpload = async (event: Event) => {
     }
     return true;
   });
-
-  // 转换为统一FileItem格式
-  const newFiles = validFiles.map(file => ({
-    id: crypto.randomUUID(),
-    name: file.name,
-    size: file.size,
-    type: file.type.split('/')[0] || 'other',
-    url: URL.createObjectURL(file),
-    uploader: userStore.user.name || '匿名用户',
-    uploadTime: dayjs().format('YYYY-MM-DD HH:mm:ss'),
-    scope: 'task'
-  } as FileItem));
-
-  // 合并文件列表
-  task.value.files = [...(task.value.files || []), ...newFiles];
+  // 创建 FormData 对象
+  const formData = new FormData();
+  // 将文件及其元数据添加到 FormData
+  validFiles.forEach((file, index) => {
+    formData.append('files', file); // 添加文件本身
+    formData.append(`file_${index}_name`, file.name); // 添加文件名
+    formData.append(`file_${index}_type`, file.type.split('/')[0] || 'other'); // 添加文件类型
+    formData.append(`file_${index}_uploader`, userStore.user.name || '匿名用户'); // 添加上传者
+    formData.append(`file_${index}_uploadTime`, dayjs().format('YYYY-MM-DD HH:mm:ss')); // 添加上传时间
+  });
+  // 调用 taskStore.uploadFile 并传递 FormData
+  try {
+    await taskStore.uploadFile(formData);
+    createToast('文件上传成功', { type: 'success' });
+  } catch (error) {
+    console.error('文件上传失败：', error);
+    createToast('文件上传失败', { type: 'danger' });
+  }
+  // 清空输入框
   input.value = '';
 };
 
@@ -213,18 +216,12 @@ const formatValue = (value: string | number | Date) => {
 // 加载任务详情的方法
 const loadTaskDetail = async (taskId: string) => {
   try {
-    console.log('[Component] 调用getTaskById前Store状态:', taskStore.taskDetail);
-
     // 先加载员工数据
     if (teamStore.employees.length === 0) {
       await teamStore.getEmployees();
     }
     // 从Store或API获取数据，确保使用 taskId
     const taskDetails = await taskStore.getTaskById(taskId);
-    console.log('[Component] 调用getTaskById后Store状态:',taskDetails);
-    console.log('[Component] 最终数据:', task.value);
-    console.log('[Component] 调用getTaskById后Store状态:', taskStore.taskDetail);
-    console.log('[Component]taskDetails ',taskDetails);
     if (taskDetails) {
       console.log('加载任务详情:', taskDetails);
       task.value = taskDetails || taskStore.taskDetail; //新数据优先，旧数据兜底
@@ -251,7 +248,7 @@ const saveTask = async () => {
       return;
     }
     // 发送更新请求
-    await taskStore.updateTask(taskId, editTask.value);
+    await taskStore.updateTask(taskId.value, editTask.value);
 
     // 退出编辑模式
     isEditing.value = false;
@@ -264,7 +261,7 @@ const saveTask = async () => {
 
 const confirmDelete = async () => {
   try {
-    await taskStore.deleteTaskById(taskId);
+    await taskStore.deleteTaskById(taskId.value);
     router.push({ name: 'taskmanagement' });
     createToast('任务已删除', { type: 'success' });
   } catch (error) {
@@ -283,7 +280,7 @@ const responsibleAvatar = computed(() => {
 
 
 onMounted(async () => {
-  await loadTaskDetail(taskId);  // 加载任务数据
+  await loadTaskDetail(taskId.value);  // 加载任务数据
 });
 </script>
 

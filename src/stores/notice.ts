@@ -49,9 +49,9 @@ export const useNoticeStore = defineStore('notice', () => {
         getNoticesByType('technology'),
         getNoticesByType('policy')
       ])
-      carouselNotices.value = carouselRes.data.data
-      techNotices.value = techRes.data.data
-      policyNotices.value = policyRes.data.data
+      carouselNotices.value = carouselRes
+      techNotices.value = techRes
+      policyNotices.value = policyRes
     } catch (error) {
       console.error('数据加载失败:', error)
     } finally {

@@ -23,6 +23,27 @@ const isManager = computed(
 // 创建团队
 const createTeam = async () => {
   try {
+    // 获取当前用户的员工信息
+    const currentEmployee = userStore.employee;
+    console.log('当前用户的员工信息:', currentEmployee);
+    console.log('当前员工的id:', currentEmployee!.employeeId)
+    if (!currentEmployee) {
+      createToast('无法获取当前用户的员工信息', { type: 'danger' });
+      return;
+    }
+    // 添加当前用户到成员列表
+    newTeam.value.employees.push({
+      employeeId: currentEmployee.employeeId, // 必须
+      userId: currentEmployee.userId,         // 必须
+      name: currentEmployee.name,             // 可选
+      teamId: '',                            // 创建时通常不需要（后端分配）
+      status: currentEmployee.status,        // 可选
+      position: currentEmployee.position,    // 可选
+      workload: currentEmployee.workload,    // 可选
+      authorities: currentEmployee.authorities,
+      avatar: currentEmployee.avatar
+    });
+    // 提交创建团队请求
     await teamStore.createNewTeam(newTeam.value);
     createTeamDialogVisible.value = false;
     newTeam.value = { name: '', description: '', employees: [] };

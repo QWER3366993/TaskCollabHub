@@ -18,8 +18,8 @@ const deleteTeamDialogVisible = ref(false);
 const newEmployeeIds = ref<string[]>([]);
 
 // 当前团队数据
-const team = computed(() => teamStore.teamDetail);
-const members = computed(() => teamStore.teamMembers);
+const team = ref<Team>();
+const teamMembers = ref<Employee[]>([]);
 const teamId = computed(() => route.params.id as string);
 
 // 权限控制
@@ -29,15 +29,25 @@ const isManager = computed(() =>
 );
 
 // 加载数据
-const loadTeamData = async () => {
+const loadTeamData = async (teamId: string) => {
   try {
-    await Promise.all([
-      teamStore.getTeamById(teamId.value),
-      teamStore.getTeamMembers(teamId.value),
-      teamStore.getEmployees()
-    ]);
+    // 先加载员工数据
+    if (teamStore.employees.length === 0) {
+      await teamStore.getEmployees();
+    }
+    const teamDetails = await teamStore.getTeamById(teamId);
+    if (teamDetails) {
+      team.value = teamDetails;
+      if (teamDetails.id) {
+        teamMembers.value = await teamStore.getTeamMembers(teamDetails.id);
+      } else {
+        teamMembers.value = teamStore.employees;
+      }
+    }
+    console.log('当前团队成员:', teamMembers.value);
   } catch (error) {
     createToast('加载团队数据失败', { type: 'danger' });
+    throw error;
   }
 };
 
@@ -84,7 +94,7 @@ const deleteTeam = async () => {
 // 初始化加载
 onMounted(async () => {
   await userStore.getUserInfo();
-  await loadTeamData();
+  await loadTeamData(teamId.value);
 });
 </script>
 
@@ -119,7 +129,7 @@ onMounted(async () => {
     <v-card>
       <v-card-title class="d-flex align-center">
         <v-icon class="mr-2">person</v-icon>
-        团队成员（{{ members.length }}人）
+        团队成员（{{ teamMembers.length }}人）
         <v-spacer />
         <v-btn v-if="isManager" color="primary" variant="tonal" prepend-icon="add"
           @click="addMemberDialogVisible = true">
@@ -127,7 +137,7 @@ onMounted(async () => {
         </v-btn>
       </v-card-title>
 
-      <v-data-table :items="members" :headers="[
+      <v-data-table :items="teamMembers" :headers="[
         { title: '姓名', key: 'name', width: '25%' },
         { title: '职位', key: 'position', width: '25%' },
         { title: '状态', key: 'status', width: '15%' },
@@ -217,16 +227,14 @@ onMounted(async () => {
 </template>
 
 <style scoped>
-.team-detail {
-  max-width: 1200px;
-  margin: 0 auto;
-}
 
+/* 宽度限制（显示滑块） */
 .v-progress-linear {
   min-width: 120px;
 }
-
+/* 宽度限制（表头） */
 :deep(.v-data-table-header__content) {
+  /* 禁止换行 */
   white-space: nowrap;
 }
 </style>

@@ -4,26 +4,19 @@ import type { User } from '@/types/user'
 import type { Employee } from '@/types/team'
 
 // 登录接口
-export function login(data: User) {
-  return service({
-    url: '/auth/login',
-    method: 'post',
-    data: data
-  })
+export async function login(userInfo: User) {
+  const response = await service.post('/auth/login', userInfo);
+  return response.data;
 }
 
 // 获取用户信息接口
 export async function getInfo() {
-  return service({
-    url: '/auth/userinfo',
-    method: 'get'
-  })
+  const response = await service.get('/auth/userinfo');
+  return response.data;
 }
 
 // 获取员工信息接口
-export async function fetchEmployeeInfo(userId: string): Promise<Employee> {
-  return service({
-    url: `/employees?userId=${userId}`,
-    method: 'get',
-  });
+export async function fetchEmployeeByUserId(userId: string) {
+  const response = await service.get(`/employees/${userId}`);
+  return response.data;
 }

@@ -82,7 +82,7 @@ export const mockNotices: Notice[] = [
     type: "technology",
     url: "https://example.com/ai-breakthrough",
     createdAt: "2024-11-22T08:15:00Z",
-    summary: "新型 AI 模型在医疗影像分析中表现优异",           
+    summary: "新型 AI 模型在医疗影像分析中表现优异",
     content: "新型 AI 模型在医疗影像分析中表现优异，准确率提升 30%。",
     hit: 250
   },
@@ -92,7 +92,7 @@ export const mockNotices: Notice[] = [
     type: "technology",
     url: "https://example.com/quantum-computing",
     createdAt: "2024-11-21T15:30:00Z",
-    summary: "多家科技巨头发布量子计算新成果",           
+    summary: "多家科技巨头发布量子计算新成果",
     content: "多家科技巨头发布量子计算新成果，商业化进程加速。",
     hit: 190
   },
@@ -102,7 +102,7 @@ export const mockNotices: Notice[] = [
     type: "technology",
     url: "https://example.com/6g-communication",
     createdAt: "2024-11-20T12:00:00Z",
-    summary: "6G 通信技术研究取得新突破",          
+    summary: "6G 通信技术研究取得新突破",
     content: "6G 通信技术研究取得新突破，预计 2030 年实现商用。",
     hit: 160
   }
@@ -111,18 +111,18 @@ export const mockNotices: Notice[] = [
 // 统一的任务数据源
 const mockUsers = [
   {
-    userId: 'user111',
+    userId: 'user001',
     username: 'admin',
     password: '123456',
     name: '海绵宝宝',
     authorities: ['admin'],
-    avatar: '/admin.png',
+    avatar: '/海绵宝宝.jpg',
     email: 'admin@example.com',
     phone: '13800138000',
     token: 'admin-token'
   },
   {
-    userId: 'user222',
+    userId: 'user002',
     username: 'pdx',
     password: '123456',
     name: '派大星',
@@ -139,8 +139,8 @@ const mockTasks: Task[] = [
   {
     id: '1',
     teamId: '1',
-    employeeId: 'u111',
-    title: '上山打老虎',
+    employeeId: 'e001', // 归属前端组
+    title: '上山打老虎', // 海绵宝宝的任务
     description: '这是任务1的详细描述',
     status: '待处理',
     priority: '低',
@@ -208,8 +208,8 @@ const mockTasks: Task[] = [
   },
   {
     id: '2',
-    teamId: '2',
-    employeeId: 'i',
+    teamId: '2', // 归属后端组
+    employeeId: 'e003', // 章鱼哥的任务
     title: '任务2',
     description: '这是任务2的详细描述',
     status: '进行中',
@@ -297,34 +297,55 @@ const mockTeams: Team[] = [
     description: '专注于前端技术开发',
     employees: [
       {
-        employeeId: 'i',
+        employeeId: 'e001',
         name: '海绵宝宝',
         avatar: '/海绵宝宝.jpg',
-        teamId: '2', // 补充团队 ID
-        userId: 'user111', // 补充用户 ID
-        status: '在职', // 补充状态
-        workload: 70, // 补充工作负载 (假设值)
-        position: '测试工程师',// 补充职位
+        teamId: '1',
+        userId: 'user001',
+        status: '在职',
+        workload: 70,
+        position: '前端工程师',
         authorities: ['admin'],
-      
+      },
+      {
+        employeeId: 'e002',
+        name: '派大星',
+        avatar: '/派大星.jpg',
+        teamId: '1',
+        userId: 'user002',
+        status: '在职',
+        workload: 50,
+        position: 'UI设计师',
+        authorities: ['manager'],
       }
     ]
   },
   {
     id: '2',
     name: '后端开发组',
-    description: '负责后端架构和 API 开发',
+    description: '负责后端架构和API开发',
     employees: [
-      {  
-        employeeId: 'u111',
-        name: '派大星',
-        avatar: '/派大星.jpg',
-        teamId: '1', // 补充团队 ID
-        userId: 'user222', // 补充用户 ID
-        status: '在职', // 补充状态
-        workload: 50, // 补充工作负载 (假设值)
-        position: '开发工程师', // 补充职位
+      {
+        employeeId: 'e003',
+        name: '章鱼哥',
+        avatar: '/章鱼哥.jpg',
+        teamId: '2',
+        userId: 'user003',
+        status: '在职',
+        workload: 60,
+        position: '后端工程师',
         authorities: ['manager'],
+      },
+      {
+        employeeId: 'e004',
+        name: '蟹老板',
+        avatar: '/蟹老板.jpg',
+        teamId: '2',
+        userId: 'user004',
+        status: '在职',
+        workload: 40,
+        position: 'DBA',
+        authorities: ['member'],
       }
     ]
   },
@@ -334,11 +355,11 @@ const mockTeams: Team[] = [
     description: '进行系统测试和质量保障',
     employees: [
       {
-        employeeId: 'u333',
-        name: '章鱼哥',
-        avatar: '/章鱼哥.jpg',
-        teamId: '2',
-        userId: 'user333',
+        employeeId: 'e005',
+        name: '痞老板',
+        avatar: '/痞老板.jpg',
+        teamId: '3',
+        userId: 'user005',
         status: '在职',
         workload: 30,
         position: '后端工程师',
@@ -351,49 +372,63 @@ const mockTeams: Team[] = [
 
 // 团队成员列表
 const mockTeamMembers: Employee[] = [
+  // 前端组成员
   {
-    employeeId: 'u111',
-    name: '派大星',
-    avatar: '/派大星.jpg',
-    teamId: '1', // 补充团队 ID
-    userId: 'user222', // 补充用户 ID
-    status: '在职', // 补充状态
-    workload: 50, // 补充工作负载 (假设值)
-    position: '开发工程师', // 补充职位
-    authorities: ['manager'],
-  },
-  {
-    employeeId: 'i',
+    employeeId: 'e001',
     name: '海绵宝宝',
     avatar: '/海绵宝宝.jpg',
-    teamId: '2', // 补充团队 ID
-    userId: 'user111', // 补充用户 ID
-    status: '在职', // 补充状态
-    workload: 70, // 补充工作负载 (假设值)
-    position: '测试工程师',// 补充职位
-    authorities: ['manager'],
+    teamId: '1',
+    userId: 'user001',
+    status: '在职',
+    workload: 70,
+    position: '前端工程师',
+    authorities: ['admin'],
   },
   {
-    employeeId: 'u333',
+    employeeId: 'e002',
+    name: '派大星',
+    avatar: '/派大星.jpg',
+    teamId: '1',
+    userId: 'user002',
+    status: '在职',
+    workload: 50,
+    position: 'UI设计师',
+    authorities: ['manager'],
+  },
+
+  // 后端组成员
+  {
+    employeeId: 'e003',
     name: '章鱼哥',
     avatar: '/章鱼哥.jpg',
     teamId: '2',
-    userId: 'user333',
+    userId: 'user003',
+    status: '在职',
+    workload: 60,
+    position: '后端工程师',
+    authorities: ['manager'],
+  },
+  {
+    employeeId: 'e004',
+    name: '蟹老板',
+    avatar: '/蟹老板.jpg',
+    teamId: '2',
+    userId: 'user004',
+    status: '在职',
+    workload: 40,
+    position: 'DBA',
+    authorities: ['member'],
+  },
+  {
+    employeeId: 'e005',
+    name: '痞老板',
+    avatar: '/痞老板.jpg',
+    teamId: '3',
+    userId: 'user005',
     status: '在职',
     workload: 30,
     position: '后端工程师',
     authorities: ['admin'],
-  },
-  {
-    employeeId: 'u444',
-    name: '蟹老板',
-    avatar: '/蟹老板.jpg',
-    teamId: '1',
-    userId: 'user444',
-    status: '在职',
-    workload: 40,
-    position: '测试工程师',
-    authorities: ['manager'],
   }
 ];
 
@@ -417,7 +452,7 @@ export default [
         }
       }
       const { token } = checkUser;
-      return { code: 200, data: { token } }
+      return token;
     }
   },
 
@@ -428,37 +463,25 @@ export default [
     response: (request: { headers: { [key: string]: string } }) => {
       const authHeader = request.headers.authorization;
       if (!authHeader) {
-        return {
-          code: 401,
-          data: { message: '未检测到Authorization头' },
-          status: 401
-        };
+        return { message: '未检测到Authorization头' }
       }
       if (!authHeader.startsWith('Bearer ')) {
-        return {
-          code: 401,
-          data: { message: 'Token格式错误: 缺少Bearer前缀' },
-          status: 401
-        };
+        return { message: 'Token格式错误: 缺少Bearer前缀' }
       }
       // 2. 提取实际Token
       const token = authHeader.split(' ')[1];
       // 3. 查询用户信息
       const user = mockUsers.find(item => item.token === token);
       if (!user) {
-        return { code: 401, data: { message: '用户不存在' }, status: 401 };
+        return { message: '未找到该用户' }
       }
       return {
-        code: 200,
-        data: {
-          userId: user.userId,
-          username: user.username,
-          name: user.name,
-          avatar: user.avatar,
-          authorities: user.authorities
-        },
-        status: 200
-      };
+        userId: user.userId,
+        username: user.username,
+        name: user.name,
+        avatar: user.avatar,
+        authorities: user.authorities
+      }
     }
   },
 
@@ -471,10 +494,7 @@ export default [
       const employee = mockTeamMembers.find(
         e => e.userId === request.query.userId
       );
-
-      return employee
-        ? { code: 200, data: employee }
-        : { code: 404 };
+      return employee || null;
     }
   },
 
@@ -528,7 +548,7 @@ export default [
         scope: 'public'
       };
       mockPublicFiles.push(newFile);
-      return { code: 200, data: newFile };
+      return newFile;
     }
   },
 
@@ -552,7 +572,7 @@ export default [
       };
 
       task.files?.push(newFile);
-      return { code: 200, data: newFile };
+      return newFile;
     }
   },
 
@@ -568,8 +588,7 @@ export default [
 
       // 删除公共文件
       mockPublicFiles = mockPublicFiles.filter(f => f.id !== params.fileId);
-
-      return { code: 200 };
+      return { message: '文件删除成功' }
     }
   },
 
@@ -633,6 +652,17 @@ export default [
     }
   },
 
+  // 获取单个团队详情
+  {
+    url: '/teams/:teamId',
+    method: 'get',
+    response: (request: { query: { teamId: string } }) => {
+      const teamId = request.query.teamId;
+      const team = mockTeams.find(t => t.id === teamId);
+      return team || null;
+    }
+  },
+
   // 获取团队成员列表
   {
     url: '/teams/:teamId/members',
@@ -651,11 +681,8 @@ export default [
     response: ({ params }: MockParams) => { // 正确获取路径参数
       const task = mockTasks.find(t => t.id === params.id);
       return {
-        code: 200,
-        data: {
-          items: task?.operations || [],
-          total: task?.operations?.length || 0
-        }
+        items: task?.operations || [],
+        total: task?.operations?.length || 0
       };
     }
   },
@@ -671,10 +698,7 @@ export default [
           taskTitle: task.title // 添加任务标题方便显示
         })) || []
       );
-      return {
-        code: 200,
-        data: allOperations
-      };
+      return allOperations;
     }
   },
   // 直接按照固定类型对应公告（静态）
@@ -700,10 +724,7 @@ export default [
     method: 'get',
     response: (request: { query: { type?: string } }) => {
       const type = request.query.type as NoticeType
-      return {
-        code: 200,
-        data: mockNotices.filter(n => n.type === type)
-      }
+      return mockNotices.filter(n => n.type === type);
     }
   },
 
@@ -722,12 +743,12 @@ export default [
   {
     url: '/notices/:id/hit',
     method: 'put',
-    response: (request: { query: { id:string } } )=> {
+    response: (request: { query: { id: string } }) => {
       const noticeId = request.query.id;
       const notice = mockNotices.find(n => n.id === noticeId)
       if (notice)
         notice.hit++
-      return { code: 200 }
+      return notice || null;
     }
   }
 

@@ -76,7 +76,7 @@ const updateReminderTime = (time: string, index: number) => {
 const project = ref<ProjectCreateDTO>({
   title: '',
   description: '',
-  teamId: teamStore.currentTeam?.id || '',
+  teamId: teamStore.currentEmployee?.teamId || '',
   scheduledTime: dayjs().format('YYYY-MM-DD HH:mm:ss'),
   deadline: dayjs().format('YYYY-MM-DD HH:mm:ss'), // 添加默认截止时间
 
@@ -86,7 +86,7 @@ const project = ref<ProjectCreateDTO>({
 const tasks = ref<TaskCreateDTO[]>([
   {
     projectId: '',
-    teamId: teamStore.currentTeam?.id || '',
+    teamId: teamStore.currentEmployee?.teamId || '',
     title: '',
     description: '',
     employeeId: members.value[0]?.employeeId || '', // 自动选择第一个成员
@@ -105,7 +105,7 @@ const tasks = ref<TaskCreateDTO[]>([
 const addTask = () => {
   tasks.value.push({
     projectId: '',
-    teamId: teamStore.currentTeam?.id || '',
+    teamId: teamStore.currentEmployee?.teamId || '',
     title: '',
     description: '',
     employeeId: '',
@@ -181,26 +181,36 @@ const handleSubmit = async () => {
 };
 
 // 处理文件上传
-const handleFileUpload = (event: Event, index: number) => {
+const handleFileUpload = async (event: Event, index: number) => {
   const target = event.target as HTMLInputElement;
   if (!target.files?.length) return;
+  const formData = new FormData();
 
-  // 转换原生File为FileItem数组
-  const newFiles = Array.from(target.files).map(file => ({
-    id: crypto.randomUUID(),
-    name: file.name,
-    size: file.size,
-    type: file.type.split('/')[0] || 'other', // 简化类型分类
-    url: URL.createObjectURL(file),
-    uploader: teamStore.currentEmployee?.name || '未知用户',
-    uploadTime: dayjs().format('YYYY-MM-DD HH:mm:ss'),
-    scope: 'task'
-  } as FileItem));
-
-  // 合并到现有文件列表
-  tasks.value[index].files = [...(tasks.value[index].files || []), ...newFiles];
-  // 清空文件输入
-  target.value = '';
+  try {
+    // 转换原生 File 到 FileItem 并添加到 FormData
+    Array.from(target.files).forEach((file, i) => {
+      const fileItem: FileItem = {
+        id: crypto.randomUUID(),
+        name: file.name,
+        size: file.size,
+        type: file.type.split('/')[0] || 'other', // 简化类型分类
+        url: URL.createObjectURL(file),
+        uploader: teamStore.currentEmployee?.name || '未知用户',
+        uploadTime: dayjs().format('YYYY-MM-DD HH:mm:ss'),
+        scope: 'task'
+      };
+      // 添加到 tasks 的 files 列表
+      tasks.value[index].files = [...(tasks.value[index].files || []), fileItem];
+      // 将文件添加到 FormData
+      formData.append(`files[${i}]`, file); // 使用数组形式命名键
+    });
+    // 调用任务存储的上传方法
+    await taskStore.uploadFile(formData);
+    // 清空文件输入框
+    target.value = '';
+  } catch (error) {
+    console.error('文件上传失败:', error);
+  }
 };
 
 // 误上传时删除文件
@@ -227,9 +237,9 @@ const deleteFile = () => {
 const loadUserTeams = async () => {
   try {
     loadingTeams.value = true; // 开始加载
-    const userId  = teamStore.currentEmployee?.userId;
-    if (userId ) {
-      userTeams.value = await teamStore.getTeamByemployId(userId );
+    const userId = teamStore.currentEmployee?.userId;
+    if (userId) {
+      userTeams.value = await teamStore.getTeamByemployId(userId);
     }
   } catch (error) {
     console.error('加载用户团队失败:', error);
@@ -279,9 +289,9 @@ onMounted(async () => {
   // 动态获取团队数据
   await loadUserTeams();
   // 如果有默认团队（例如当前团队）
-  if (teamStore.currentTeam?.id && userTeams.value.some(t => t.id === teamStore.currentTeam?.id)) {
-    project.value.teamId = teamStore.currentTeam.id;
-    await handleTeamChange(teamStore.currentTeam.id);
+  if (teamStore.currentEmployee?.teamId && userTeams.value.some(t => t.id === teamStore.currentEmployee?.teamId)) {
+    project.value.teamId = teamStore.currentEmployee?.teamId;
+    await handleTeamChange(teamStore.currentEmployee?.teamId);
   }
 })
 
@@ -366,7 +376,7 @@ watch(
               </v-card>
             </template>
           </div>
-          
+
           <!-- 任务项 -->
           <div v-for="(task, index) in tasks" :key="index" class="task-item mb-4">
             <!-- mb-4（底部外边距）来控制任务项之间的上下间距 -->

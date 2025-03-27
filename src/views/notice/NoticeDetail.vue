@@ -52,8 +52,8 @@ const loadNoticeDetail = async () => {
     try {
         isLoading.value = true
         const response = await getNoticeDetail(noticeId)
-        if (response.data) {
-            notice.value = response.data
+        if (response) {
+            notice.value = response
         } else {
             errorMessage.value = '公告不存在' // 明确设置错误信息
         }

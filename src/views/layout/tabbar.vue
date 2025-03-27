@@ -38,7 +38,8 @@ interface BreadcrumbItemWithIcon {
   icon?: string
 }
 
-
+// 不存在头像时提供默认头像
+const avatarSrc = computed(() => userStore.user.avatar || '/admin.png');
 // 退出登录
 const logout = async () => {
   await userStore.logout();
@@ -130,8 +131,8 @@ const breadcrumbItems = computed(() => {
         </v-card>
       </v-menu>
       <v-avatar size="38" >
-        <img :src="userStore.user.avatar" alt="用户头像" />
-      </v-avatar>
+        <img :src="avatarSrc" alt="用户头像" />
+        </v-avatar>
       <v-menu>
         <template v-slot:activator="{ props }">
           <v-btn v-bind="props">

@@ -32,9 +32,9 @@ const headers = ref([
 // 加载任务列表
 const loadTasks = async () => {
   try {
-    await taskStore.getAllTasks(); // 确保先加载数据
+    const result = await taskStore.getAllTasks(); // 确保先加载数据
     if (Array.isArray(taskStore.tasks)) {
-      tasks.value = taskStore.tasks;
+      tasks.value = result;
       console.log('任务数据已加载:', tasks.value); // 验证数据
     }
   } catch (error) {

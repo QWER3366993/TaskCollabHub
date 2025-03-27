@@ -196,25 +196,15 @@ export const useTeamStore = defineStore('team', () => {
   };
 
   // 获取团队成员列表
-  const getTeamMembers = async (teamId: string) => {
+  const getTeamMembers = async (teamId: string): Promise<Employee[]> => {
     try {
-      const data = await fetchTeamMembers(teamId); // 调用 API
-      // 二次类型校验
-      if (!Array.isArray(data)) {
-        throw new Error('团队成员数据格式异常');
-      }
-      // 使用更安全的数组合并方式
-      const newMembers = data.filter(newMember =>
-        !employees.value.some(existing => existing.employeeId === newMember.employeeId)
-      );
-      // 同时更新employees列表用于全局查找
-      employees.value = [...employees.value, ...data.filter(e =>
-        !employees.value.some(existing => existing.employeeId === e.employeeId)
-      )];
-      return data; // 返回团队成员列表
+      const data = await fetchTeamMembers(teamId);
+      employees.value = data;
+      return data;
     } catch (error) {
-      console.error('获取团队成员失败:', error);
-      throw error; // 抛出错误，便于调用者处理
+      errorMessage.value = '获取评论失败';
+      createToast(errorMessage.value, { position: 'top-center', showIcon: true, type: 'danger' });
+      return [];
     }
   };
 

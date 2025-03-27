@@ -38,7 +38,7 @@ const handleLogin = async () => {
       return;
     } else {
       try {
-        const { data } = await login({ username: username.value, password: password.value });
+        await login({ username: username.value, password: password.value });
         // 1. 确保 Token 存储完成
         await userStore.loginUser({
           username: username.value,
