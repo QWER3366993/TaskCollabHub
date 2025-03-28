@@ -216,7 +216,8 @@ onUnmounted(() => {
         <v-card>
           <v-card-title>任务完成情况</v-card-title>
           <v-card-text class="chart-container">
-            <v-chart v-if="!isLoading" :option="taskCompletionOption" style="height: 400px;" @error="handleChartError" />
+            <v-chart v-if="!isLoading" :option="taskCompletionOption" style="height: 400px;"
+              @error="handleChartError" />
           </v-card-text>
         </v-card>
       </v-col>

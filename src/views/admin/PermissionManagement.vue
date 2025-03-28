@@ -4,5 +4,4 @@
 <template>
   <div>11115645454656</div>
 </template>
-<style scoped lang='scss'>
-</style>
+<style scoped lang='scss'></style>

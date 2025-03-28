@@ -232,16 +232,6 @@ export const router = createRouter({
           }
         },
         {
-          path: 'operationlog',
-          name: 'operationlog',
-          component: () => import('@/views/person/OperationLog.vue'),
-          meta: {
-            title: '操作日志',
-            hidden: false,
-            icon: 'construction'
-          }
-        },
-        {
           path: 'notification',
           name: 'notification',
           component: () => import('@/views/person/Notification.vue'),
@@ -256,7 +246,7 @@ export const router = createRouter({
     {
       path: '/reports',
       name: 'reports',
-      component: () => import('@/views/StatisticalReport.vue'),  // 统计报告
+      component: () => import('@/views/report/StatisticalReport.vue'),  // 统计报告
       meta: {
         title: '统计报告',
         hidden: false,
@@ -279,7 +269,7 @@ export const router = createRouter({
         {
           path: '/permission1',
           name: 'permission1',
-          component: () => import('@/views/PermissionManagement.vue'),  // 权限管理
+          component: () => import('@/views/admin/PermissionManagement.vue'),  // 权限管理
           meta: {
             title: '权限管理',
             hidden: false,

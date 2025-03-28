@@ -45,7 +45,7 @@ export async function update(data: Notice, url: string) {
 // 发起 POST 请求以添加新资源
 export async function add(data: Omit<Notice, 'id'>, url: string) {
     const reponse = await service({
-                url: url,
+        url: url,
         method: 'post',
         data
     })

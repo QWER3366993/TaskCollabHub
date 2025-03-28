@@ -144,7 +144,7 @@ const mockTasks: Task[] = [
     description: '这是任务1的详细描述',
     status: '待处理',
     priority: '低',
-    creator: '李四',
+    creator: 'e005',
     scheduledTime: '2025-08-01 10:00:00',
     deadline: '2025-10-04 10:00:00',
     files: [
@@ -172,8 +172,9 @@ const mockTasks: Task[] = [
     comments: [
       {
         user: {
+          employeeId: 'e005',
           avatar: '/111.jpg',
-          name: '张三',
+          name: '痞老板',
         },
         content: '需要优先处理前端部分',
         createdAt: '2025-03-01 10:00:00',
@@ -185,7 +186,7 @@ const mockTasks: Task[] = [
       {
         id: 'log1',
         taskId: '1',
-        employeeId: 'u111',
+        employeeId: 'e001',
         operationType: 'update',
         operation: '修改截止时间从 2024-05-30 到 2024-06-05',
         time: '2025-03-04 14:30:00',
@@ -199,7 +200,7 @@ const mockTasks: Task[] = [
       {
         id: 'log2',
         taskId: '1',
-        employeeId: 'u111',
+        employeeId: 'e001',
         operationType: 'view',
         operation: '查看任务详情',
         time: '2024-03-25 10:00:00'
@@ -214,7 +215,7 @@ const mockTasks: Task[] = [
     description: '这是任务2的详细描述',
     status: '进行中',
     priority: '中',
-    creator: '王五',
+    creator: 'e005',
     scheduledTime: '2024-10-01 10:00:00',
     deadline: '2025-03-01 10:00:00',
     comments: [],
@@ -674,9 +675,9 @@ export default [
     }
   },
 
-  // 操作日志接口
+  // 获取任务操作日志
   {
-    url: '/tasks/:id/operations', // RESTful 风格路径参数
+    url: '/tasks/:id/operations', 
     method: 'get',
     response: ({ params }: MockParams) => { // 正确获取路径参数
       const task = mockTasks.find(t => t.id === params.id);
@@ -687,20 +688,6 @@ export default [
     }
   },
 
-  // 获取所有操作日志
-  {
-    url: '/operations',
-    method: 'get',
-    response: () => {
-      const allOperations = mockTasks.flatMap(task =>
-        task.operations?.map(op => ({
-          ...op,
-          taskTitle: task.title // 添加任务标题方便显示
-        })) || []
-      );
-      return allOperations;
-    }
-  },
   // 直接按照固定类型对应公告（静态）
   // {
   //   url: '/notices/carousel',

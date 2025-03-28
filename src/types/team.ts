@@ -16,4 +16,5 @@ export interface Team {
     position: string; // 职位，例如: '前端工程师', '测试工程师'
     authorities: string[]; // 权限，例如: ['admin', 'manager', 'member']
     avatar?: string; // 头像
+    online: boolean // 在线状态
   }

@@ -18,7 +18,6 @@ const userStore = useUserStore();
 const teamStore = useTeamStore();
 const taskId = computed(() => route.params.id as string); // 从路由参数中获取任务 ID
 const teamId = ref<string>('');
-
 const defaultTask: Task = {
   id: '',
   title: '加载中...',
@@ -90,6 +89,7 @@ const addComment = async () => {
   if (commentInput.value.trim()) {
     const newComment = {
       user: {
+        employeeId: teamStore.currentEmployee?.employeeId!,
         name: userStore.user.name!,
         avatar: userStore.user.avatar!,
         userId: teamStore.currentEmployee?.userId// 添加用户ID
@@ -216,26 +216,23 @@ const formatValue = (value: string | number | Date) => {
 // 加载任务详情的方法
 const loadTaskDetail = async (taskId: string) => {
   try {
-    // 先加载员工数据
-    if (teamStore.employees.length === 0) {
-      await teamStore.getEmployees();
-    }
-    // 从Store或API获取数据，确保使用 taskId
+    // 从 store 中获取任务详情
     const taskDetails = await taskStore.getTaskById(taskId);
-    if (taskDetails) {
-      console.log('加载任务详情:', taskDetails);
-      task.value = taskDetails || taskStore.taskDetail; //新数据优先，旧数据兜底
+    console.log('加载任务详情:', taskDetails);
+    if (!taskDetails) return;
+    // 优先加载任务所属团队的成员
+    if (taskDetails.teamId) {
+      const result = await teamStore.getTeamMembers(taskDetails.teamId);
+      teamMembers.value = result;
+      task.value = taskDetails
       teamId.value = taskDetails.teamId;
-      // 加载团队成员
-      if (taskDetails.teamId) {
-        teamMembers.value = await teamStore.getTeamMembers(taskDetails.teamId);
-      } else {
-        teamMembers.value = teamStore.employees;
-      }
+    } else {
+      teamMembers.value = teamStore.employees;
     }
     console.log('当前团队成员:', teamMembers.value);
   } catch (error) {
     createToast('任务加载失败', { type: 'danger' });
+    throw error;
   }
 };
 

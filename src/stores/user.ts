@@ -14,19 +14,19 @@ export const useUserStore = defineStore('user', () => {
 
   // 登录
   const loginUser = async (userInfo: { username: string; password: string }) => {
-    const data = await login(userInfo); 
-    if (!data || !data.token) {
+    const data = await login(userInfo);
+    if (!data) {
       throw new Error('登录失败，未获取到有效Token');
     }
-    setToken(data.token)
-    token.value = data.token
+    setToken(data)
+    token.value = data
     await getUserInfo(); // 获取用户信息
     if (data.error) {
       errorMessage.value = '登录失败：' + data.message
       createToast(errorMessage.value, { position: 'top-center', showIcon: true })
     }
   }
-  
+
   // 获取用户信息
   const getUserInfo = async () => {
     try {
@@ -36,15 +36,19 @@ export const useUserStore = defineStore('user', () => {
       user.value = userResponse;
       // 获取员工信息
       if (user.value.userId) {
-        const employeeData   = await fetchEmployeeByUserId(user.value.userId);
-        employee.value = employeeData ; // 直接存储 Employee 对象
-      } 
+        const employeeData = await fetchEmployeeByUserId(user.value.userId);
+        employee.value = employeeData; // 直接存储 Employee 对象
+        // 更新用户在线状态
+        if (employee.value) { // 非空检查
+          employee.value.online = true;
+        }
+      }
     } catch (error) {
       createToast('获取用户信息失败', { position: 'top-center', showIcon: true });
       throw error; // 重新抛出错误以便调用方处理
     }
   }
-  
+
   // 登出
   const logout = () => {
     token.value = ''  // 清空token

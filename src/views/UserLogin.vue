@@ -38,14 +38,19 @@ const handleLogin = async () => {
       return;
     } else {
       try {
-        await login({ username: username.value, password: password.value });
+        // 发送登录请求
+        const response = await login({ username: username.value, password: password.value });
+        // 确保后端返回了 token
+        if (!response) {
+          throw new Error('登录失败：未返回 Token');
+        }
         // 1. 确保 Token 存储完成
         await userStore.loginUser({
           username: username.value,
           password: password.value
         });
-        // 2. 显式等待用户信息加载
-        await userStore.getUserInfo();
+        // 2. 显式等待用户信息加载（store已添加该方法）
+        // await userStore.getUserInfo();
 
         // 3. 检查用户信息是否有效
         if (!userStore.user.userId) {
@@ -55,7 +60,7 @@ const handleLogin = async () => {
         router.push('/index');
       } catch (error) {
         createToast('登录失败，请检查凭证', { type: 'danger' });
-        reset(); // 调用 reset 函数重置表单
+        throw error; // 这里要抛出错误，以便在 loginUser 方法中捕获
       }
     }
   }

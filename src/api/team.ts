@@ -1,5 +1,6 @@
 import service from '@/utils/request'
 import type { Team, Employee } from '@/types/team'
+import type { OperationLog } from '@/types/task';
 
 // 获取团队列表
 export const fetchTeams = async (): Promise<Team[]> => {
@@ -128,3 +129,15 @@ export const fetchEmployees = async (): Promise<Employee[]> => {
   });
   return response.data;
 };
+
+
+// 目前从任务日志里筛选，暂且注释
+
+// // 获取员工操作日志
+// export const fetchEmployeeOperationLogs = async (employeeId: string): Promise<OperationLog[]> => {
+//   const response = await service({
+//     url: `/employees/${employeeId}/operations`,
+//     method: 'get',
+//   });
+//   return response.data;
+// };

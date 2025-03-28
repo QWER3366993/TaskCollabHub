@@ -111,7 +111,7 @@ export const fetchUserRole = async (): Promise<{ authorities: string }> => {
 // 获取操作日志
 export const fetchOperationLogs = async (): Promise<OperationLog[]> => {
   const response = await service({
-    url: '/operation-logs',
+    url: '/operations',
     method: 'get',
   });
   return response.data;

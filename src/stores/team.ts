@@ -1,9 +1,10 @@
 // stores/team.ts
 import { defineStore } from 'pinia';
-import { ref, computed } from 'vue';
+import { ref, reactive, computed } from 'vue';
 import { createToast } from 'mosha-vue-toastify';
 import type { Team, Employee } from '@/types/team';
 import type { User } from '@/types/user';
+import type { OperationLog } from '@/types/task';
 import {
   fetchTeams,
   createTeam,
@@ -15,7 +16,8 @@ import {
   removeMemberFromTeam,
   fetchEmployees,
   fetchTeamMembers,
-  fetchTeamByemployeeId
+  fetchTeamByemployeeId,
+  // fetchEmployeeOperationLogs
 } from '@/api/team';
 
 export const useTeamStore = defineStore('team', () => {
@@ -26,7 +28,7 @@ export const useTeamStore = defineStore('team', () => {
   const currentEmployee = ref<Employee | null>(null); // 当前选中的成员
   const teamMembers = ref<Employee[]>([]); // 当前团队的成员列表
   const availableTeams = ref<Team[]>([]); //可用团队
-  // 计算属性：转换 Map 为数组（用于展示）
+  const employeeOperationLogs = ref<OperationLog[]>([]);
   const errorMessage = ref<string>('');
 
   // 获取团队列表
@@ -221,6 +223,14 @@ export const useTeamStore = defineStore('team', () => {
     }
   };
 
+  // 更新在线状态
+  const updateOnlineStatus = (employeeId: string, online: boolean) => {
+    const employee = employees.value.find(emp => emp.employeeId === employeeId)
+    if (employee) {
+      employee.online = online // 直接修改 allEmployees 中的 online 状态
+    }
+  }
+
   // 获取员工姓名的方法(从 employees 数组中查找第一个 employeeId 匹配的员工对象)
   const getName = (employeeId: string) => {
     // 优先从当前团队成员查找
@@ -232,12 +242,26 @@ export const useTeamStore = defineStore('team', () => {
     return globalEmployee?.name || '未知成员';
   };
 
+  // // 获取员工操作日志
+  // const getEmployeeOperationLogs = async (employeeId: string): Promise<OperationLog[]> => {
+  //   try {
+  //     const data = await fetchEmployeeOperationLogs(employeeId);
+  //     employeeOperationLogs.value = data;
+  //     return data;
+  //   } catch (error) {
+  //     errorMessage.value = '获取员工操作日志失败';
+  //     createToast(errorMessage.value, { position: 'top-center', showIcon: true, type: 'danger' });
+  //     throw error;
+  //   }
+  // }
+
   return {
     teams,
     teamDetail,
     teamMembers,
     currentEmployee,
     employees,
+    employeeOperationLogs,
     getTeamList,
     getTeamByemployId,
     createNewTeam,
@@ -249,6 +273,8 @@ export const useTeamStore = defineStore('team', () => {
     removeMember,
     getTeamMembers,
     getEmployees,
-    getName
+    getName,
+    updateOnlineStatus,
+    // getEmployeeOperationLogs
   };
 });

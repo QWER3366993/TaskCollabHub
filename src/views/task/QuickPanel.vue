@@ -8,6 +8,7 @@ import type { Task } from '@/types/task'
 import { useRouter } from 'vue-router'
 import type { OperationLog } from '@/types/task'
 import dayjs from 'dayjs'
+import task from '@/mock/task';
 
 // 最近访问类型定义
 type RecentItem = {
@@ -22,21 +23,19 @@ type RecentItem = {
 const taskStore = useTaskStore()
 const searchQuery = ref<string>('')
 const teamStore = useTeamStore()
-const currentUser = computed(() => teamStore.currentEmployee)
+const currentEmployee = computed(() => teamStore.currentEmployee)
 const router = useRouter()
-
+const recentLogs = ref<Array<OperationLog>>([]);
 const layoutMode = ref('grid') // 布局模式：grid/list
 const recentItems = ref<Array<RecentItem>>([])
 
-// 当前用户参与的任务（创建+负责）
-const userTasks = computed(() => {
-    return taskStore.tasks.filter(t =>
-        t.creator === currentUser.value?.employeeId ||
-        t.employeeId === currentUser.value?.employeeId
-    )
+
+// 计算属性获取待办任务
+const pendingTasks = computed(() => {
+    return userTasks.value.filter(t => t.status !== '已完成')
 })
 
-// 智能提醒
+// 待办任务到期智能提醒
 const upcomingDeadlines = computed(() => {
     return pendingTasks.value
         .filter(t => t.deadline && !isTaskOverdue(t))
@@ -54,18 +53,24 @@ const teamStats = computed(() => ({
         dayjs(t.deadline).isBefore(dayjs()) &&
         t.status !== '已完成'  // 直接计算逾期任务
     ).length,
-    myTasks: userTasks.value.length
+    myTasks: userTasks.value.length,
+    weeklyTasks: taskStore.tasks.filter(t =>
+        t.deadline &&
+        dayjs(t.deadline).isAfter(dayjs()) &&
+        dayjs(t.deadline).isBefore(dayjs().add(7, 'day')) &&
+        t.status !== '已完成'
+    ).length
 }))
 
 // 计算属性获取最近活动
 const recentActivities = computed(() => {
-    // 添加类型校验和空数组回退
-    const logs = (taskStore.operationLogs || []) as OperationLog[]
-    return logs
+    return taskStore.tasks
+        .flatMap(task => task.operations || [])  // 获取所有任务的日志
         .filter(log => ['status_change', 'view'].includes(log.operationType))
-        .sort((a, b) => dayjs(b.time).diff(dayjs(a.time)))
-        .slice(0, 5)
+        .sort((a, b) => dayjs(b.time).diff(dayjs(a.time)))  // 按时间降序排序
+        .slice(0, 5);
 })
+
 
 // 计算属性获取最近访问
 const recentVisits = computed(() => {
@@ -115,31 +120,27 @@ const isTaskOverdue = (task: Task): boolean => {
         task.status !== '已完成'
 }
 
-// 当前用户的所有任务（包含已完成）
-const currentUserTasks = computed(() => {
-    const userId = currentUser.value?.employeeId
-    return taskStore.tasks.filter(t =>
-        t.creator === userId ||
-        t.employeeId === userId
-    )
+
+
+// 当前用户参与的任务（创建+负责）
+const userTasks = computed(() => {
+    const userId = teamStore.currentEmployee?.employeeId;  // 直接使用 teamStore.currentEmployee
+    if (!userId) return [];
+    return taskStore.tasks.filter(t => t.creator === userId || t.employeeId === userId);
 })
 
-// 当前用户的待办任务（未完成）
-const pendingTasks = computed(() => {
-    return currentUserTasks.value.filter(t => t.status !== '已完成')
-})
 
 const visibleTasks = computed(() => {
-    return pendingTasks.value
-        .filter(t => t.title.includes(searchQuery.value))
-        .sort((a, b) => {
-            // 按优先级排序：高 > 中 > 低
-            const priorityOrder = { '高': 1, '中': 2, '低': 3 }
-            return priorityOrder[a.priority] - priorityOrder[b.priority]
-        })
-        .slice(0, 5)
-})
+    // 添加空值保护
+    const validTasks = pendingTasks.value.filter(t =>
+        t?.title?.toLowerCase().includes(searchQuery.value.toLowerCase())
+    );
 
+    return validTasks.sort((a, b) => {
+        const priorityOrder = { '高': 1, '中': 2, '低': 3 };
+        return (priorityOrder[a.priority] || 4) - (priorityOrder[b.priority] || 4);
+    }).slice(0, 5);
+});
 
 // 快捷操作配置
 const baseActions = [
@@ -150,45 +151,36 @@ const baseActions = [
 
 const filteredActions = computed(() =>
     baseActions.filter(action => {
-        const userAuthority = currentUser.value?.authorities; // 获取当前用户的权限
+        const userAuthority = currentEmployee.value?.authorities; // 获取当前用户的权限
         if (!userAuthority || !Array.isArray(userAuthority)) return false; // 如果权限不存在或不是数组，直接返回 false
         return userAuthority.some(authority => action.roles.includes(authority)); // 检查是否有交集
     })
 );
 
+// 任务状态切换
 const toggleTaskStatus = async (task: Task) => {
     const originalStatus = task.status;
     try {
-        // 切换状态：已完成 <-> 进行中
         const newStatus = task.status === '已完成' ? '进行中' : '已完成';
-        await taskStore.updateTask(task.id, { status: newStatus })
-        await taskStore.getAllTasks(); // 新增刷新列表操作
-        // 动态生成操作日志的完整属性
         const newOperation: OperationLog = {
-            id: crypto.randomUUID(), // 使用 UUID 生成唯一 ID
-            taskId: task.id, // 当前任务 ID
-            employeeId: currentUser.value?.employeeId || '', // 当前用户 ID
-            time: new Date().toISOString(), // 当前时间戳
+            id: crypto.randomUUID(),
+            taskId: task.id,
+            employeeId: currentEmployee.value?.employeeId || '',
+            time: new Date().toISOString(),
             operationType: 'status_change',
             operation: `状态变更：${originalStatus} → ${newStatus}`,
             details: {
-                status: {
-                    old: originalStatus,
-                    new: newStatus
-                }
+                status: { old: originalStatus, new: newStatus }
             }
         };
 
-        await taskStore.updateTask(task.id, {
-            status: newStatus,
-            operations: [...(task.operations || []), newOperation] // 添加完整的操作日志
-        });
+        // 直接更新任务状态 & 添加日志
+        task.status = newStatus;
+        task.operations = [...(task.operations || []), newOperation];
+
+        await taskStore.updateTask(task.id, { status: newStatus, operations: task.operations });
     } catch (error) {
-        createToast('状态更新失败', {
-            type: 'danger',
-            timeout: 3000,
-            position: 'top-right'
-        });
+        createToast('状态更新失败', { type: 'danger', timeout: 3000 });
         task.status = originalStatus; // 回滚状态
     }
 };
@@ -224,30 +216,59 @@ const handleQuickAction = (actionId: string) => {
     actions[actionId as keyof typeof actions]?.()
 }
 
-// 初始化加载
+// 计算剩余时间
+const formatRemainingTime = (deadline: string | undefined): string => {
+    if (!deadline) return '无截止日期';
+    const diff = dayjs(deadline).diff(dayjs(), 'days');
+    if (diff > 0) {
+        return `${diff} 天`;
+    } else if (diff === 0) {
+        return '今天';
+    } else {
+        return '已逾期';
+    }
+};
+
+// 获取紧急程度颜色
+const getUrgencyColor = (task: Task): string => {
+    if (!task.deadline) return 'grey'; // 无截止日期时返回灰色
+    const diff = dayjs(task.deadline).diff(dayjs(), 'days');
+    if (diff <= 0) return 'error'; // 已逾期
+    if (diff <= 3) return 'warning'; // 3天内到期
+    return 'success'; // 超过3天
+};
+
+// 计算任务截止日期的进度百分比
+const getDeadlineProgress = (task: Task): number => {
+    if (!task.deadline) return 0; // 如果没有截止日期，默认返回0%
+    const now = dayjs();
+    const deadline = dayjs(task.deadline);
+    const start = dayjs(task.scheduledTime || now); // 使用创建时间或当前时间作为起点
+    if (start.isAfter(deadline)) return 100; // 如果起点晚于截止日期，返回100%
+
+    const totalDuration = deadline.diff(start, 'day'); // 总时长（天）
+    const elapsedDuration = now.diff(start, 'day'); // 已历时长（天）
+    return Math.min((elapsedDuration / totalDuration) * 100, 100); // 计算进度并限制在0-100之间
+};
+
 onMounted(async () => {
-    await Promise.all([
-        taskStore.getAllTasks(),
-        taskStore.getTaskOverview(),
-        taskStore.getOperationLogs()
-    ])
+    // 确保任务加载完成
+    await taskStore.getAllTasks();
+    console.log('Loaded tasks:', taskStore.tasks); // 确认任务数据
 
-    // 初始化最近访问（从操作日志获取）
-    recentItems.value = taskStore.operationLogs
-        .filter((log: OperationLog) => log.operationType === 'view')
-        .map(log => {
-            const task = taskStore.tasks.find(t => t.id === log.taskId);
-            return {
-                id: log.taskId,
-                type: 'task' as const,
-                title: task?.title || '未知任务',
-                time: new Date(log.time).getTime()
-            };
-        })
-        .slice(0, 5);
-    console.log('操作日志数据:', taskStore.operationLogs);
+    // 加载日志数据
+    await taskStore.getOperationLogs();
+    console.log('Operation logs:', taskStore.operationLogs); // 确认操作日志
 
-})
+    console.log('taskStore.tasks:', taskStore.tasks);
+    // 初始化最近访问
+    recentItems.value = taskStore.recentVisits.map(visit => ({
+        id: visit.id,
+        type: 'task',
+        title: visit.title,
+        time: Number(visit.time)
+    }));
+});
 
 </script>
 
@@ -286,37 +307,48 @@ onMounted(async () => {
             </div>
             <!-- 统计卡片 -->
             <div class="stats-grid">
-                <v-card class="stat-card">
+                <v-card class="stat-card primary">
+                    <v-icon large color="white">mdi-plus-circle</v-icon>
                     <div class="stat-value">{{ teamStats.todayTasks }}</div>
                     <div class="stat-label">今日新增</div>
                 </v-card>
-                <v-card class="stat-card">
+
+                <v-card class="stat-card error">
+                    <v-icon large color="white">mdi-alert</v-icon>
                     <div class="stat-value">{{ teamStats.overdueCount }}</div>
                     <div class="stat-label">逾期任务</div>
                 </v-card>
+
+                <v-card class="stat-card success">
+                    <v-icon large color="white">mdi-check-all</v-icon>
+                    <div class="stat-value">{{ teamStats.weeklyTasks }}</div>
+                    <div class="stat-label">本周应完成</div>
+                </v-card>
             </div>
+
 
             <!-- 主内容区 -->
             <div class="main-grid" :class="layoutMode">
                 <!-- 任务列 -->
                 <v-card class="task-column">
                     <div class="section-header">
-                        <h3>我的任务 ({{ pendingTasks.length }})</h3>
+                        <h3>我的任务 ({{ userTasks }})</h3>
                     </div>
 
                     <!-- 修改任务列表模板 -->
                     <v-list lines="two">
-                        <v-list-item v-for="task in visibleTasks" :key="task.id" @click.exclude="handleTaskClick(task)">
+                        <v-list-item v-for="task in visibleTasks" :key="task.id" @click.exclude="handleTaskClick(task)"
+                            :class="{ 'overdue-task': isTaskOverdue(task) }">
                             <template #prepend>
                                 <v-checkbox :model-value="task.status === '已完成'" @click.stop
                                     @change="toggleTaskStatus(task)" color="primary" class="mr-2" />
                             </template>
 
                             <v-list-item-title class="font-weight-medium">
-                                {{ task.title }}
                                 <v-chip v-if="task.priority === '高'" small color="red" class="ml-2">
                                     紧急
                                 </v-chip>
+                                {{ task.title }}
                             </v-list-item-title>
 
                             <v-list-item-subtitle>
@@ -362,7 +394,7 @@ onMounted(async () => {
                     <v-list>
                         <v-list-item v-for="visit in recentVisits" :key="visit.id" @click="handleTaskClick(visit.id)">
                             <template #prepend>
-                                <v-icon color="info">mdi-clock</v-icon>
+                                <v-icon color="info">clock</v-icon>
                             </template>
                             <v-list-item-title>
                                 {{ visit.title }}
@@ -376,21 +408,22 @@ onMounted(async () => {
                 <v-card class="mt-4">
                     <!-- 添加智能提醒展示 -->
                     <div class="upcoming-alert">
-                        <v-alert v-if="upcomingDeadlines.length" border="start" color="grey" elevation="2">
-                            <template v-slot:title>
-                                <div class="d-flex align-center">
-                                    <v-icon color="warning" class="mr-2">alarm</v-icon>
-                                    即将到期任务 ({{ upcomingDeadlines.length }})
+                        <v-alert v-if="upcomingDeadlines.length" border="start" :color="getUrgencyColor(task)"
+                            elevation="2" v-for="task in upcomingDeadlines" :key="task.id">
+                            <div class="d-flex align-center">
+                                <v-icon class="mr-2">mdi-alarm</v-icon>
+                                <div class="flex-grow-1">
+                                    <div class="font-weight-medium">{{ task.title }}</div>
+                                    <div class="text-caption">
+                                        剩余时间: {{ formatRemainingTime(task.deadline) }}
+                                        <v-progress-linear :model-value="getDeadlineProgress(task)" height="4"
+                                            :color="getUrgencyColor(task)" class="mt-1"></v-progress-linear>
+                                    </div>
                                 </div>
-                            </template>
-                            <v-list density="compact">
-                                <v-list-item v-for="task in upcomingDeadlines" :key="task.id" :title="task.title"
-                                    :subtitle="`剩余时间: ${dayjs(task.deadline).diff(dayjs(), 'day')}天`">
-                                    <template v-slot:prepend>
-                                        <v-icon color="warning">hourglass_top</v-icon>
-                                    </template>
-                                </v-list-item>
-                            </v-list>
+                                <v-btn variant="text" @click="handleTaskClick(task)" size="small">
+                                    查看
+                                </v-btn>
+                            </div>
                         </v-alert>
                     </div>
                 </v-card>
