@@ -33,7 +33,7 @@ export interface TaskCreateDTO {
   files?: FileItem[];
 }
 
-// 文件类型定义
+// 文件类型定义（为了在聊天中复用该file类型，将uploader和scope设为可选字段）
 export interface FileItem {
   id: string;
   taskId?: string; // 关联任务ID（当scope=task时存在）
@@ -42,8 +42,8 @@ export interface FileItem {
   type: string;
   url: string;
   uploadTime: string;
-  uploader: string;
-  scope: 'task' | 'public' // 文件作用域
+  uploader?: string;
+  scope?: 'task' | 'public' // 文件作用域
   downloadCount?: number
 }
 

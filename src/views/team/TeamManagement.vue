@@ -41,7 +41,8 @@ const createTeam = async () => {
       position: currentEmployee.position,    // 可选
       workload: currentEmployee.workload,    // 可选
       authorities: currentEmployee.authorities,
-      avatar: currentEmployee.avatar
+      avatar: currentEmployee.avatar,
+      online: currentEmployee.online,
     });
     // 提交创建团队请求
     await teamStore.createNewTeam(newTeam.value);
