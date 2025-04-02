@@ -25,7 +25,7 @@ export const useProjectStore = defineStore('project', () => {
   const updateProject = async (projectId: string, updatedProject: Partial<Project>): Promise<void> => {
     try {
       const updatedProjectResponse = await updateOldProject(projectId, updatedProject);
-      const projectIndex = projects.value.findIndex((project) => project.id === projectId);
+      const projectIndex = projects.value.findIndex((project) => project.projectId === projectId);
       if (projectIndex !== -1) {
         projects.value[projectIndex] = { ...projects.value[projectIndex], ...updatedProject };
       }
@@ -51,7 +51,7 @@ export const useProjectStore = defineStore('project', () => {
         const createPromises = tasks.value.map(task =>
           taskStore.createNewTask({
             ...task,
-            projectId: newProject.id // 注入项目ID
+            projectId: newProject.projectId // 注入项目ID
           })
         );
         await Promise.all(createPromises);

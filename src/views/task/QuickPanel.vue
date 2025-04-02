@@ -116,7 +116,20 @@ const handleTaskClick = (taskOrId: Task | string) => {
         type: 'task',
         title: task.title
     });
-    router.push({ name: 'taskdetail', params: { id: task.id } });
+    if (task.projectId) {
+        router.push({
+            name: 'project-task',
+            params: {
+                projectId: task.projectId,
+                taskId: task.id
+            }
+        })
+    } else {
+        router.push({
+            name: 'independent-task',
+            params: { id: task.id }
+        })
+    }
 };
 
 
@@ -589,18 +602,12 @@ onMounted(async () => {
 }
 
 .view-btn {
-  font-size: 0.85rem;
-  color: #6d9eec;
-  transition: color 0.3s ease;
+    font-size: 0.85rem;
+    color: #6d9eec;
+    transition: color 0.3s ease;
 }
 
 .view-btn:hover {
-  color: #2563eb;
+    color: #2563eb;
 }
-
-
-
-
-
-
 </style>

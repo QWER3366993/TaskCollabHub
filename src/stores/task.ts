@@ -5,6 +5,7 @@ import {
   // fetchTasksByStatus,
   fetchTasksByTeam,
   fetchProjects,
+  fetchProjectTaskById,
   fetchTasksByProject,
   fetchTasks,
   createTask,
@@ -39,7 +40,9 @@ export const useTaskStore = defineStore('task', () => {
   const projects = ref<Project[]>([])
   /** 任务列表 */
   const tasks = ref<Task[]>([]);
-  /** 单个任务详情 */
+  /** 项目任务详情 */
+  const projectTaskDetail=ref<Task>()
+  /** 独立任务详情 */
   const taskDetail = ref<Task>();
   /** 任务评论 */
   const comments = ref<Comment[]>([]);
@@ -114,19 +117,6 @@ export const useTaskStore = defineStore('task', () => {
   const timeRange = ref<TimeRange>('day'); // 初始化为 'day'
 
   // ==================== 任务 ====================
-  /** 获取所有任务 */
-  const getAllTasks = async (): Promise<Task[]> => {
-    try {
-      const data = await fetchTasks();
-      tasks.value = data;
-      return data;
-    } catch (error) {
-      errorMessage.value = '获取任务列表失败';
-      createToast(errorMessage.value, { position: 'top-center', showIcon: true, type: 'danger' });
-      return [];
-    }
-  };
-
   /** 获取所有项目 */
   const getAllProjects = async (): Promise<Project[]> => {
     try {
@@ -153,17 +143,38 @@ export const useTaskStore = defineStore('task', () => {
     }
   }
 
-  /** 根据任务 ID 获取任务详情 */
-  const getTaskById = async (taskId: string): Promise<Task | null> => {
-    console.log('请求任务详情，任务ID:', taskId);  // 打印任务ID
+  // 获取项目任务的任务详情
+  const getProjectTaskDetail = async (taskId: string, projectId: string): Promise<Task> => {
+    try {
+      const data = await fetchProjectTaskById(taskId, projectId);
+      projectTaskDetail.value = data;
+      return data;
+    } catch (error) {
+      errorMessage.value = '获取任务详情失败';
+      createToast(errorMessage.value, { position: 'top-center',})
+      throw error;
+    }
+  }
 
+  
+  /** 获取所有任务 */
+  const getAllTasks = async (): Promise<Task[]> => {
+    try {
+      const data = await fetchTasks();
+      tasks.value = data;
+      return data;
+    } catch (error) {
+      errorMessage.value = '获取任务列表失败';
+      createToast(errorMessage.value, { position: 'top-center', showIcon: true, type: 'danger' });
+      return [];
+    }
+  };
+
+  /** 根据任务 ID 获取任务详情 */
+  const getTaskById = async (taskId: string): Promise<Task> => {
     try {
       const data = await fetchTaskById(taskId);
-      console.log('接口返回数据:', data);  // 记录接口返回的数据
-
       if (!data) {
-        console.warn(`任务 ID: ${taskId} 的任务数据不存在`);  // 记录任务数据不存在的情况
-
         throw new Error('任务不存在');
       }
       taskDetail.value = data; // 确保 data 不为 null
@@ -176,7 +187,38 @@ export const useTaskStore = defineStore('task', () => {
     }
   };
 
-  // 新的 API 方法，基于团队ID获取任务列表
+  // 合并任务
+  const loadAllTasksWithProjects = async () => {
+    try {
+      // 获取独立任务
+      const independentTasks = await getAllTasks();
+      // 获取所有项目
+      await getAllProjects();
+      // 获取所有项目任务（确保每个项目返回的任务是数组）
+      const projectTasksPromises = projects.value.map(async (project) => {
+        if (project.projectId !== null) { // 排除“全部”选项
+          const tasks = await getProjectTasks(project.projectId);
+          return Array.isArray(tasks) ? tasks : []; // 确保返回值为数组
+        }
+        return [];
+      });
+
+      // 合并独立任务和项目任务
+      const allTasks = [
+        ...independentTasks,
+        ...(await Promise.all(projectTasksPromises)).flat()
+      ];
+      // 去重并更新任务列表
+      tasks.value = allTasks.reduce(
+        (unique, task) => unique.some(t => t.id === task.id) ? unique : [...unique, task],
+        [] as Task[]
+      );
+    } catch (error) {
+      console.error('加载任务失败:', error);
+    }
+  };
+
+  // 基于团队ID获取任务列表
   const getTasksByTeam = async (teamId: string): Promise<Task[]> => {
     try {
       const data = await fetchTasksByTeam(teamId); // 这里使用根据团队ID获取任务的接口
@@ -520,7 +562,7 @@ export const useTaskStore = defineStore('task', () => {
   const projectsWithStatus = computed(() =>
     projects.value.map(p => ({
       ...p,
-      progress: calculateProjectProgress(p.id),
+      progress: calculateProjectProgress(p.projectId),
       isLate: dayjs().isAfter(dayjs(p.deadline)) && p.progress < 100
     }))
   )
@@ -652,6 +694,7 @@ export const useTaskStore = defineStore('task', () => {
   return {
     tasks,
     taskDetail,
+    projectTaskDetail,
     comments,
     employees,
     userRole,
@@ -675,8 +718,10 @@ export const useTaskStore = defineStore('task', () => {
     projectsWithStatus,
     getAllTasks,
     getAllProjects,
+    getProjectTaskDetail,
     getProjectTasks,
     getTaskById,
+    loadAllTasksWithProjects,
     getTasksByUser,
     getTasksByTeam,
     // getTasksByStatus,

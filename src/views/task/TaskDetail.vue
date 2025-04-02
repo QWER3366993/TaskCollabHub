@@ -213,28 +213,30 @@ const formatValue = (value: string | number | Date) => {
 };
 // 日志功能部分结束
 
-// 加载任务详情的方法
-const loadTaskDetail = async (taskId: string) => {
+// 使用明确props接收参数
+const props = defineProps<{
+  taskType: 'project' | 'independent'
+  taskId: string
+  projectId?: string // 仅项目任务存在
+}>()
+
+// 加载任务详情
+const loadTaskDetail = async () => {
   try {
-    // 从 store 中获取任务详情
-    const taskDetails = await taskStore.getTaskById(taskId);
-    console.log('加载任务详情:', taskDetails);
-    if (!taskDetails) return;
-    // 优先加载任务所属团队的成员
-    if (taskDetails.teamId) {
-      const result = await teamStore.getTeamMembers(taskDetails.teamId);
-      teamMembers.value = result;
-      task.value = taskDetails
-      teamId.value = taskDetails.teamId;
+    if (props.taskType === 'project' && props.projectId) {
+      // 调用项目任务接口
+      task.value = await taskStore.getProjectTaskDetail(
+        props.taskId, 
+        props.projectId
+      )
     } else {
-      teamMembers.value = teamStore.employees;
+      // 调用独立任务接口
+      task.value = await taskStore.getTaskById(props.taskId)
     }
-    console.log('当前团队成员:', teamMembers.value);
   } catch (error) {
-    createToast('任务加载失败', { type: 'danger' });
-    throw error;
+    console.error('加载任务失败:', error)
   }
-};
+}
 
 // 保存修改
 const saveTask = async () => {
@@ -277,7 +279,7 @@ const responsibleAvatar = computed(() => {
 onMounted(async () => {
   await userStore.getUserInfo();
   await teamStore.getEmployees();
-  await loadTaskDetail(taskId.value);  // 加载任务数据
+  await loadTaskDetail();  // 加载任务数据
 });
 </script>
 

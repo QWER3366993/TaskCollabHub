@@ -103,15 +103,28 @@ export const router = createRouter({
             icon: 'dashboard'
           }
         },
+        // 独立任务详情
         {
-          path: 'taskdetail/:id',
-          name: 'taskdetail',
-          component: () => import('@/views/task/TaskDetail.vue'), // 任务列表及操作
-          meta: {
-            title: '任务详情',
-            hidden: true,
-            icon: 'details'
-          }
+          path: 'independent/:taskId',
+          name: 'IndependentTaskDetail',
+          component: () => import('@/views/task/TaskDetail.vue'),
+          meta: { taskType: 'independent' },
+          props: route => ({
+            taskType: 'independent',
+            taskId: route.params.taskId
+          })
+        },
+        // 项目任务详情
+        {
+          path: 'project/:projectId/task/:taskId',
+          name: 'ProjectTaskDetail',
+          component: () => import('@/views/task/TaskDetail.vue'),
+          meta: { taskType: 'project' },
+          props: route => ({
+            taskType: 'project',
+            projectId: route.params.projectId,
+            taskId: route.params.taskId
+          })
         },
         {
           path: 'taskscheduling/:taskId?/:projectId?', // 添加可选参数
@@ -267,7 +280,7 @@ export const router = createRouter({
           }
         }]
     },
-    
+
 
     {
       // 此父路由只为权限管理能使用特殊布局（保留侧边栏）

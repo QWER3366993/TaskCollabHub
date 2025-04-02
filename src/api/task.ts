@@ -21,8 +21,6 @@ export const fetchTaskById = async (taskId: string): Promise<Task | null> => {
     url: `/tasks/${taskId}`,
     method: 'get',
   });
-  console.log('接口返回的数据:', response.data);  // 打印接口返回的响应数据
-
   return response.data;
 };
 
@@ -32,10 +30,19 @@ export const fetchProjects = async () => {
   return response.data
 }
 
+// 获取项目任务的详情
+export const fetchProjectTaskById = async (taskId: string, projectId: string): Promise<Task> => {
+  const response = await service({
+    url: `/projects/${projectId}/tasks/${taskId}`,
+    method: 'get',
+  });
+  return response.data;
+};
+
 // 获取项目下的任务
 export const fetchTasksByProject = async (projectId: string): Promise<Task[]> => {
   const response = await service({
-    url: `/project/${projectId}/tasks`,
+    url: `/projects/${projectId}/tasks`,
     method: 'get',
   });
   return response.data;

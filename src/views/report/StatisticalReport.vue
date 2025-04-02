@@ -231,7 +231,7 @@ const handleResize = () => {
         </v-btn>
       </v-card-title>
       <v-list>
-        <v-list-item v-for="project in sortedProjects" :key="project.id" :class="{ 'late-project': project.isLate }">
+        <v-list-item v-for="project in sortedProjects" :key="project.projectId" :class="{ 'late-project': project.isLate }">
           <v-list-item-content>
             <div class="project-item">
               <div class="project-info">

@@ -29,12 +29,11 @@ const headers = ref([
 //排序规则
 // const sortOrder = ref([{ key: 'deadline', order: 'asc' as 'asc' | 'desc' }]);
 
-const projectTasks = computed(() => {
-  return taskStore.tasks.filter(task => task.projectId);
-});
-
-const independentTasks = computed(() => {
-  return taskStore.tasks.filter(task => !task.projectId);
+const projects = computed(() => {
+  return [{ id: null, title: '全部' }, ...taskStore.projects.map(project => ({
+    id: project.projectId,
+    title: project.title
+  }))];
 });
 
 const loadProjects = async () => {
@@ -77,14 +76,26 @@ const createTask = () => {
 };
 
 // 编辑跳转
-const editTask = (taskId: string) => {
-  if (!taskId) {
-    console.error('任务 ID 未定义');
-    return;
+const editTask = (task: Task) => {
+  if (task.projectId) {
+    // 项目任务跳转
+    router.push({
+      name: 'ProjectTaskDetail',
+      params: {
+        projectId: task.projectId,
+        taskId: task.id
+      }
+    })
+  } else {
+    // 独立任务跳转
+    router.push({
+      name: 'IndependentTaskDetail',
+      params: {
+        taskId: task.id
+      }
+    })
   }
-  console.log('跳转任务ID:', taskId); // 验证点击时传递的ID
-  router.push({ name: 'taskdetail', params: { id: taskId } });
-};
+}
 
 // 删除任务
 const deleteTask = async (taskId: string) => {
@@ -99,13 +110,6 @@ const deleteTask = async (taskId: string) => {
 // 状态过滤器
 const statusOptions = ['全部', '待处理', '进行中', '已完成'];
 const selectedStatus = ref('全部');
-
-const projects = computed(() => {
-  return taskStore.projects.map(project => ({
-    id: project.id,
-    title: project.title
-  }));
-});
 
 // 搜索功能
 const searchQuery = ref('');
@@ -125,23 +129,30 @@ const calculateTimeRemaining = (deadline?: string) => {
 
 const selectedProjectId = ref<string | null>(null);
 
+// 项目过滤
 const filterTasksByProject = async () => {
   if (selectedProjectId.value) {
-    await taskStore.getTasksByProject(selectedProjectId.value);
+    await taskStore.getProjectTasks(selectedProjectId.value);
   } else {
-    await taskStore.getAllTasks(); // 选择“全部”时，重新加载所有任务
+    await taskStore.loadAllTasksWithProjects(); // 使用新的合并方法
   }
 };
 
 // 过滤后的任务列表
 const filteredTasks = computed(() => {
+  if (!Array.isArray(taskStore.tasks)) {
+    console.error('tasks 不是数组:', taskStore.tasks)
+    return []
+  }
   return taskStore.tasks.filter(task => {
     const matchesProject = !selectedProjectId.value || task.projectId === selectedProjectId.value;
     const matchesStatus = selectedStatus.value === '全部' || task.status === selectedStatus.value;
-    const matchesSearch = task.title.includes(searchQuery.value) || task.description.includes(searchQuery.value);
+    const matchesSearch = task.title.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
+      task.description.toLowerCase().includes(searchQuery.value.toLowerCase());
     return matchesProject && matchesStatus && matchesSearch;
   });
 });
+
 
 
 // 状态颜色映射
@@ -175,8 +186,8 @@ const statusIcon = (status: string) => {
 onMounted(async () => {
   await userStore.getUserInfo();
   await loadEmployees(); //先加载员工数据再加载任务（防止getName在员工数据未就绪时被调用）
-  await loadProjects();
-  await loadTasks();
+  await loadProjects(); // 先加载项目
+  await filterTasksByProject() // 初始加载所有任务
 });
 </script>
 
@@ -262,7 +273,7 @@ onMounted(async () => {
               <div class="action-buttons">
                 <v-tooltip text="编辑">
                   <template #activator="{ props }">
-                    <v-btn v-bind="props" icon variant="text" color="primary" @click="editTask(item.id)">
+                    <v-btn v-bind="props" icon variant="text" color="primary" @click="editTask(item)">
                       <v-icon>edit</v-icon>
                     </v-btn>
                   </template>

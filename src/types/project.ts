@@ -2,7 +2,7 @@ import type { FileItem } from './task'
 // 项目基础类型
 import type { Task } from './task'
 export interface Project {
-    id: string
+    projectId: string
     title: string
     description: string
     teamId: string  // 关联团队ID

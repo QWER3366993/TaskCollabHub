@@ -16,9 +16,11 @@ interface MockParams {
     fileId?: string;
     teamId?: string;
     type?: string;
+    projectId: string;
   };
   body?: any;
 }
+
 
 export const mockNotices: Notice[] = [
   {
@@ -155,7 +157,7 @@ const mockUsers = [
 
 const mockProjects: Project[] = [
   {
-    id: 'p001',
+    projectId: 'p001',
     title: '前端架构优化',
     description: '优化前端架构，提升页面加载速度和用户体验',
     teamId: '1', // 归属前端团队
@@ -211,10 +213,10 @@ const mockProjects: Project[] = [
     ]
   },
   {
-    id: 'p002',
+    projectId: 'p002',
     title: '后端微服务拆分',
     description: '对现有单体架构进行微服务化拆分，提升系统可扩展性',
-    teamId: '2', // 归属后端团队
+    teamId: '2',
     scheduledTime: '2025-06-01 10:00:00',
     deadline: '2025-09-30 18:00:00',
     files: [],
@@ -240,10 +242,10 @@ const mockProjects: Project[] = [
     ]
   },
   {
-    id: 'p003',
+    projectId: 'p003',
     title: '数据库性能优化',
     description: '优化数据库索引、查询语句，提高查询效率',
-    teamId: '3', // 归属数据库团队
+    teamId: '2',
     scheduledTime: '2025-04-15 08:30:00',
     deadline: '2025-07-15 18:00:00',
     files: [],
@@ -253,13 +255,13 @@ const mockProjects: Project[] = [
       {
         id: 't301',
         projectId: 'p003',
-        teamId: '3',
+        teamId: '2',
         employeeId: 'e004',
         title: '索引优化',
         description: '为慢查询语句添加索引，优化查询速度',
         status: '进行中',
         priority: '高',
-        creator: 'e007',
+        creator: 'e003',
         scheduledTime: '2025-04-20 09:00:00',
         deadline: '2025-06-30 18:00:00',
         files: [],
@@ -889,12 +891,30 @@ export default [
 
   // 获取项目下的任务
   {
-    url: '/project/:projectId/tasks',
+    url: '/projects/:projectId/tasks',
     method: 'get',
     response: (request: { query: { projectId: string } }) => {
       const projectId = request.query.projectId;
-      const tasks = mockProjects.find(t => t.id === projectId);
-      return tasks || null;
+      const project = mockProjects.find(t => t.projectId === projectId);
+      return project?.tasks || [];
+    }
+  },
+
+  // 获取项目任务详情
+  {
+    url: '/projects/:projectId/tasks/:taskId',
+    method: 'get',
+    response: (request: { query: { projectId: string, taskId: string } }) => {
+      const project = mockProjects.find(p =>
+        p.projectId === request.query.projectId
+      )
+      if (!project) {
+        return { message: '项目不存在' }
+      }
+      const task = project.tasks.find(t =>
+        t.id === request.query.taskId
+      )
+      return task || null;
     }
   },
 
@@ -903,6 +923,7 @@ export default [
     url: '/tasks',
     method: 'get',
     response: () => mockTasks.map(task => ({
+      projectId: task.projectId,
       id: task.id,
       title: task.title,
       status: task.status,
