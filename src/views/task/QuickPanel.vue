@@ -8,7 +8,7 @@ import type { Task } from '@/types/task'
 import { useRouter } from 'vue-router'
 import type { OperationLog } from '@/types/task'
 import dayjs from 'dayjs'
-import task from '@/mock/task';
+import { useUserStore } from '@/stores/user';
 
 // 最近访问类型定义
 type RecentItem = {
@@ -20,6 +20,7 @@ type RecentItem = {
 }
 
 // 状态管理
+const userStore = useUserStore()
 const taskStore = useTaskStore()
 const searchQuery = ref<string>('')
 const teamStore = useTeamStore()
@@ -45,14 +46,19 @@ const upcomingDeadlines = computed(() => {
 
 // 团队活跃统计
 const teamStats = computed(() => ({
+    // 今日新增：统计当天创建的任务
     todayTasks: taskStore.tasks.filter(t =>
         dayjs(t.scheduledTime).isSame(dayjs(), 'day')  // 使用创建时间统计今日新增
     ).length,
-    overdueCount: taskStore.tasks.filter(t =>
-        t.deadline &&
-        dayjs(t.deadline).isBefore(dayjs()) &&
-        t.status !== '已完成'  // 直接计算逾期任务
-    ).length,
+    // 逾期任务：精确计算未完成的过期任务
+    overdueCount: taskStore.tasks.filter(t => {
+        if (!t.deadline || t.status === '已完成') return false;
+        // 精确到分钟的时间比较
+        const now = dayjs();
+        const deadline = dayjs(t.deadline);
+        // 包含当日23:59:59前的任务不算逾期
+        return deadline.isBefore(now.endOf('day'));
+    }).length,
     myTasks: userTasks.value.length,
     weeklyTasks: taskStore.tasks.filter(t =>
         t.deadline &&
@@ -124,10 +130,15 @@ const isTaskOverdue = (task: Task): boolean => {
 
 // 当前用户参与的任务（创建+负责）
 const userTasks = computed(() => {
-    const userId = teamStore.currentEmployee?.employeeId;  // 直接使用 teamStore.currentEmployee
-    if (!userId) return [];
-    return taskStore.tasks.filter(t => t.creator === userId || t.employeeId === userId);
-})
+    // 使用可选链获取 employeeId
+    const employeeId = userStore.employee?.employeeId;
+    // 空值保护直接返回，不打印错误
+    if (!employeeId) return [];
+    return taskStore.tasks.filter(t =>
+        t.creator === employeeId ||
+        t.employeeId === employeeId
+    );
+});
 
 
 const visibleTasks = computed(() => {
@@ -141,21 +152,6 @@ const visibleTasks = computed(() => {
         return (priorityOrder[a.priority] || 4) - (priorityOrder[b.priority] || 4);
     }).slice(0, 5);
 });
-
-// 快捷操作配置
-const baseActions = [
-    { id: 'filter', label: '我的任务', icon: 'user', roles: ['member'] },
-    { id: 'report', label: '生成日报', icon: 'document', roles: ['pm'] },
-    { id: 'meeting', label: '关联会议', icon: 'calendar', roles: ['pm'] }
-]
-
-const filteredActions = computed(() =>
-    baseActions.filter(action => {
-        const userAuthority = currentEmployee.value?.authorities; // 获取当前用户的权限
-        if (!userAuthority || !Array.isArray(userAuthority)) return false; // 如果权限不存在或不是数组，直接返回 false
-        return userAuthority.some(authority => action.roles.includes(authority)); // 检查是否有交集
-    })
-);
 
 // 任务状态切换
 const toggleTaskStatus = async (task: Task) => {
@@ -196,26 +192,6 @@ const handleLogClick = (log: OperationLog) => {
     }
 };
 
-// 实现快捷操作栏
-const handleQuickAction = (actionId: string) => {
-    const actions = {
-        filter: () => router.push({ name: 'MyTasks' }),
-        report: async () => {
-            try {
-                // await taskStore.generateReport()
-                createToast('日报已生成', { type: 'success' })
-            } catch {
-                createToast('生成失败', { type: 'danger' })
-            }
-        },
-        meeting: () => router.push({
-            name: 'ScheduleMeeting',
-            query: { taskIds: visibleTasks.value.map(t => t.id) }
-        })
-    }
-    actions[actionId as keyof typeof actions]?.()
-}
-
 // 计算剩余时间
 const formatRemainingTime = (deadline: string | undefined): string => {
     if (!deadline) return '无截止日期';
@@ -252,15 +228,11 @@ const getDeadlineProgress = (task: Task): number => {
 };
 
 onMounted(async () => {
-    // 确保任务加载完成
-    await taskStore.getAllTasks();
-    console.log('Loaded tasks:', taskStore.tasks); // 确认任务数据
-
-    // 加载日志数据
-    await taskStore.getOperationLogs();
-    console.log('Operation logs:', taskStore.operationLogs); // 确认操作日志
-
-    console.log('taskStore.tasks:', taskStore.tasks);
+    await userStore.getUserInfo();
+    // 再加载其他依赖用户信息的资源
+    await Promise.all([
+        taskStore.getAllTasks(),
+    ]);
     // 初始化最近访问
     recentItems.value = taskStore.recentVisits.map(visit => ({
         id: visit.id,
@@ -291,36 +263,20 @@ onMounted(async () => {
                     </v-btn>
                 </v-btn-toggle>
             </div>
-            <div>
-                <!-- 添加快捷操作栏 -->
-                <v-speed-dial v-if="filteredActions.length" class="quick-actions">
-                    <template v-slot:activator>
-                        <v-btn fab color="primary">
-                            <v-icon>home</v-icon>
-                        </v-btn>
-                    </template>
-                    <v-btn v-for="action in filteredActions" :key="action.id" fab small
-                        @click="handleQuickAction(action.id)">
-                        <v-icon>{{ action.icon }}</v-icon>
-                    </v-btn>
-                </v-speed-dial>
-            </div>
+            <h2>团队活跃</h2>
             <!-- 统计卡片 -->
             <div class="stats-grid">
-                <v-card class="stat-card primary">
-                    <v-icon large color="white">mdi-plus-circle</v-icon>
+                <v-card class="stat-card">
                     <div class="stat-value">{{ teamStats.todayTasks }}</div>
                     <div class="stat-label">今日新增</div>
                 </v-card>
 
-                <v-card class="stat-card error">
-                    <v-icon large color="white">mdi-alert</v-icon>
+                <v-card class="stat-card">
                     <div class="stat-value">{{ teamStats.overdueCount }}</div>
                     <div class="stat-label">逾期任务</div>
                 </v-card>
 
-                <v-card class="stat-card success">
-                    <v-icon large color="white">mdi-check-all</v-icon>
+                <v-card class="stat-card">
                     <div class="stat-value">{{ teamStats.weeklyTasks }}</div>
                     <div class="stat-label">本周应完成</div>
                 </v-card>
@@ -332,9 +288,14 @@ onMounted(async () => {
                 <!-- 任务列 -->
                 <v-card class="task-column">
                     <div class="section-header">
-                        <h3>我的任务 ({{ userTasks }})</h3>
+                        <h3>我的任务 ({{ userTasks.length }})</h3>
                     </div>
-
+                    <template v-if="visibleTasks.length === 0">
+                        <v-alert type="info" class="ma-4 text-center" variant="outlined" elevation="2">
+                            <v-icon size="24" class="mr-2" color="blue">sentiment_satisfied</v-icon>
+                            <strong>暂无任务</strong>，可以稍作休息 ☕
+                        </v-alert>
+                    </template>
                     <!-- 修改任务列表模板 -->
                     <v-list lines="two">
                         <v-list-item v-for="task in visibleTasks" :key="task.id" @click.exclude="handleTaskClick(task)"
@@ -370,21 +331,26 @@ onMounted(async () => {
 
                 <!-- 最近访问 -->
                 <v-card class="recent-column">
-                    <h3>最近活动</h3>
+                    <h3>任务变更</h3>
                     <v-list>
-                        <v-list-item v-for="log in recentActivities" :key="log.id" @click="handleLogClick(log)">
-                            <template #prepend>
-                                <v-icon :color="log.operationType === 'status_change' ? 'primary' : 'grey'">
-                                    {{ log.operationType === 'status_change' ? 'mdi-update' : 'mdi-eye' }}
-                                </v-icon>
-                            </template>
-                            <v-list-item-title>
-                                {{ log.operation }}
-                                <div class="text-caption text-grey">
-                                    {{ dayjs(log.time).fromNow() }}
-                                </div>
-                            </v-list-item-title>
-                        </v-list-item>
+                        <div v-if="recentActivities.length > 0" class="item-list">
+                            <v-list-item v-for="log in recentActivities" :key="log.id" @click="handleLogClick(log)">
+                                <template #prepend>
+                                    <v-icon :color="log.operationType === 'status_change' ? 'blue' : 'brown'">
+                                        {{ log.operationType === 'status_change' ? 'update' : 'visibility' }}
+                                    </v-icon>
+                                </template>
+                                <v-list-item-title>
+                                    {{ log.operation }}
+                                    <div class="text-caption text-grey">
+                                        {{ dayjs(log.time).fromNow() }}
+                                    </div>
+                                </v-list-item-title>
+                            </v-list-item>
+                        </div>
+                        <div v-else class="empty-state">
+                            <span>暂无最近变更</span>
+                        </div>
                     </v-list>
                 </v-card>
 
@@ -392,35 +358,43 @@ onMounted(async () => {
                 <v-card class="recent-column mt-4">
                     <h3>最近访问</h3>
                     <v-list>
-                        <v-list-item v-for="visit in recentVisits" :key="visit.id" @click="handleTaskClick(visit.id)">
-                            <template #prepend>
-                                <v-icon color="info">clock</v-icon>
-                            </template>
-                            <v-list-item-title>
-                                {{ visit.title }}
-                                <div class="text-caption text-grey">
-                                    {{ dayjs(visit.time).fromNow() }}
-                                </div>
-                            </v-list-item-title>
-                        </v-list-item>
+                        <div v-if="recentVisits.length > 0" class="item-list">
+                            <v-list-item v-for="visit in recentVisits" :key="visit.id"
+                                @click="handleTaskClick(visit.id)">
+                                <template #prepend>
+                                    <v-icon color="info">clock</v-icon>
+                                </template>
+                                <v-list-item-title>
+                                    {{ visit.title }}
+                                    <div class="text-caption text-grey">
+                                        {{ dayjs(visit.time).fromNow() }}
+                                    </div>
+                                </v-list-item-title>
+                            </v-list-item>
+                        </div>
+                        <div v-else class="empty-state">
+                            <span>暂无最近访问</span>
+                        </div>
                     </v-list>
                 </v-card>
                 <v-card class="mt-4">
                     <!-- 添加智能提醒展示 -->
                     <div class="upcoming-alert">
                         <v-alert v-if="upcomingDeadlines.length" border="start" :color="getUrgencyColor(task)"
-                            elevation="2" v-for="task in upcomingDeadlines" :key="task.id">
+                            elevation="4" v-for="task in upcomingDeadlines" :key="task.id" class="task-alert">
+
                             <div class="d-flex align-center">
-                                <v-icon class="mr-2">mdi-alarm</v-icon>
+                                <v-icon class="mr-2">alarm</v-icon>
                                 <div class="flex-grow-1">
-                                    <div class="font-weight-medium">{{ task.title }}</div>
+                                    <div class="font-weight-medium task-title">{{ task.title }}</div>
                                     <div class="text-caption">
                                         剩余时间: {{ formatRemainingTime(task.deadline) }}
                                         <v-progress-linear :model-value="getDeadlineProgress(task)" height="4"
-                                            :color="getUrgencyColor(task)" class="mt-1"></v-progress-linear>
+                                            :color="getUrgencyColor(task)" class="mt-2 task-progress-bar">
+                                        </v-progress-linear>
                                     </div>
                                 </div>
-                                <v-btn variant="text" @click="handleTaskClick(task)" size="small">
+                                <v-btn variant="text" @click="handleTaskClick(task)" size="small" class="view-btn">
                                     查看
                                 </v-btn>
                             </div>
@@ -457,17 +431,27 @@ onMounted(async () => {
     padding: 16px;
     text-align: center;
     background: linear-gradient(145deg, #ffffff, #f1f5f9);
+    border-radius: 12px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 
-    .stat-value {
-        font-size: 2rem;
-        font-weight: 600;
-        color: #3b82f6;
-    }
+    /* 样式调整 */
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
 
-    .stat-label {
-        color: #64748b;
-        font-size: 0.875rem;
-    }
+.stat-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+}
+
+.stat-value {
+    font-size: 2rem;
+    font-weight: 600;
+    color: #3b82f6;
+}
+
+.stat-label {
+    color: #64748b;
+    font-size: 0.875rem;
 }
 
 .main-grid {
@@ -592,4 +576,31 @@ onMounted(async () => {
     gap: 5px;
     margin-left: 10px;
 }
+
+/* 添加空状态样式 */
+.empty-state {
+    color: #999;
+    text-align: center;
+    font-size: 15px;
+    padding: 10px;
+    border: 1px dashed #565c2b;
+    border-radius: 8px;
+    margin-top: 10px;
+}
+
+.view-btn {
+  font-size: 0.85rem;
+  color: #6d9eec;
+  transition: color 0.3s ease;
+}
+
+.view-btn:hover {
+  color: #2563eb;
+}
+
+
+
+
+
+
 </style>

@@ -4,9 +4,11 @@ import type { Employee } from '@/types/team';
 import type { User } from '@/types/user';
 import type { Team } from '@/types/team';
 import type { Notice, NoticeType } from '@/types/notice'
-import { id } from 'element-plus/es/locale/index.mjs';
-
-// // 自定义路径参数类型
+import type { ChatMessage, ChatStatus } from '@/types/chat'
+import type { UpdateOnlineStatusParams } from '@/api/chat'
+import type { Memo } from '@/types/memo';
+import type { Project } from '@/types/project';
+// 自定义路径参数类型
 interface MockParams {
   params: {
     id?: string;
@@ -105,16 +107,34 @@ export const mockNotices: Notice[] = [
     summary: "6G 通信技术研究取得新突破",
     content: "6G 通信技术研究取得新突破，预计 2030 年实现商用。",
     hit: 160
+  },
+  {
+    id: "10",
+    title: "企业年度技术峰会",
+    type: "carousel",
+    coverImage: "/tech-summit.jpg",
+    content: "年度技术峰会将于12月举办，主题为'人工智能与未来'...",
+    summary: "年度技术峰会筹备启动",
+    createdAt: "2023-11-01T09:00:00Z",
+    hit: 280
+  },
+  {
+    id: "11",
+    title: "新员工入职指南",
+    type: "policy",
+    url: "/onboarding-guide.pdf",
+    content: "2023版新员工入职流程及注意事项...",
+    summary: "更新版入职流程发布",
+    createdAt: "2023-10-15T14:30:00Z",
+    hit: 150
   }
 ];
 
-// 统一的任务数据源
 const mockUsers = [
   {
     userId: 'user001',
     username: 'admin',
     password: '123456',
-    name: '海绵宝宝',
     authorities: ['admin'],
     avatar: '/海绵宝宝.jpg',
     email: 'admin@example.com',
@@ -125,7 +145,6 @@ const mockUsers = [
     userId: 'user002',
     username: 'pdx',
     password: '123456',
-    name: '派大星',
     authorities: ['manager'],
     avatar: '/派大星.jpg',
     email: 'pdx@example.com',
@@ -134,6 +153,122 @@ const mockUsers = [
   }
 ];
 
+const mockProjects: Project[] = [
+  {
+    id: 'p001',
+    title: '前端架构优化',
+    description: '优化前端架构，提升页面加载速度和用户体验',
+    teamId: '1', // 归属前端团队
+    scheduledTime: '2025-05-01 09:00:00',
+    deadline: '2025-08-01 18:00:00',
+    files: [
+      {
+        id: 'pf1',
+        name: '前端优化方案.pdf',
+        size: 1.2 * 1024 * 1024,
+        type: 'application/pdf',
+        url: '/frontend-optimization.pdf',
+        uploadTime: '2025-04-10 15:00:00',
+        uploader: 'u101',
+        scope: 'public'
+      }
+    ],
+    progress: 30, // 进度百分比
+    isLate: false,
+    tasks: [
+      {
+        id: 't101',
+        projectId: 'p001',
+        teamId: '1',
+        employeeId: 'e001',
+        title: '优化首页加载速度',
+        description: '减少首屏渲染时间，提高用户体验',
+        status: '进行中',
+        priority: '高',
+        creator: 'e005',
+        scheduledTime: '2025-05-02 10:00:00',
+        deadline: '2025-06-15 18:00:00',
+        files: [],
+        comments: [],
+        operations: []
+      },
+      {
+        id: 't102',
+        projectId: 'p001',
+        teamId: '1',
+        employeeId: 'e002',
+        title: '前端缓存优化',
+        description: '增加浏览器缓存策略，减少服务器请求',
+        status: '待处理',
+        priority: '中',
+        creator: 'e005',
+        scheduledTime: '2025-05-10 10:00:00',
+        deadline: '2025-07-01 18:00:00',
+        files: [],
+        comments: [],
+        operations: []
+      }
+    ]
+  },
+  {
+    id: 'p002',
+    title: '后端微服务拆分',
+    description: '对现有单体架构进行微服务化拆分，提升系统可扩展性',
+    teamId: '2', // 归属后端团队
+    scheduledTime: '2025-06-01 10:00:00',
+    deadline: '2025-09-30 18:00:00',
+    files: [],
+    progress: 40,
+    isLate: false,
+    tasks: [
+      {
+        id: 't201',
+        projectId: 'p002',
+        teamId: '2',
+        employeeId: 'e003',
+        title: '订单服务拆分',
+        description: '将订单模块拆分为独立微服务',
+        status: '进行中',
+        priority: '高',
+        creator: 'e006',
+        scheduledTime: '2025-06-05 09:00:00',
+        deadline: '2025-07-20 18:00:00',
+        files: [],
+        comments: [],
+        operations: []
+      }
+    ]
+  },
+  {
+    id: 'p003',
+    title: '数据库性能优化',
+    description: '优化数据库索引、查询语句，提高查询效率',
+    teamId: '3', // 归属数据库团队
+    scheduledTime: '2025-04-15 08:30:00',
+    deadline: '2025-07-15 18:00:00',
+    files: [],
+    progress: 50,
+    isLate: false,
+    tasks: [
+      {
+        id: 't301',
+        projectId: 'p003',
+        teamId: '3',
+        employeeId: 'e004',
+        title: '索引优化',
+        description: '为慢查询语句添加索引，优化查询速度',
+        status: '进行中',
+        priority: '高',
+        creator: 'e007',
+        scheduledTime: '2025-04-20 09:00:00',
+        deadline: '2025-06-30 18:00:00',
+        files: [],
+        comments: [],
+        operations: []
+      }
+    ]
+  }
+];
 
 const mockTasks: Task[] = [
   {
@@ -171,10 +306,10 @@ const mockTasks: Task[] = [
     ],
     comments: [
       {
-        user: {
+        employee: {
           employeeId: 'e005',
           avatar: '/111.jpg',
-          name: '痞老板',
+          name: '痞老板'
         },
         content: '需要优先处理前端部分',
         createdAt: '2025-03-01 10:00:00',
@@ -221,7 +356,45 @@ const mockTasks: Task[] = [
     comments: [],
     operations: [],
     files: []
-  }
+  },
+  {
+    id: '3',
+    teamId: '3',
+    employeeId: 'e005',
+    title: '用户认证系统重构',
+    description: '重构现有用户认证系统，支持OAuth2.0协议',
+    status: '进行中',
+    priority: '高',
+    creator: 'e003',
+    scheduledTime: '2023-08-01 09:00:00',
+    deadline: '2023-09-15 18:00:00',
+    files: [
+      {
+        id: 'f3',
+        name: '架构设计图.png',
+        size: 1.8 * 1024 * 1024,
+        type: 'image/png',
+        url: '/architecture.png',
+        uploadTime: '2023-07-25T10:00:00Z',
+        uploader: '痞老板',
+        scope: 'task'
+      }
+    ],
+    comments: [
+      {
+        employee: {
+          employeeId: 'e003',
+          avatar: '/章鱼哥.jpg',
+          name: '章鱼哥'
+        },
+        content: '需要优先考虑安全性设计',
+        createdAt: '2023-07-25T14:30:00Z',
+        taskId: '3',
+        commentId: '3',
+      }
+    ],
+    operations: []
+  },
 
 ];
 
@@ -307,6 +480,7 @@ const mockTeams: Team[] = [
         workload: 70,
         position: '前端工程师',
         authorities: ['admin'],
+        online: true,
       },
       {
         employeeId: 'e002',
@@ -318,6 +492,7 @@ const mockTeams: Team[] = [
         workload: 50,
         position: 'UI设计师',
         authorities: ['manager'],
+        online: true,
       }
     ]
   },
@@ -336,6 +511,7 @@ const mockTeams: Team[] = [
         workload: 60,
         position: '后端工程师',
         authorities: ['manager'],
+        online: true,
       },
       {
         employeeId: 'e004',
@@ -347,6 +523,7 @@ const mockTeams: Team[] = [
         workload: 40,
         position: 'DBA',
         authorities: ['member'],
+        online: true,
       }
     ]
   },
@@ -358,13 +535,14 @@ const mockTeams: Team[] = [
       {
         employeeId: 'e005',
         name: '痞老板',
-        avatar: '/痞老板.jpg',
+        avatar: '/111.jpg',
         teamId: '3',
         userId: 'user005',
         status: '在职',
         workload: 30,
         position: '后端工程师',
         authorities: ['admin'],
+        online: true,
       }
     ]
   }
@@ -384,6 +562,7 @@ const mockTeamMembers: Employee[] = [
     workload: 70,
     position: '前端工程师',
     authorities: ['admin'],
+    online: true,
   },
   {
     employeeId: 'e002',
@@ -395,6 +574,7 @@ const mockTeamMembers: Employee[] = [
     workload: 50,
     position: 'UI设计师',
     authorities: ['manager'],
+    online: true,
   },
 
   // 后端组成员
@@ -408,6 +588,7 @@ const mockTeamMembers: Employee[] = [
     workload: 60,
     position: '后端工程师',
     authorities: ['manager'],
+    online: true,
   },
   {
     employeeId: 'e004',
@@ -419,19 +600,223 @@ const mockTeamMembers: Employee[] = [
     workload: 40,
     position: 'DBA',
     authorities: ['member'],
+    online: true,
   },
   {
     employeeId: 'e005',
     name: '痞老板',
-    avatar: '/痞老板.jpg',
+    avatar: '/111.jpg',
     teamId: '3',
     userId: 'user005',
     status: '在职',
     workload: 30,
     position: '后端工程师',
     authorities: ['admin'],
+    online: true,
   }
 ];
+
+// 聊天相关Mock数据
+const mockChatData = {
+  messages: [
+    // 文本消息
+    {
+      id: 'msg1',
+      sessionId: 'e001_e002',
+      type: 'text',
+      content: '派大星，我们一起去抓水母吧！',
+      sender: 'e001',
+      receiverId: 'e002',
+      receiverType: 'employee',
+      timestamp: '2024-03-25T10:00:00Z',
+      isRead: false
+    },
+    // 文件消息
+    {
+      id: 'msg2',
+      sessionId: 'e001_e002',
+      type: 'file',
+      content: '请查收文件',
+      sender: 'e002',
+      receiverId: 'e001',
+      receiverType: 'employee',
+      timestamp: '2024-03-25T10:05:00Z',
+      file: {
+        id: 'f1',
+        name: '需求文档.pdf',
+        size: 2.4 * 1024 * 1024,
+        type: 'application/pdf',
+        url: '/需求文档.pdf',
+        uploadTime: '2024-03-25T09:00:00Z',
+        uploader: 'e002',
+        scope: 'chat'
+      },
+      isRead: true
+    },
+    // 系统消息
+    {
+      id: 'sys1',
+      sessionId: 'team_1',
+      type: 'system',
+      content: JSON.stringify([mockTeamMembers[0]]), // 序列化Employee数组
+      sender: 'system',
+      receiverType: 'team',
+      timestamp: '2024-03-25T09:00:00Z',
+      system: true,
+      isRead: false,
+      mentions: [mockTeamMembers[0]] // 使用Employee对象
+    },
+    {
+      id: 'msg3',
+      sessionId: 'e001_e003',
+      type: 'text',
+      content: '认证系统设计方案已上传，请查收',
+      sender: 'e001',
+      receiverId: 'e003',
+      receiverType: 'employee',
+      timestamp: '2023-07-25T15:30:00Z',
+      isRead: false
+    },
+    {
+      id: 'msg4',
+      sessionId: 'team_1',
+      type: 'system',
+      content: '系统维护通知：本周六 00:00-02:00 进行系统升级',
+      sender: 'system',
+      receiverType: 'team',
+      timestamp: '2023-07-25T16:00:00Z',
+      system: true,
+      isRead: false
+    },
+  ] as ChatMessage[],
+
+  // 在线状态通过friendsList的online字段维护
+  friendsList: mockTeamMembers.map(m => ({
+    ...m,
+    online: Math.random() > 0.5 // 初始随机状态
+  })) as Employee[]
+};
+
+// 聊天状态Mock
+const mockChatStatus: ChatStatus = {
+  employeeId: 'e001',
+  unreadCount: 2,
+  lastActive: '2024-03-25T14:30:00Z',
+  friendsList: mockTeamMembers,
+  historyMessage: mockChatData['messages'],
+  systemMessages: [
+    '系统：海绵宝宝 已上线',
+    '系统：新版本v1.2.0已发布'
+  ]
+};
+
+const mockMemos: Memo[] = [
+  {
+    id: '1',
+    title: '项目会议记录',
+    content: '讨论项目进度...',
+    category: '工作',
+    completed: false,
+    createdAt: '2023-07-20',
+    attachments: []
+  },
+  {
+    id: '2',
+    title: '学习计划',
+    content: '完成 Vue 3 学习',
+    category: '学习',
+    completed: true,
+    createdAt: '2023-07-19',
+    attachments: []
+  },
+  {
+    id: '9',
+    title: '代码评审要点',
+    content: `重点检查：
+1. 异常处理逻辑
+2. 性能优化点
+3. 安全漏洞防范`,
+    category: '工作',
+    completed: false,
+    createdAt: '2023-07-25',
+    attachments: []
+  },
+  {
+    id: '10',
+    title: '团队建设活动',
+    content: '计划组织季度团建活动，备选方案：\n- 户外拓展\n- 温泉度假\n- 密室逃脱',
+    category: '生活',
+    completed: false,
+    createdAt: '2023-07-24',
+    attachments: []
+  }
+]
+
+
+// 严格匹配的WebSocket实现
+const createChatWebSocket = () => ({
+  url: '/chat',
+  method: 'get',
+  ws: true,
+  setup: (ws: any) => {
+    // 心跳检测
+    const heartbeatInterval = setInterval(() => {
+      ws.send(JSON.stringify({ type: 'pong' }));
+    }, 15000);
+
+    ws.on('message', (raw: string) => {
+      const data = JSON.parse(raw);
+
+      // 处理认证
+      if (data.type === 'auth') {
+        if (data.token === 'valid_token') {
+          // 推送初始好友列表状态
+          ws.send(JSON.stringify({
+            type: 'presence',
+            data: mockChatData.friendsList.map(f => ({
+              employeeId: f.employeeId,
+              online: f.online,
+            }))
+          }));
+        }
+        return;
+      }
+
+      // 处理状态更新（严格匹配UpdateOnlineStatusParams）
+      if (data.type === 'statusUpdate') {
+        const employee = mockChatData.friendsList.find(
+          f => f.employeeId === data.employeeId
+        );
+        if (employee) {
+          employee.online = data.status;
+        }
+      }
+
+      // 处理消息（严格匹配SendMessageParams）
+      if (data.type === 'message') {
+        const newMessage: ChatMessage = {
+          ...data,
+          id: crypto.randomUUID(),
+          timestamp: new Date().toISOString(),
+          isRead: false
+        };
+
+        // 存储消息
+        mockChatData.messages.push(newMessage);
+
+        // 广播消息
+        ws.send(JSON.stringify({
+          type: 'message',
+          data: newMessage
+        }));
+      }
+    });
+
+    ws.on('close', () => {
+      clearInterval(heartbeatInterval);
+    });
+  }
+});
 
 // JWT密钥
 const JWT_SECRET = 'mock_secret';
@@ -476,13 +861,7 @@ export default [
       if (!user) {
         return { message: '未找到该用户' }
       }
-      return {
-        userId: user.userId,
-        username: user.username,
-        name: user.name,
-        avatar: user.avatar,
-        authorities: user.authorities
-      }
+      return user
     }
   },
 
@@ -499,6 +878,26 @@ export default [
     }
   },
 
+  // 项目列表
+  {
+    url: '/projects',
+    method: 'get',
+    response: () => {
+      return mockProjects;
+    }
+  },
+
+  // 获取项目下的任务
+  {
+    url: '/project/:projectId/tasks',
+    method: 'get',
+    response: (request: { query: { projectId: string } }) => {
+      const projectId = request.query.projectId;
+      const tasks = mockProjects.find(t => t.id === projectId);
+      return tasks || null;
+    }
+  },
+
   // 任务列表接口（返回精简数据）
   {
     url: '/tasks',
@@ -509,6 +908,7 @@ export default [
       status: task.status,
       employeeId: task.employeeId,
       priority: task.priority,
+      scheduledTime: task.scheduledTime,
       deadline: task.deadline,
       creator: task.creator
     }))
@@ -516,10 +916,12 @@ export default [
 
   // 任务详情接口（返回完整数据）
   {
-    url: '/tasks/:id', // 动态路由匹配任务 ID
+    url: '/tasks/:taskId', // 动态路由匹配任务 ID
     method: 'get',
-    response: (request: { query: { id: string } }) => {
-      const taskId = request.query.id;
+    response: (request: { query: { taskId: string } }) => {
+      const taskId = request.query.taskId;
+      console.log('请求的 taskId:', taskId);
+
       const task = mockTasks.find(t => t.id === taskId);
       return task || null;
     }
@@ -664,6 +1066,17 @@ export default [
     }
   },
 
+  //根据成员获取所在团队列表
+  {
+    url: '/employees/:employeeId/teams',
+    method: 'get',
+    response: (request: { query: { employeeId: string } }) => {
+      const employeeId = request.query.employeeId;
+      const teams = mockTeams.filter(t => t.employees.some(m => m.employeeId === employeeId));
+      return teams.length > 0 ? teams : [];
+    }
+  },
+
   // 获取团队成员列表
   {
     url: '/teams/:teamId/members',
@@ -677,7 +1090,7 @@ export default [
 
   // 获取任务操作日志
   {
-    url: '/tasks/:id/operations', 
+    url: '/tasks/:id/operations',
     method: 'get',
     response: ({ params }: MockParams) => { // 正确获取路径参数
       const task = mockTasks.find(t => t.id === params.id);
@@ -737,8 +1150,81 @@ export default [
         notice.hit++
       return notice || null;
     }
-  }
+  },
 
+  // 获取历史消息
+  {
+    url: '/chat/history',
+    method: 'get',
+    response: (request: { query: { channelId: string, before?: string, limit?: number } }) => {
+      const { channelId, before, limit } = request.query;
+
+      // 确保 filter 的返回值是数组
+      const filteredMessages = mockChatData.messages
+        .filter(m =>
+          m.sessionId === channelId &&
+          (!before || new Date(m.timestamp) < new Date(before))
+        );
+
+      // 返回分片后的消息列表
+      return filteredMessages.slice(0, limit || 20);
+    }
+  },
+
+  // 获取未读数
+  {
+    url: '/chat/unread',
+    method: 'get',
+    response: ({ query }: { query: { sessionId: string } }) => {
+      return mockChatData.messages.filter(m =>
+        m.sessionId === query.sessionId &&
+        !m.isRead &&
+        m.receiverType === 'employee' // 仅统计私聊未读
+      ).length;
+    }
+  },
+
+  // 在线状态查询
+  {
+    url: '/chat/presence',
+    method: 'get',
+    response: ({ query }: { query: { employeeId: string } }) => {
+      const friend = mockChatData.friendsList.find(
+        f => f.employeeId === query.employeeId
+      );
+      return friend?.online || false;
+    }
+  },
+
+  // 更新在线状态
+  {
+    url: '/chat/status',
+    method: 'put',
+    response: ({ data }: { data: UpdateOnlineStatusParams }) => {
+      const friend = mockChatData.friendsList.find(
+        f => f.employeeId === data.employeeId
+      );
+      if (friend) {
+        friend.online = data.status;
+      }
+      return { success: !!friend };
+    }
+  },
+
+
+
+  // 获取备忘录
+  {
+    url: '/memos',
+    method: 'get',
+    response: () => {
+      return mockMemos;
+    }
+  },
+
+
+  // WebSocket连接
+  createChatWebSocket()
 
 ] as MockMethod[];
 

@@ -21,6 +21,23 @@ export const fetchTaskById = async (taskId: string): Promise<Task | null> => {
     url: `/tasks/${taskId}`,
     method: 'get',
   });
+  console.log('接口返回的数据:', response.data);  // 打印接口返回的响应数据
+
+  return response.data;
+};
+
+ // 获取项目列表
+export const fetchProjects = async () => {
+  const response = await service.get('/projects')
+  return response.data
+}
+
+// 获取项目下的任务
+export const fetchTasksByProject = async (projectId: string): Promise<Task[]> => {
+  const response = await service({
+    url: `/project/${projectId}/tasks`,
+    method: 'get',
+  });
   return response.data;
 };
 
@@ -109,13 +126,15 @@ export const fetchUserRole = async (): Promise<{ authorities: string }> => {
 };
 
 // 获取操作日志
-export const fetchOperationLogs = async (): Promise<OperationLog[]> => {
+export const fetchOperationLogs = async (taskId: string): Promise<OperationLog[]> => {
   const response = await service({
-    url: '/operations',
+    url: `/tasks/${taskId}/operations`,  // 传入 taskId 作为路径参数
     method: 'get',
   });
-  return response.data;
+
+  return response.data.items || [];  // 确保返回的格式符合预期
 };
+
 
 // 开始任务调度
 export const startTaskScheduling = async (): Promise<void> => {
@@ -141,30 +160,6 @@ export const updateTaskScheduling = async (taskId: string, scheduledTime: string
 export const fetchTaskSchedulingList = async (): Promise<any[]> => {
   const response = await service({
     url: '/task-scheduling-list',
-    method: 'get',
-  });
-  return response.data;
-};
-
-// 获取任务概览数据
-export const fetchTaskOverview = async (): Promise<{
-  totalTasks: number;
-  completedTasks: number;
-  overdueTasks: number;
-}> => {
-  const response = await service({
-    url: '/task-overview',
-    method: 'get',
-  });
-  return response.data;
-};
-
-// 获取员工任务完成情况数据
-export const fetchEmployeeTaskCompletion = async (): Promise<
-  Array<{ name: string; completed: number; pending: number; overdue: number; month: string }>
-> => {
-  const response = await service({
-    url: '/employee-task-completion',
     method: 'get',
   });
   return response.data;

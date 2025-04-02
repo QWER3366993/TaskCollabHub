@@ -4,6 +4,7 @@ import type { ChatMessage, ChatStatus } from '@/types/chat';
 import type { Employee } from '@/types/team';
 import dayjs from 'dayjs';
 import { fetchHistory, fetchUnreadCount, updateOnlineStatus, getPresence, sendMessage } from '@/api/chat';
+import { fetchEmployees } from '@/api/team';
 import { useTeamStore } from '@/stores/team';
 import { createToast } from 'mosha-vue-toastify';
 import type { GetChatHistoryParams ,UpdateOnlineStatusParams } from '@/api/chat';
@@ -96,27 +97,24 @@ export const useChatStore = defineStore("chat", () => {
         }
     };
    
-    // 好友的用户列表（过滤掉当前用户）
-    const filteredFriendsList = computed(() => {
-        return friendsList.value.filter(friend => friend.employeeId !== teamStore.currentEmployee?.employeeId);
-    });
-
-
-    // 更新好友列表 & 系统消息
-    const updateSystemMessages = (employees: Employee[]) => {
-        friendsList.value = employees;
+    // 获取好友列表 & 系统消息
+    const getFriendsList = async (): Promise<Employee[]> => {
+        const response = await fetchEmployees();
+        console.log("获取到的好友列表:", response);
+        friendsList.value = response.filter(emp => emp.employeeId !== teamStore.currentEmployee?.employeeId);
         // 将过滤后的好友列表赋值给系统消息
-        systemMessages.value = filteredFriendsList.value.map(friend => friend.name);
+        systemMessages.value = friendsList.value.map(friend => friend.name);
+        return friendsList.value ;
     };
 
     // 添加消息
-    const addMessage = (message: ChatMessage) => {
+    const addMessage = async (message: ChatMessage) => {
         historyMessage.value.push(message);
         sessionStorage.setItem(message.sender, JSON.stringify(historyMessage.value));
     };
 
     // 切换聊天窗口
-    const showChat = (Id: string) => {
+    const showChat = async (Id: string) => {
         if (receiverId.value === Id) return;
         receiverId.value = Id;
         const history = sessionStorage.getItem(Id);
@@ -169,7 +167,6 @@ export const useChatStore = defineStore("chat", () => {
         unreadCount,
         totalUnread,
         socket,
-        filteredFriendsList,
         getHistory,
         connectWebSocket,
         sendMessage,
@@ -180,7 +177,7 @@ export const useChatStore = defineStore("chat", () => {
         updateOnlineStatus,
         clearUnread,
         loadUnreadCount,
-        updateSystemMessages,
+        getFriendsList,
         addMessage,
         showChat,
     };

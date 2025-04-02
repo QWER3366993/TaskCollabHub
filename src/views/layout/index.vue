@@ -153,12 +153,12 @@ onMounted(() => {
   }
 
   .layout_main {
-    width: calc(100% - 660px);
+    width: calc(100% - 590px);
     height: calc(100vh - 60px);
     position: absolute;
     top: 60px;
     /* 确保内容不紧贴顶部(修改height后同样需要修改这里，防止页面覆盖) */
-    left: 660px;
+    left: 625px;
     padding: 20px;
     overflow: auto;
     transition: all 0.5s;

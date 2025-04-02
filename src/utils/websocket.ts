@@ -56,7 +56,7 @@ export const initWebSocket = (userId: string, token: string) => {
         }).filter(Boolean) as Employee[] // 过滤掉无效数据并断言为 Employee[]
         : [];
 
-      chatStore.updateSystemMessages(contentArray); // 调用方法时确保类型匹配
+      chatStore.getFriendsList(contentArray); // 调用方法时确保类型匹配
     } else {
       const message: ChatMessage = {
         ...data,

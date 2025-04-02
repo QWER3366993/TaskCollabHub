@@ -6,8 +6,6 @@ export interface User {
 
   password?: string
 
-  name?: string
-
   phone?: string
 
   email?: string

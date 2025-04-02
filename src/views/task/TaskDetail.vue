@@ -88,9 +88,9 @@ const priorityColor = (priority?: string) => {
 const addComment = async () => {
   if (commentInput.value.trim()) {
     const newComment = {
-      user: {
+      employee: {
         employeeId: teamStore.currentEmployee?.employeeId!,
-        name: userStore.user.name!,
+        name: teamStore.currentEmployee!.name,
         avatar: userStore.user.avatar!,
         userId: teamStore.currentEmployee?.userId// 添加用户ID
       },
@@ -138,7 +138,7 @@ const handleUpload = async (event: Event) => {
     formData.append('files', file); // 添加文件本身
     formData.append(`file_${index}_name`, file.name); // 添加文件名
     formData.append(`file_${index}_type`, file.type.split('/')[0] || 'other'); // 添加文件类型
-    formData.append(`file_${index}_uploader`, userStore.user.name || '匿名用户'); // 添加上传者
+    formData.append(`file_${index}_uploader`, teamStore.currentEmployee!.name || '匿名用户'); // 添加上传者
     formData.append(`file_${index}_uploadTime`, dayjs().format('YYYY-MM-DD HH:mm:ss')); // 添加上传时间
   });
   // 调用 taskStore.uploadFile 并传递 FormData
@@ -274,9 +274,9 @@ const responsibleAvatar = computed(() => {
   );
   return employee?.avatar ? employee.avatar : '/unknown.png'; // 确保默认头像存在
 });
-
-
 onMounted(async () => {
+  await userStore.getUserInfo();
+  await teamStore.getEmployees();
   await loadTaskDetail(taskId.value);  // 加载任务数据
 });
 </script>
@@ -514,10 +514,10 @@ onMounted(async () => {
             <!-- 评论列表 -->
             <div v-for="(comment, index) in task.comments" :key="index" class="mb-4">
               <div class="d-flex align-start">
-                <v-avatar :image="comment.user.avatar" size="36" class="mr-2"></v-avatar>
+                <v-avatar :image="comment.employee.avatar" size="36" class="mr-2"></v-avatar>
                 <div class="flex-grow-1">
                   <div class="d-flex align-center">
-                    <span class="font-weight-medium">{{ comment.user.name }}</span>
+                    <span class="font-weight-medium">{{ comment.employee.name }}</span>
                     <span class="text-caption text-grey ml-2">
                       {{ dayjs(comment.createdAt).fromNow() }}
                     </span>

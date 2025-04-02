@@ -1,9 +1,11 @@
 // stores/team.ts
 import { defineStore } from 'pinia';
-import { ref, reactive, computed } from 'vue';
+import { ref, onMounted, reactive, computed } from 'vue';
 import { createToast } from 'mosha-vue-toastify';
 import type { Team, Employee } from '@/types/team';
+import { useTaskStore } from './task';
 import type { User } from '@/types/user';
+import type { ContributionData } from '@/types/report';
 import type { OperationLog } from '@/types/task';
 import {
   fetchTeams,
@@ -17,6 +19,7 @@ import {
   fetchEmployees,
   fetchTeamMembers,
   fetchTeamByemployeeId,
+  updateEmployeeInfo
   // fetchEmployeeOperationLogs
 } from '@/api/team';
 
@@ -30,6 +33,11 @@ export const useTeamStore = defineStore('team', () => {
   const availableTeams = ref<Team[]>([]); //可用团队
   const employeeOperationLogs = ref<OperationLog[]>([]);
   const errorMessage = ref<string>('');
+  const taskStore = useTaskStore()
+
+  onMounted(async () => {
+    await taskStore.getAllTasks(); // 确保任务数据加载完成
+  });
 
   // 获取团队列表
   const getTeamList = async (): Promise<Team[]> => {
@@ -64,7 +72,7 @@ export const useTeamStore = defineStore('team', () => {
 
   /** 根据员工 ID 获取团队列表 */
   const getTeamByemployId = async (employeeId: string): Promise<Team[]> => {
-    try {
+    try {      
       const data = await fetchTeamByemployeeId(employeeId);
       if (data) {
         availableTeams.value = data;
@@ -98,6 +106,35 @@ export const useTeamStore = defineStore('team', () => {
     } catch (error) {
       console.error(error);
       errorMessage.value = '获取员工详情失败';
+      createToast(errorMessage.value, { position: 'top-center', showIcon: true, type: 'danger' });
+      return null;
+    }
+  };
+
+  // 更新员工信息（支持部分或完整更新）
+  const updateEmployee = async (employeeId: string, employeeData: Partial<Employee>): Promise<Employee | null> => {
+    try {
+      const updatedEmployee = await updateEmployeeInfo(employeeId, employeeData); // 调用 API
+      if (updatedEmployee) {
+        // 更新当前员工信息
+        if (currentEmployee.value && currentEmployee.value.employeeId === employeeId) {
+          currentEmployee.value = { ...currentEmployee.value, ...updatedEmployee };
+        }
+        // 更新员工列表中的信息
+        const index = employees.value.findIndex(emp => emp.employeeId === employeeId);
+        if (index !== -1) {
+          employees.value[index] = { ...employees.value[index], ...updatedEmployee };
+        }
+        createToast('员工信息更新成功', { position: 'top-center', showIcon: true });
+        return updatedEmployee;
+      } else {
+        errorMessage.value = '员工信息更新失败，未获取到更新数据';
+        createToast(errorMessage.value, { position: 'top-center', showIcon: true, type: 'danger' });
+        return null;
+      }
+    } catch (error) {
+      console.error(error);
+      errorMessage.value = '更新员工信息失败';
       createToast(errorMessage.value, { position: 'top-center', showIcon: true, type: 'danger' });
       return null;
     }
@@ -223,13 +260,7 @@ export const useTeamStore = defineStore('team', () => {
     }
   };
 
-  // 更新在线状态
-  const updateOnlineStatus = (employeeId: string, online: boolean) => {
-    const employee = employees.value.find(emp => emp.employeeId === employeeId)
-    if (employee) {
-      employee.online = online // 直接修改 allEmployees 中的 online 状态
-    }
-  }
+
 
   // 获取员工姓名的方法(从 employees 数组中查找第一个 employeeId 匹配的员工对象)
   const getName = (employeeId: string) => {
@@ -255,13 +286,34 @@ export const useTeamStore = defineStore('team', () => {
   //   }
   // }
 
+  // 成员贡献数据
+  const contributionData = computed<ContributionData>(() => {
+    const memberMap = new Map<string, number>()
+    taskStore.tasks.forEach(task => {
+      if (task.employeeId) {
+        memberMap.set(task.employeeId, (memberMap.get(task.employeeId) || 0) + 1)
+      }
+    })
+    return {
+      names: Array.from(memberMap.keys()).map(id => 
+        teamMembers.value.find(m => m.employeeId === id)?.name || '未知成员'
+      ),
+      values: Array.from(memberMap.values())
+    };
+    
+  });
+
+
+
   return {
-    teams,
+    teams, // 团队列表
     teamDetail,
     teamMembers,
     currentEmployee,
     employees,
+    availableTeams, // 员工所在的团队列表
     employeeOperationLogs,
+    contributionData,
     getTeamList,
     getTeamByemployId,
     createNewTeam,
@@ -269,12 +321,12 @@ export const useTeamStore = defineStore('team', () => {
     deleteTeamById,
     getTeamById,
     getEmployeeById,
+    updateEmployee,
     addMember,
     removeMember,
     getTeamMembers,
     getEmployees,
     getName,
-    updateOnlineStatus,
     // getEmployeeOperationLogs
   };
 });

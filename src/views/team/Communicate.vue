@@ -13,12 +13,11 @@ import type { Employee } from '@/types/team'
 // 状态管理
 const chartStore = useChatStore()
 // 获取状态管理中的数据
-const historyMessage = chartStore.historyMessage
-const friendsList = chartStore.friendsList
-const messages = computed(() => historyMessage)
+const { historyMessage, friendsList } = storeToRefs(chartStore)
+const messages = computed(() => historyMessage.value)
 
 const onlineUsers = computed(() => {
-  return (friendsList as Employee[]).filter(employee => employee && typeof employee === 'object' && 'online' in employee && employee.online)
+  return (friendsList.value as Employee[]).filter(employee => employee && typeof employee === 'object' && 'online' in employee && employee.online)
 })
 const handleSend = async (message: ChatMessage) => {
   try {

@@ -29,16 +29,30 @@ const headers = ref([
 //排序规则
 // const sortOrder = ref([{ key: 'deadline', order: 'asc' as 'asc' | 'desc' }]);
 
+const projectTasks = computed(() => {
+  return taskStore.tasks.filter(task => task.projectId);
+});
+
+const independentTasks = computed(() => {
+  return taskStore.tasks.filter(task => !task.projectId);
+});
+
+const loadProjects = async () => {
+  try {
+    await taskStore.getAllProjects();
+  } catch (error) {
+    console.error('加载项目失败:', error);
+  }
+};
+
 // 加载任务列表
 const loadTasks = async () => {
   try {
     const result = await taskStore.getAllTasks(); // 确保先加载数据
     if (Array.isArray(taskStore.tasks)) {
       tasks.value = result;
-      console.log('任务数据已加载:', tasks.value); // 验证数据
     }
   } catch (error) {
-    console.error('加载任务失败:', error);
     throw error;
   }
 };
@@ -86,6 +100,13 @@ const deleteTask = async (taskId: string) => {
 const statusOptions = ['全部', '待处理', '进行中', '已完成'];
 const selectedStatus = ref('全部');
 
+const projects = computed(() => {
+  return taskStore.projects.map(project => ({
+    id: project.id,
+    title: project.title
+  }));
+});
+
 // 搜索功能
 const searchQuery = ref('');
 
@@ -102,25 +123,26 @@ const calculateTimeRemaining = (deadline?: string) => {
   return '已过期';
 };
 
+const selectedProjectId = ref<string | null>(null);
+
+const filterTasksByProject = async () => {
+  if (selectedProjectId.value) {
+    await taskStore.getTasksByProject(selectedProjectId.value);
+  } else {
+    await taskStore.getAllTasks(); // 选择“全部”时，重新加载所有任务
+  }
+};
+
 // 过滤后的任务列表
 const filteredTasks = computed(() => {
-  // 先过滤再转换
-  const result = taskStore.tasks
-    .filter(task => {
-      const matchesStatus = selectedStatus.value === '全部' ||
-        task.status === selectedStatus.value;
-      const matchesSearch = task.title.includes(searchQuery.value) ||
-        task.description.includes(searchQuery.value);
-      return matchesStatus && matchesSearch;
-    })
-    .map(task => ({
-      ...task,
-      deadlineDisplay: task.deadline ? dayjs(task.deadline).format('MM/DD HH:mm') : '未设置',
-      timeRemaining: calculateTimeRemaining(task.deadline),
-      isExpired: task.deadline ? dayjs(task.deadline).isBefore(dayjs()) : false
-    }));
-  return result;
+  return taskStore.tasks.filter(task => {
+    const matchesProject = !selectedProjectId.value || task.projectId === selectedProjectId.value;
+    const matchesStatus = selectedStatus.value === '全部' || task.status === selectedStatus.value;
+    const matchesSearch = task.title.includes(searchQuery.value) || task.description.includes(searchQuery.value);
+    return matchesProject && matchesStatus && matchesSearch;
+  });
 });
+
 
 // 状态颜色映射
 const statusColor = (status: string) => {
@@ -153,6 +175,7 @@ const statusIcon = (status: string) => {
 onMounted(async () => {
   await userStore.getUserInfo();
   await loadEmployees(); //先加载员工数据再加载任务（防止getName在员工数据未就绪时被调用）
+  await loadProjects();
   await loadTasks();
 });
 </script>
@@ -163,11 +186,18 @@ onMounted(async () => {
     <v-row class="mb-3">
       <!-- 左侧搜索和筛选 -->
       <v-col cols="12" md="8" class="d-flex align-center gap-4" style="gap: 16px;">
+        <!-- 搜索框 -->
         <v-text-field v-model="searchQuery" label="搜索任务" prepend-inner-icon="search" density="comfortable"
           variant="outlined" class="search-box" hide-details single-line></v-text-field>
 
+        <!-- 任务状态筛选框 -->
         <v-select v-model="selectedStatus" :items="statusOptions" label="筛选状态" prepend-inner-icon="filter_alt"
           density="comfortable" hide-details variant="outlined" class="filter-box"></v-select>
+
+        <!-- 项目筛选框 -->
+        <v-select v-model="selectedProjectId" :items="projects" item-title="title" item-value="id" label="筛选项目"
+          prepend-inner-icon="filter_alt" density="comfortable" hide-details variant="outlined" class="filter-box">
+        </v-select>
       </v-col>
 
       <!-- 右侧新建按钮 -->

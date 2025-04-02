@@ -11,6 +11,7 @@ export interface Project {
     deadline?: string; // 截止时间
     files?: FileItem[];
     progress: number // 进度百分比
+    isLate?: boolean // 是否逾期
 }
 
 export interface ProjectCreateDTO {

@@ -226,7 +226,7 @@ export const router = createRouter({
           name: 'todolist',
           component: () => import('@/views/person/TodoList.vue'),
           meta: {
-            title: '待办事项',
+            title: '备忘录',
             hidden: false,
             icon: 'list'
           }
@@ -244,15 +244,30 @@ export const router = createRouter({
       ]
     },
     {
+      // 此父路由只为权限管理能使用特殊布局（保留侧边栏）
       path: '/reports',
       name: 'reports',
-      component: () => import('@/views/report/StatisticalReport.vue'),  // 统计报告
+      component: () => import('@/views/layout/Index.vue'),  // 个人资料
       meta: {
         title: '统计报告',
-        hidden: false,
+        hidden: true,
         icon: 'summarize'
-      }
+      },
+      redirect: '/person/personaldata',
+      children: [
+        {
+          path: '/reports1',
+          name: 'reports1',
+          component: () => import('@/views/report/StatisticalReport.vue'),  // 统计报告
+          meta: {
+            title: '统计报告',
+            hidden: false,
+            icon: 'summarize',
+            fullWidth: true
+          }
+        }]
     },
+    
 
     {
       // 此父路由只为权限管理能使用特殊布局（保留侧边栏）

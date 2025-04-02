@@ -26,9 +26,9 @@ export const fetchTeamById = async (teamId: string): Promise<Team> => {
 };
 
 //根据成员获取所在团队列表
-export const fetchTeamByemployeeId = async (employeeId: string): Promise<Team[] | null> => {
+export const fetchTeamByemployeeId = async (employeeId: string): Promise<Team[] | []> => {
   const response = await service({
-    url: `/projects/${employeeId}`,
+    url: `/employees/${employeeId}/teams`,  
     method: 'get',
   });
   return response.data;
@@ -61,6 +61,16 @@ export const updateTeam = async (teamId: string, teamData: { name: string; descr
       ...teamData,
       members: teamData.employees
     },
+  });
+  return response.data;
+};
+
+// 更新员工信息
+export const updateEmployeeInfo = async (employeeId: string, employeeData: Partial<Employee>): Promise<Employee> => {
+  const response = await service({
+    url: `/employees/${employeeId}`,
+    method: 'patch', // 改为 PATCH，支持部分更新
+    data: employeeData,
   });
   return response.data;
 };

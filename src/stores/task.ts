@@ -4,6 +4,8 @@ import {
   fetchTaskById,
   // fetchTasksByStatus,
   fetchTasksByTeam,
+  fetchProjects,
+  fetchTasksByProject,
   fetchTasks,
   createTask,
   updateOldTask,
@@ -14,8 +16,6 @@ import {
   fetchUserRole,
   fetchOperationLogs,
   updateTaskScheduling,
-  fetchTaskOverview,
-  fetchEmployeeTaskCompletion,
   fetchPublicFiles,
   uploadPublicFile,
   fetchTaskFiles,
@@ -24,14 +24,19 @@ import {
   deleteFile
 } from '@/api/task';
 import { createToast } from 'mosha-vue-toastify';
+import type { Project } from '@/types/project';
 import type { Task, OperationLog, FileItem, TaskCreateDTO } from '@/types/task';
 import type { Comment } from '@/types/comment';
 import type { Employee } from '@/types/team';
 import { safeDate } from '@/utils/convert';
 import { useUserStore } from '@/stores/user';
+import type { StatusTrendData } from '@/types/report';
+import dayjs from 'dayjs';
 
 const userStore = useUserStore();
 export const useTaskStore = defineStore('task', () => {
+  /** 项目列表 */
+  const projects = ref<Project[]>([])
   /** 任务列表 */
   const tasks = ref<Task[]>([]);
   /** 单个任务详情 */
@@ -105,6 +110,9 @@ export const useTaskStore = defineStore('task', () => {
     return tasks.value.filter(t => t.projectId === projectId)
   })
 
+  type TimeRange = 'day' | 'week' | 'month' | 'year';
+  const timeRange = ref<TimeRange>('day'); // 初始化为 'day'
+
   // ==================== 任务 ====================
   /** 获取所有任务 */
   const getAllTasks = async (): Promise<Task[]> => {
@@ -119,11 +127,43 @@ export const useTaskStore = defineStore('task', () => {
     }
   };
 
+  /** 获取所有项目 */
+  const getAllProjects = async (): Promise<Project[]> => {
+    try {
+      const data = await fetchProjects();
+      projects.value = data;
+      return data;
+    } catch (error) {
+      errorMessage.value = '获取项目列表失败';
+      createToast(errorMessage.value, { position: 'top-center', showIcon: true, type: 'danger' });
+      return [];
+    }
+  }
+
+  // 获取项目下的任务
+  const getProjectTasks = async (projectId: string): Promise<Task[]> => {
+    try {
+      const data = await fetchTasksByProject(projectId);
+      tasks.value = data;
+      return data;
+    } catch (error) {
+      errorMessage.value = '获取项目任务列表失败';
+      createToast(errorMessage.value, { position: 'top-center', showIcon: true, type: 'danger' });
+      throw error;
+    }
+  }
+
   /** 根据任务 ID 获取任务详情 */
   const getTaskById = async (taskId: string): Promise<Task | null> => {
+    console.log('请求任务详情，任务ID:', taskId);  // 打印任务ID
+
     try {
       const data = await fetchTaskById(taskId);
+      console.log('接口返回数据:', data);  // 记录接口返回的数据
+
       if (!data) {
+        console.warn(`任务 ID: ${taskId} 的任务数据不存在`);  // 记录任务数据不存在的情况
+
         throw new Error('任务不存在');
       }
       taskDetail.value = data; // 确保 data 不为 null
@@ -137,17 +177,17 @@ export const useTaskStore = defineStore('task', () => {
   };
 
   // 新的 API 方法，基于团队ID获取任务列表
-const getTasksByTeam = async (teamId: string): Promise<Task[]> => {
-  try {
-    const data = await fetchTasksByTeam(teamId); // 这里使用根据团队ID获取任务的接口
-    tasks.value = data;
-    return data;
-  } catch (error) {
-    errorMessage.value = '获取团队任务列表失败';
-    createToast(errorMessage.value, { position: 'top-center', showIcon: true, type: 'danger' });
-    return [];
-  }
-};
+  const getTasksByTeam = async (teamId: string): Promise<Task[]> => {
+    try {
+      const data = await fetchTasksByTeam(teamId); // 这里使用根据团队ID获取任务的接口
+      tasks.value = data;
+      return data;
+    } catch (error) {
+      errorMessage.value = '获取团队任务列表失败';
+      createToast(errorMessage.value, { position: 'top-center', showIcon: true, type: 'danger' });
+      return [];
+    }
+  };
 
 
   /** 根据参与人员获取任务列表 */
@@ -359,9 +399,9 @@ const getTasksByTeam = async (teamId: string): Promise<Task[]> => {
   };
 
   /** 获取操作日志 */
-  const getOperationLogs = async (): Promise<OperationLog[]> => {
+  const getOperationLogs = async (taskId: string): Promise<OperationLog[]> => {
     try {
-      const data = await fetchOperationLogs()
+      const data = await fetchOperationLogs(taskId)
       console.log("操作日志数据：", data);
 
       // 添加类型校验
@@ -383,7 +423,7 @@ const getTasksByTeam = async (teamId: string): Promise<Task[]> => {
     try {
       await startTaskScheduling();
       await getAllTasks();
-      await fetchOperationLogs();
+      await fetchOperationLogs(currentTaskId.value);
       createToast('任务调度成功', { position: 'top-center', showIcon: true, type: 'success' });
     } catch (error) {
       errorMessage.value = '任务调度失败';
@@ -396,42 +436,106 @@ const getTasksByTeam = async (teamId: string): Promise<Task[]> => {
     try {
       await updateTaskScheduling(taskId, scheduledTime);
       await getAllTasks();
-      await getOperationLogs();
+      await getOperationLogs(taskId);
       createToast('任务调度调整成功', { position: 'top-center', showIcon: true, type: 'success' });
     } catch (error) {
       errorMessage.value = '保存任务调度失败';
       createToast(errorMessage.value, { position: 'top-center', showIcon: true, type: 'danger' });
     }
   };
-
-  /** 获取任务概览数据 */
-  const getTaskOverview = async () => {
-    try {
-      const data = await fetchTaskOverview();
-      taskOverview.value = data;
-    } catch (error) {
-      errorMessage.value = '获取任务概览失败';
-      createToast(errorMessage.value, { position: 'top-center', showIcon: true, type: 'danger' });
+  // ==================== 统计报告 ====================
+  // 基础统计
+  const statusData = computed(() => [
+    {
+      value: tasks.value.length,
+      title: '总任务数',
+      color: '#2196F3',
+      lightColor: '#E3F2FD',
+      icon: 'mdi-format-list-checks'
+    },
+    {
+      value: tasks.value.filter(t => t.status === '已完成').length,
+      title: '已完成',
+      color: '#4CAF50',
+      lightColor: '#E8F5E9',
+      icon: 'mdi-check-circle'
+    },
+    {
+      value: tasks.value.filter(t => t.status === '进行中').length,
+      title: '进行中',
+      color: '#FF9800',
+      lightColor: '#FFF3E0',
+      icon: 'mdi-progress-clock'
+    },
+    {
+      value: tasks.value.filter(t => t.status === '待处理').length,
+      title: '待处理',
+      color: '#F44336',
+      lightColor: '#FFEBEE',
+      icon: 'mdi-alert-circle'
     }
-  };
+  ])
 
-  /** 获取员工任务完成情况数据 */
-  const getEmployeeTaskCompletion = async () => {
-    try {
-      const data = await fetchEmployeeTaskCompletion();
-      if (data && data.length > 0) {
-        employeeTaskCompletion.value = data;
-      } else {
-        employeeTaskCompletion.value = [];
+  // 优先级分布
+  const priorityDistribution = computed(() => {
+    const counts = { 高: 0, 中: 0, 低: 0 }
+    tasks.value.forEach(t => counts[t.priority]++)
+    return [
+      { value: counts.高, name: '高优先级' },
+      { value: counts.中, name: '中优先级' },
+      { value: counts.低, name: '低优先级' }
+    ]
+  })
+
+  // 状态趋势数据
+  const statusTrendData = computed<StatusTrendData>(() => {
+    const formatMap: Record<TimeRange, string> = {
+      day: 'YYYY-MM-DD',
+      week: 'YYYY-ww',
+      month: 'YYYY-MM',
+      year: 'YYYY'
+    }
+
+    const grouped = tasks.value.reduce((acc, task) => {
+      if (!task.scheduledTime) return acc; // 防止任务缺少 scheduledTime 属性
+
+      // 检查 timeRange.value 是否在合法范围内
+      if (!Object.keys(formatMap).includes(timeRange.value)) {
+        console.warn('Invalid timeRange value:', timeRange.value);
+        return acc;
       }
-    } catch (error) {
-      errorMessage.value = '获取员工任务完成情况失败';
-      createToast(errorMessage.value, { position: 'top-center', showIcon: true, type: 'danger' });
-      employeeTaskCompletion.value = [];
-    }
-  };
 
-  // 日志 
+      const key = dayjs(task.scheduledTime).format(formatMap[timeRange.value]);
+      acc[key] = (acc[key] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
+
+    return {
+      dates: Object.keys(grouped).sort(),
+      values: Object.values(grouped)
+    };
+  });
+
+  // 项目进度计算
+  const projectsWithStatus = computed(() =>
+    projects.value.map(p => ({
+      ...p,
+      progress: calculateProjectProgress(p.id),
+      isLate: dayjs().isAfter(dayjs(p.deadline)) && p.progress < 100
+    }))
+  )
+
+  // 私有方法
+  const calculateProjectProgress = (projectId: string) => {
+    const projectTasks = tasks.value.filter(t => t.projectId === projectId)
+    if (projectTasks.length === 0) return 0
+    return Math.round(
+      (projectTasks.filter(t => t.status === '已完成').length /
+        projectTasks.length) * 100
+    )
+  }
+
+  // ==================== 日志 ====================
   /** 生成唯一ID */
   const generateLogId = () => {
     return Date.now().toString(36) + Math.random().toString(36).substring(2);
@@ -449,7 +553,7 @@ const getTasksByTeam = async (teamId: string): Promise<Task[]> => {
     return changes;
   };
 
-  /** 添加操作日志 */
+  // 添加操作日志
   const addOperationLog = (log: Omit<OperationLog, 'id'>) => {
     const fullLog: OperationLog = {
       ...log,
@@ -463,6 +567,7 @@ const getTasksByTeam = async (teamId: string): Promise<Task[]> => {
   };
 
   // ==================== 文件 ====================
+  // 获取文件列表
   const getFiles = async () => {
     loading.value = true;
     try {
@@ -482,6 +587,7 @@ const getTasksByTeam = async (teamId: string): Promise<Task[]> => {
     }
   };
 
+  // 上传文件
   const uploadFile = async (formData: FormData) => {
     loading.value = true;
     try {
@@ -509,6 +615,7 @@ const getTasksByTeam = async (teamId: string): Promise<Task[]> => {
     }
   };
 
+  // 下载文件
   const downloadFiles = async (file: FileItem) => {
     try {
       downloadingIds.value.push(file.id)
@@ -536,6 +643,7 @@ const getTasksByTeam = async (teamId: string): Promise<Task[]> => {
     }
   }
 
+  // 删除文件
   const removeFile = async (fileId: string) => {
     await deleteFile(fileId);
     files.value = files.value.filter((f) => f.id !== fileId);
@@ -560,7 +668,14 @@ const getTasksByTeam = async (teamId: string): Promise<Task[]> => {
     currentScope,
     downloadingIds,
     recentVisits,
+    projects,
+    statusData,
+    priorityDistribution,
+    statusTrendData,
+    projectsWithStatus,
     getAllTasks,
+    getAllProjects,
+    getProjectTasks,
     getTaskById,
     getTasksByUser,
     getTasksByTeam,
@@ -575,13 +690,12 @@ const getTasksByTeam = async (teamId: string): Promise<Task[]> => {
     getOperationLogs,
     updateTaskSchedule,
     startTaskScheduling,
-    getTaskOverview,
-    getEmployeeTaskCompletion,
     addOperationLog,
     detectChanges,
     getFiles,
     uploadFile,
     downloadFiles,
-    removeFile
+    removeFile,
+
   };
 });

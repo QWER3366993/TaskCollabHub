@@ -1,5 +1,5 @@
 export interface Comment {
-  user: {
+  employee: {
     employeeId: string;
     avatar: string;
     name: string;

@@ -6,7 +6,7 @@ import type { ChatMessage } from '@/types/chat'
 import dayjs from 'dayjs'
 import type { FileItem } from '@/types/task'
 const chartStore = useChatStore()
-const historyMessage = chartStore.historyMessage
+const { historyMessage } = storeToRefs(chartStore)
 const messages = computed(() => historyMessage)
 const messagesEnd = ref<HTMLElement>()
 const chatStore = useChatStore()

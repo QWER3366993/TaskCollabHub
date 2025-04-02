@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import { login, getInfo, fetchEmployeeByUserId } from '@/api/user'
+import { login, getInfo, fetchEmployeeByUserId, uploadAvatar, updateUserInfo, updatePassword, updateEmail, sendVerificationCode } from '@/api/user'
 import { getToken, setToken, removeToken } from '@/utils/auth'
 import type { User } from '@/types/user'
 import type { Employee } from '@/types/team'
@@ -56,5 +56,98 @@ export const useUserStore = defineStore('user', () => {
     user.value = {}  // 清空用户信息
   }
 
-  return { token, user, errorMessage, employee, loginUser, getUserInfo, logout }
+  // 更新头像
+  const updateAvatar = async (avatar: File): Promise<string | undefined> => {
+    try {
+      const data = await uploadAvatar(avatar);
+      if (data && data.avatarUrl) {
+        user.value.avatar = data.avatarUrl;
+        createToast('头像更新成功', { position: 'top-center', showIcon: true });
+        return data.avatarUrl; // 返回头像 URL
+      }
+    } catch (error) {
+      createToast('头像更新失败', { position: 'top-center', showIcon: true });
+      throw error;
+    }
+    return undefined;
+  };
+
+
+  // 更新用户信息（支持部分或完整更新）
+  const updateUser = async (userData: Partial<User>): Promise<User | null> => {
+    try {
+      if (!user.value) throw new Error('用户未登录');
+
+      const updatedUser = await updateUserInfo(userData); // 调用 API
+      if (updatedUser) {
+        user.value = { ...user.value, ...updatedUser }; // 仅合并更新的字段
+        createToast('用户信息更新成功', { position: 'top-center', showIcon: true });
+        return updatedUser;
+      }
+      return null;
+    } catch (error) {
+      console.error(error);
+      createToast('更新用户信息失败', { position: 'top-center', showIcon: true, type: 'danger' });
+      throw error;
+    }
+  };
+
+  // 更新密码
+  const updateUserPassword = async (payload: { oldPassword: string; newPassword: string }) => {
+    try {
+      await updatePassword(payload);
+    } catch (error) {
+      console.error('密码更新失败:', error);
+      throw error;
+    }
+  };
+
+  // 更新邮箱
+  const updateEmail = async (payload: {
+    newEmail: string
+    code: string
+    password: string
+  }) => {
+    try {
+      const response = await updateEmail(payload);
+      if (response) {
+        user.value.email = payload.newEmail; // 更新本地存储的邮箱
+        createToast('邮箱更新成功', { position: 'top-center', showIcon: true, type: 'success' });
+        return true;
+      }
+    } catch (error) {
+      createToast('更新邮箱失败', { position: 'top-center', showIcon: true, type: 'danger' });
+      throw error;
+    }
+  };
+
+
+  // 发送验证码
+  const sendEmailVerification = async (email: string) => {
+    try {
+      const response = await sendVerificationCode(email);
+      if (response) {
+        createToast('验证码发送成功', { position: 'top-center', showIcon: true, type: 'success' });
+        return true;
+      }
+    } catch (error) {
+      createToast('验证码发送失败', { position: 'top-center', showIcon: true, type: 'danger' });
+    }
+  }
+
+  return {
+    token,
+    user,
+    errorMessage,
+    employee,
+    loginUser,
+    getUserInfo,
+    logout,
+    updateAvatar,
+    updateUser,
+    updateUserPassword,
+    updateEmail,
+    sendEmailVerification
+  }
 })
+
