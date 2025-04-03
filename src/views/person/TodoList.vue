@@ -176,7 +176,7 @@ onMounted(async () => {
         <v-toolbar color="primary">
           <v-toolbar-title>{{ editingMemo.id ? '编辑备忘录' : '新建备忘录' }}</v-toolbar-title>
           <v-btn icon @click="closeEditor">
-            <v-icon>mdi-close</v-icon>
+            <v-icon>close</v-icon>
           </v-btn>
         </v-toolbar>
 
@@ -191,7 +191,7 @@ onMounted(async () => {
               required></v-textarea>
 
             <v-file-input v-model="editingMemo.attachments" label="附件" multiple chips
-              prepend-icon="mdi-paperclip"></v-file-input>
+              prepend-icon="attach_file"></v-file-input>
           </v-card-text>
 
           <v-card-actions>

@@ -36,12 +36,16 @@ import dayjs from 'dayjs';
 
 const userStore = useUserStore();
 export const useTaskStore = defineStore('task', () => {
+  /** 所有任务 */
+  const allTasks = ref<Task[]>([]);
   /** 项目列表 */
   const projects = ref<Project[]>([])
-  /** 任务列表 */
+  /** 项目任务列表 */
+  const projectTasks = ref<Task[]>([]);
+  /** 独立任务列表 */
   const tasks = ref<Task[]>([]);
   /** 项目任务详情 */
-  const projectTaskDetail=ref<Task>()
+  const projectTaskDetail = ref<Task>()
   /** 独立任务详情 */
   const taskDetail = ref<Task>();
   /** 任务评论 */
@@ -134,7 +138,8 @@ export const useTaskStore = defineStore('task', () => {
   const getProjectTasks = async (projectId: string): Promise<Task[]> => {
     try {
       const data = await fetchTasksByProject(projectId);
-      tasks.value = data;
+      projectTasks.value = data;
+      console.log('获取项目任务列表成功', data);
       return data;
     } catch (error) {
       errorMessage.value = '获取项目任务列表失败';
@@ -151,12 +156,12 @@ export const useTaskStore = defineStore('task', () => {
       return data;
     } catch (error) {
       errorMessage.value = '获取任务详情失败';
-      createToast(errorMessage.value, { position: 'top-center',})
+      createToast(errorMessage.value, { position: 'top-center', })
       throw error;
     }
   }
 
-  
+
   /** 获取所有任务 */
   const getAllTasks = async (): Promise<Task[]> => {
     try {
@@ -190,28 +195,29 @@ export const useTaskStore = defineStore('task', () => {
   // 合并任务
   const loadAllTasksWithProjects = async () => {
     try {
-      // 获取独立任务
-      const independentTasks = await getAllTasks();
-      // 获取所有项目
+      // 清空旧数据
+      allTasks.value = [];
+      // 1. 加载所有项目
       await getAllProjects();
-      // 获取所有项目任务（确保每个项目返回的任务是数组）
-      const projectTasksPromises = projects.value.map(async (project) => {
-        if (project.projectId !== null) { // 排除“全部”选项
-          const tasks = await getProjectTasks(project.projectId);
-          return Array.isArray(tasks) ? tasks : []; // 确保返回值为数组
-        }
-        return [];
-      });
-
-      // 合并独立任务和项目任务
-      const allTasks = [
+      // 2. 并行加载所有项目任务
+      const projectTasks = await Promise.all(
+        projects.value.map(async (project) => {
+          const tasks = await fetchTasksByProject(project.projectId);
+          return tasks.map(t => ({
+            ...t,
+            // 强制添加 projectId 字段
+            projectId: project.projectId
+          }));
+        })
+      );
+      // 3. 加载独立任务
+      const independentTasks = await fetchTasks();
+      // 4. 合并数据并去重
+      allTasks.value = [
         ...independentTasks,
-        ...(await Promise.all(projectTasksPromises)).flat()
-      ];
-      // 去重并更新任务列表
-      tasks.value = allTasks.reduce(
-        (unique, task) => unique.some(t => t.id === task.id) ? unique : [...unique, task],
-        [] as Task[]
+        ...projectTasks.flat()
+      ].filter((task, index, self) =>
+        self.findIndex(t => t.id === task.id) === index
       );
     } catch (error) {
       console.error('加载任务失败:', error);
@@ -486,42 +492,10 @@ export const useTaskStore = defineStore('task', () => {
     }
   };
   // ==================== 统计报告 ====================
-  // 基础统计
-  const statusData = computed(() => [
-    {
-      value: tasks.value.length,
-      title: '总任务数',
-      color: '#2196F3',
-      lightColor: '#E3F2FD',
-      icon: 'mdi-format-list-checks'
-    },
-    {
-      value: tasks.value.filter(t => t.status === '已完成').length,
-      title: '已完成',
-      color: '#4CAF50',
-      lightColor: '#E8F5E9',
-      icon: 'mdi-check-circle'
-    },
-    {
-      value: tasks.value.filter(t => t.status === '进行中').length,
-      title: '进行中',
-      color: '#FF9800',
-      lightColor: '#FFF3E0',
-      icon: 'mdi-progress-clock'
-    },
-    {
-      value: tasks.value.filter(t => t.status === '待处理').length,
-      title: '待处理',
-      color: '#F44336',
-      lightColor: '#FFEBEE',
-      icon: 'mdi-alert-circle'
-    }
-  ])
-
   // 优先级分布
   const priorityDistribution = computed(() => {
     const counts = { 高: 0, 中: 0, 低: 0 }
-    tasks.value.forEach(t => counts[t.priority]++)
+    allTasks.value.forEach(t => counts[t.priority]++)
     return [
       { value: counts.高, name: '高优先级' },
       { value: counts.中, name: '中优先级' },
@@ -529,53 +503,32 @@ export const useTaskStore = defineStore('task', () => {
     ]
   })
 
-  // 状态趋势数据
+  // 任务状态趋势
   const statusTrendData = computed<StatusTrendData>(() => {
     const formatMap: Record<TimeRange, string> = {
       day: 'YYYY-MM-DD',
       week: 'YYYY-ww',
       month: 'YYYY-MM',
       year: 'YYYY'
-    }
+    };
 
-    const grouped = tasks.value.reduce((acc, task) => {
-      if (!task.scheduledTime) return acc; // 防止任务缺少 scheduledTime 属性
-
-      // 检查 timeRange.value 是否在合法范围内
-      if (!Object.keys(formatMap).includes(timeRange.value)) {
-        console.warn('Invalid timeRange value:', timeRange.value);
-        return acc;
-      }
-
+    // 按时间分组统计任务数量
+    const grouped = tasks.value.reduce((acc: Record<string, number>, task) => {
       const key = dayjs(task.scheduledTime).format(formatMap[timeRange.value]);
       acc[key] = (acc[key] || 0) + 1;
       return acc;
-    }, {} as Record<string, number>);
+    }, {});
+
+    // 确保 dates 和 values 长度一致并按时间排序
+    const sortedEntries = Object.entries(grouped)
+      .sort(([a], [b]) => dayjs(a).valueOf() - dayjs(b).valueOf());
 
     return {
-      dates: Object.keys(grouped).sort(),
-      values: Object.values(grouped)
+      dates: sortedEntries.map(([date]) => date),
+      values: sortedEntries.map(([, count]) => count)
     };
   });
 
-  // 项目进度计算
-  const projectsWithStatus = computed(() =>
-    projects.value.map(p => ({
-      ...p,
-      progress: calculateProjectProgress(p.projectId),
-      isLate: dayjs().isAfter(dayjs(p.deadline)) && p.progress < 100
-    }))
-  )
-
-  // 私有方法
-  const calculateProjectProgress = (projectId: string) => {
-    const projectTasks = tasks.value.filter(t => t.projectId === projectId)
-    if (projectTasks.length === 0) return 0
-    return Math.round(
-      (projectTasks.filter(t => t.status === '已完成').length /
-        projectTasks.length) * 100
-    )
-  }
 
   // ==================== 日志 ====================
   /** 生成唯一ID */
@@ -692,6 +645,8 @@ export const useTaskStore = defineStore('task', () => {
   };
 
   return {
+    allTasks,
+    projectTasks,
     tasks,
     taskDetail,
     projectTaskDetail,
@@ -712,10 +667,8 @@ export const useTaskStore = defineStore('task', () => {
     downloadingIds,
     recentVisits,
     projects,
-    statusData,
     priorityDistribution,
     statusTrendData,
-    projectsWithStatus,
     getAllTasks,
     getAllProjects,
     getProjectTaskDetail,

@@ -108,7 +108,12 @@ export const router = createRouter({
           path: 'independent/:taskId',
           name: 'IndependentTaskDetail',
           component: () => import('@/views/task/TaskDetail.vue'),
-          meta: { taskType: 'independent' },
+          meta: { 
+            taskType: 'independent',
+            title: '任务详情',
+            hidden: true,
+            icon: 'details'
+          },
           props: route => ({
             taskType: 'independent',
             taskId: route.params.taskId
@@ -119,7 +124,12 @@ export const router = createRouter({
           path: 'project/:projectId/task/:taskId',
           name: 'ProjectTaskDetail',
           component: () => import('@/views/task/TaskDetail.vue'),
-          meta: { taskType: 'project' },
+          meta: { 
+            taskType: 'project',
+            title: '任务详情',
+            hidden: true,
+            icon: 'details'
+           },
           props: route => ({
             taskType: 'project',
             projectId: route.params.projectId,
