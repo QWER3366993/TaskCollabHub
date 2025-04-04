@@ -186,7 +186,7 @@ onMounted(async () => {
 <template>
   <div class="news-container">
     <!-- 轮播图区域 -->
-    <v-carousel cycle height="500" interval="5000">
+    <v-carousel progress="primary" show-arrows="hover" hide-delimiters cycle interval="5000" height="500">
       <v-carousel-item v-for="item in noticeStore.carouselNotices" :key="item.id" :src="item.coverImage"
         :aspect-ratio="16 / 9" cover loading="lazy">
         <div class="carousel-overlay" @click="viewDetail(item)">

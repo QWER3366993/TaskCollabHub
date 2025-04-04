@@ -57,7 +57,7 @@ const handleLogin = async () => {
           throw new Error('用户信息加载失败');
         }
         // 4. 执行跳转
-        router.push('/index');
+        router.push('/noticeboard1');
       } catch (error) {
         createToast('登录失败，请检查凭证', { type: 'danger' });
         throw error; // 这里要抛出错误，以便在 loginUser 方法中捕获

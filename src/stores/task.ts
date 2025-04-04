@@ -219,6 +219,7 @@ export const useTaskStore = defineStore('task', () => {
       ].filter((task, index, self) =>
         self.findIndex(t => t.id === task.id) === index
       );
+
     } catch (error) {
       console.error('加载任务失败:', error);
     }
@@ -513,7 +514,7 @@ export const useTaskStore = defineStore('task', () => {
     };
 
     // 按时间分组统计任务数量
-    const grouped = tasks.value.reduce((acc: Record<string, number>, task) => {
+    const grouped = allTasks.value.reduce((acc: Record<string, number>, task) => {
       const key = dayjs(task.scheduledTime).format(formatMap[timeRange.value]);
       acc[key] = (acc[key] || 0) + 1;
       return acc;
@@ -545,6 +546,12 @@ export const useTaskStore = defineStore('task', () => {
         changes[key] = { old: oldVal, new: newVal };
       }
     });
+    if (JSON.stringify(original.completedTime) !== JSON.stringify(updated.completedTime)) {
+      changes.completedAt = {
+        old: original.completedTime,
+        new: updated.completedTime
+      };
+    }
     return changes;
   };
 

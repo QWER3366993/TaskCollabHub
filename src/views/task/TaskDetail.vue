@@ -25,6 +25,7 @@ const defaultTask: Task = {
   status: '待处理',
   priority: '高',
   scheduledTime: dayjs().toISOString(),
+  completedTime: dayjs().toISOString(),
   deadline: dayjs().toISOString(),
   comments: [],
   creator: '',
@@ -226,7 +227,7 @@ const loadTaskDetail = async () => {
     if (props.taskType === 'project' && props.projectId) {
       // 调用项目任务接口
       task.value = await taskStore.getProjectTaskDetail(
-        props.taskId, 
+        props.taskId,
         props.projectId
       )
     } else {
@@ -245,6 +246,10 @@ const saveTask = async () => {
     if (JSON.stringify(editTask.value) === JSON.stringify(originalTask.value)) {
       createToast('未检测到内容修改', { type: 'warning' });
       return;
+    }
+    // 自动设置完成时间（当状态变为“已完成”时）
+    if (editTask.value.status === '已完成' && !editTask.value.completedTime) {
+      editTask.value.completedTime = new Date().toISOString();
     }
     // 发送更新请求
     await taskStore.updateTask(taskId.value, editTask.value);
@@ -430,15 +435,27 @@ onMounted(async () => {
                     <template #icon>
                       <v-icon>schedule</v-icon>
                     </template>
-                    <div class="d-flex flex-column">
-                      <div class="text-body-1 font-weight-bold mb-1">截止时间</div>
-                      <div>
-                        <template v-if="!isEditing">
-                          {{ dayjs(task.deadline).format('YYYY/MM/DD HH:mm') }}
-                        </template>
-                        <v-text-field v-else v-model="editTask.deadline" type="datetime-local" density="compact"
-                          variant="outlined" class="edit-field edit-time-field" />
-                      </div>
+                    <div class="text-body-1 font-weight-bold ">截止时间</div>
+                    <div>
+                      <template v-if="!isEditing">
+                        {{ dayjs(task.deadline).format('YYYY/MM/DD HH:mm') }}
+                      </template>
+                      <v-text-field v-else v-model="editTask.deadline" type="datetime-local" density="compact"
+                        variant="outlined" class="edit-field edit-time-field" />
+                    </div>
+                  </v-timeline-item>
+                  <v-timeline-item v-if="task.status === '已完成'" dot-color="green" size="small">
+                    <template #icon>
+                      <v-icon>check</v-icon>
+                    </template>
+                  
+                    <div class="text-body-1 font-weight-bold ">完成时间</div>
+                    <div>
+                      <template v-if="!isEditing">
+                        {{ task.completedTime ? dayjs(task.completedTime).format('YYYY/MM/DD HH:mm') : '未完成' }}
+                      </template>
+                      <v-text-field v-else v-model="editTask.completedTime" type="datetime-local" density="compact"
+                        variant="outlined" class="edit-field edit-time-field" />
                     </div>
                   </v-timeline-item>
                 </v-timeline>

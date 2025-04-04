@@ -129,22 +129,22 @@ const calculateTimeRemaining = (deadline?: string) => {
 
 const selectedProjectId = ref<string | null>(null);
 
-// 项目过滤
+// 根据所选项目过滤任务
 const filterTasksByProject = async () => {
   if (selectedProjectId.value) {
     await taskStore.getProjectTasks(selectedProjectId.value);
   } else {
     await taskStore.loadAllTasksWithProjects(); // 使用新的合并方法
+    console.log('filteredTasks computed called',filteredTasks.value)
   }
 };
-
 // 过滤后的任务列表
 const filteredTasks = computed(() => {
-  if (!Array.isArray(taskStore.tasks)) {
-    console.error('tasks 不是数组:', taskStore.tasks)
+  if (!Array.isArray(taskStore.allTasks)) {
+    console.error('allTasks 不是数组:', taskStore.tasks)
     return []
   }
-  return taskStore.tasks.filter(task => {
+  return taskStore.allTasks.filter(task => {
     const matchesProject = !selectedProjectId.value || task.projectId === selectedProjectId.value;
     const matchesStatus = selectedStatus.value === '全部' || task.status === selectedStatus.value;
     const matchesSearch = task.title.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
@@ -170,7 +170,7 @@ const statusIcon = (status: string) => {
   const icons: Record<string, string> = {
     '待处理': 'flag_circle',
     '进行中': 'play_circle',
-    '已完成': 'check-circle'
+    '已完成': 'check_circle'
   }
   return icons[status] || 'help'
 }
@@ -225,6 +225,7 @@ onMounted(async () => {
     <v-row>
       <v-col>
         <v-card>
+          <!-- 表格 -->
           <v-data-table :headers="headers" :items="filteredTasks" :sort-by="[{ key: 'title', order: 'asc' }]"
             :items-per-page="10" style="width: 100%">
             <!-- 状态列 -->
@@ -254,7 +255,7 @@ onMounted(async () => {
                 </v-icon>
                 <!-- 任务过期则爆红 -->
                 <span :class="{ 'text-red': dayjs(item.deadline).isBefore(dayjs().add(1, 'day')) }">
-                  {{ dayjs(item.deadline).format('MM/DD HH:mm') }}
+                  {{ dayjs(item.deadline).format('YYYY/MM/DD HH:mm') }}
                 </span>
                 <v-tooltip location="bottom">
                   <template #activator="{ props }">

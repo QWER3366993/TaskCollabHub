@@ -59,6 +59,109 @@ const statusData = computed<StatusDataItem[]>(() => [
   }
 ])
 
+const topPerformer = computed(() => teamStore.contributionData.topPerformer);
+
+  // 计算首个员工提前完成任务总时长
+  const totalEarlyTime = computed<{
+  totalEarly: number;
+  completedCount: number;
+}>(() => {
+   if (!teamStore.contributionData.sortedEmployees.length) {
+    return { totalEarly: 0, completedCount: 0 };
+  }
+  const firstEmployee = teamStore.contributionData.sortedEmployees[0];
+  let totalEarly = 0;
+  let completedCount = 0;
+  // 遍历所有任务，过滤出属于首个员工的任务
+  taskStore.allTasks.forEach(task => {
+    if (task.employeeId === firstEmployee.id && task.status === '已完成' && task.completedTime && task.deadline) {
+      const completedTime = dayjs(task.completedTime);  // 完成时间
+      const deadline = dayjs(task.deadline);  // 截止时间
+
+      // 计算提前完成的时间（deadline - completedTime）
+      const earlyCompletionTime = deadline.diff(completedTime, 'minute');
+      if (earlyCompletionTime > 0) {  // 如果任务提前完成
+        totalEarly += earlyCompletionTime;
+        completedCount++;  // 计数已完成任务
+      }
+    }
+  });
+  return { totalEarly, completedCount };
+});
+
+// 计算首个员工的平均提前完成时间
+const averageEarlyTime = computed(() => {
+  const { totalEarly, completedCount } = totalEarlyTime.value;
+  const average = completedCount > 0 ? totalEarly / completedCount /60/24 : 0;  // 计算平均提前时间（以天为单位）
+  return average;
+});
+
+const overdueTasks = computed(() => {
+  // 过滤出超期任务
+  return taskStore.allTasks.filter(
+    task => task.status !== '已完成' && task.deadline && dayjs().isAfter(dayjs(task.deadline))
+  );
+});
+
+// 计算单个员工的KPI指数
+const calculateEmployeeKPI = (completedCount: number, totalTime: number, overdueCount: number): number => {
+  if (totalTime === 0 || completedCount === 0) return 0;  // 避免除零错误，返回 0 或者其他合适的默认值
+  return completedCount / (totalTime * (overdueCount + 1)) * 1e6;
+};
+
+// 计算所有员工的 KPI
+const employeeKPIs = computed(() => {
+  return teamStore.contributionData.sortedEmployees.map(employee => {
+    // 计算每个员工的平均完成时间
+    const averageTime = employee.completed > 0 ? employee.totalCompletedTime / employee.completed : 0;
+    // 计算 KPI
+    const kpi = calculateEmployeeKPI(employee.completed, averageTime, employee.overdue);
+    // 查找员工信息
+    const employeeData = teamStore.employees.find(e => e.employeeId === employee.id);
+    return {
+      employeeId: employee.id,
+      name: employeeData ? employeeData.name : '未知',
+      kpi,
+      teamId: employeeData ? employeeData.teamId : null
+    };
+  });
+});
+
+
+// 计算每个团队的KPI
+const teamKPIs = computed(() => {
+  // 按团队划分员工
+  const teamKpiMap = new Map();
+
+  // 汇总每个团队的员工KPI
+  employeeKPIs.value.forEach(employeeKPI => {
+    const { teamId, kpi } = employeeKPI;
+    if (!teamKpiMap.has(teamId)) {
+      teamKpiMap.set(teamId, { totalKPI: 0, count: 0 });
+    }
+    const teamData = teamKpiMap.get(teamId);
+    teamData.totalKPI += kpi;
+    teamData.count += 1;
+  });
+
+  // 计算每个团队的平均KPI
+  const result: { teamId: string; averageKPI: number }[] = [];
+  teamKpiMap.forEach((teamData, teamId) => {
+    const averageKPI = teamData.count > 0 ? teamData.totalKPI / teamData.count : 0;
+    result.push({ teamId, averageKPI });
+  });
+
+  return result;
+});
+
+// 平均 KPI
+const averageKPI = computed(() => {
+  if (employeeKPIs.value.length === 0) return 0;  // 防止除零错误
+  const totalKPI = employeeKPIs.value.reduce((sum, employee) => sum + employee.kpi, 0);
+  return totalKPI / employeeKPIs.value.length;
+});
+
+
 // 计算项目进度
 const calculateProjectProgress = (projectId: string) => {
   // 先筛选出当前项目的任务
@@ -169,29 +272,37 @@ const initCharts = () => {
     })
   }
 
-  // 状态趋势折线图
+  // 任务数量趋势折线图
   if (statusTrendChart.value) {
     statusTrendInstance = echarts.init(statusTrendChart.value)
     statusTrendInstance.setOption({
+      title: {
+        subtext: '按时间统计任务总量', // 副标题
+        left: 'center'
+      },
       xAxis: {
         type: 'category',
+        name: '日期', // x轴名称
         data: taskStore.statusTrendData.dates,
         axisLabel: {
-          rotate: 45, // 日期标签旋转防止重叠
-          formatter: (value: string) => dayjs(value).format('MM/YYYY') // 更紧凑的格式
+          rotate: 45,
+          formatter: (value: string) => dayjs(value).format('YYYY-MM') // 格式化日期
         }
       },
       yAxis: {
         type: 'value',
-        minInterval: 1, // 强制整数刻度
-        axisLabel: { formatter: '{value} 个' } // 添加单位
+        name: '任务数量', // y轴名称
+        minInterval: 1 // 强制显示整数刻度
       },
       tooltip: {
         trigger: 'axis',
         formatter: (params: any) => {
           const date = dayjs(params[0].axisValue).format('YYYY-MM-DD');
           return `${date}<br/>任务数量: ${params[0].value}`;
-        }
+        },
+        backgroundColor: 'rgba(255, 255, 255, 0.9)', // 背景色
+        borderColor: '#ddd',
+        textStyle: { color: '#333' }
       },
       series: [{
         data: taskStore.statusTrendData.values,
@@ -199,14 +310,21 @@ const initCharts = () => {
         smooth: true,
         symbol: 'circle', // 显示数据点
         symbolSize: 8,
-        itemStyle: { color: '#2196F3' },
+        itemStyle: {
+          color: '#2196F3', // 数据点颜色
+          borderColor: '#fff', // 边框颜色
+          borderWidth: 2
+        },
         areaStyle: {
           color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
             { offset: 0, color: 'rgba(33, 150, 243, 0.6)' },
             { offset: 1, color: 'rgba(227, 242, 253, 0.2)' }
           ])
         },
-        lineStyle: { width: 2 }
+        lineStyle: {
+          width: 3, // 加粗线条
+          color: '#2196F3' // 线条颜色
+        },
       }],
       grid: {
         left: '3%',
@@ -221,20 +339,103 @@ const initCharts = () => {
   if (contributionChart.value) {
     contributionInstance = echarts.init(contributionChart.value)
     contributionInstance.setOption({
-      tooltip: { trigger: 'axis' },
+      tooltip: {
+        trigger: 'axis',
+        formatter: (params: any) =>
+          `
+        <b>${params[0].name}</b><br/>
+        ✅ 已完成: ${params[0].value} 个<br/>
+        ⚠️ 超期: ${teamStore.contributionData.overdue[params[0].dataIndex]} 个<br/>
+        ⏳ 未完成: ${teamStore.contributionData.pending[params[0].dataIndex]} 个<br/>
+        <br/>
+        <i style="color: #4CAF50;">已完成：绿色</i><br/>
+        <i style="color: #FF6384;">超期任务：红色</i><br/>
+        <i style="color: #FFEB3B;">未完成任务：黄色</i>
+      `
+      },
+      yAxis: {
+        type: 'value',
+        name: '任务数量',
+        axisLabel: { formatter: '{value} 个' },
+      },
       xAxis: {
         type: 'category',
-        data: teamStore.contributionData.names // 从 store 获取贡献数据
+        data: teamStore.contributionData.names,
+        axisLabel: {
+          rotate: 45,
+          formatter: (name: string) => name.length > 4 ? name.slice(0, 4) + '...' : name,
+        },
       },
-      yAxis: { type: 'value' },
       series: [{
-        data: teamStore.contributionData.values, // 从 store 获取贡献度数据
+        name: '已完成',
         type: 'bar',
+        stack: 'tasks',
+        data: teamStore.contributionData.completed,
         itemStyle: {
-          color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-            { offset: 0, color: '#2196F3' },
-            { offset: 1, color: '#64B5F6' }
-          ])
+          color: new echarts.graphic.LinearGradient(1, 0, 0, 0, [
+            { offset: 0, color: '#4CAF50' }, // 浅绿色
+            { offset: 1, color: '#008B8B' }, // 深绿色
+          ]),
+        },
+        label: {
+          show: true,
+          position: 'right',
+          formatter: '{@score} 个',
+        },
+        // 悬停高亮
+        emphasis: {
+          itemStyle: {
+            shadowBlur: 10,
+            shadowColor: 'rgba(0, 0, 0, 0.3)'
+          }
+        }
+      },
+      {
+        name: '超期',
+        type: 'bar',
+        stack: 'tasks',
+        data: teamStore.contributionData.overdue,
+        itemStyle: {
+          color: new echarts.graphic.LinearGradient(1, 0, 0, 0, [
+            { offset: 0, color: '#FF6384' }, // 浅红色
+            { offset: 1, color: '#FF3030' }, // 深红色
+          ]),
+        },
+        label: {
+          show: true,
+          position: 'right',
+          formatter: '{@score} 个',
+        },
+        // 悬停高亮
+        emphasis: {
+          itemStyle: {
+            shadowBlur: 10,
+            shadowColor: 'rgba(0, 0, 0, 0.3)'
+          }
+        }
+      },
+      {
+        name: '未完成',
+        type: 'bar',
+        stack: 'tasks',
+        data: teamStore.contributionData.pending,
+        itemStyle: {
+          color: new echarts.graphic.LinearGradient(1, 0, 0, 0, [
+            { offset: 0, color: '#FFEB3B' }, // 浅黄色
+            { offset: 1, color: '#FFC107' }, // 深黄色
+          ]),
+        },
+        label: {
+          show: true,
+          position: 'right',
+          formatter: '{@score} 个',
+        },
+        // 悬停高亮
+        emphasis: {
+          itemStyle: {
+            shadowBlur: 10,
+            shadowColor: 'rgba(0, 0, 0, 0.3)'
+          }
         }
       }]
     })
@@ -264,8 +465,7 @@ const updateChartData = () => {
   })
 }
 
-watch(
-  () => taskStore.allTasks,
+watch(() => taskStore.allTasks,
   () => {
     // 重新渲染图表
     updateChartData()
@@ -278,9 +478,12 @@ onMounted(async () => {
   await taskStore.getAllTasks();
   await taskStore.loadAllTasksWithProjects();
   await teamStore.getEmployees();
+  await teamStore.updateContributionData();
   // 使用 nextTick 确保 DOM 就绪
   await nextTick()
+  // 初始化图表
   initCharts()
+
   // 优化事件监听
   window.addEventListener('resize', handleResize, {
     passive: true
@@ -354,7 +557,7 @@ const handleResize = () => {
       <!-- 状态分布 -->
       <v-col cols="12" md="6">
         <v-card>
-          <v-card-title>任务状态趋势</v-card-title>
+          <v-card-title>任务数量趋势图</v-card-title>
           <div ref="statusTrendChart" class="chart-container"></div>
         </v-card>
       </v-col>
@@ -362,9 +565,62 @@ const handleResize = () => {
 
     <!-- 成员贡献度 -->
     <v-card class="member-contribution">
-      <v-card-title>团队成员绩效分析</v-card-title>
-      <div ref="contributionChart" class="chart-container">
-      </div>
+      <v-card-title class="d-flex align-center">
+        <v-icon left>group</v-icon>
+        团队成员绩效分析
+      </v-card-title>
+
+      <v-container fluid>
+        <v-row>
+          <!-- 左侧：柱状图 -->
+          <v-col cols="8">
+            <div ref="contributionChart" class="chart-container"></div>
+          </v-col>
+          
+          <!-- 右侧：KPI 卡片 -->
+          <v-col cols="4">
+            <v-container class="kpi-container" style="max-height: 350px; overflow-y: auto;">
+            <!-- 最佳执行者卡片 -->
+            <v-card class="kpi-card">
+              <v-card-title class="headline text-center">🏆 最佳执行者</v-card-title>
+              <v-card-text>
+                <div class="kpi-value text-h4 text-center">{{ topPerformer.name }}</div>
+                <div class="kpi-subtext text-center">完成任务数: <strong>{{ topPerformer.count }}</strong></div>
+                <div class="kpi-subtext text-center">平均提前完工时长: <strong>{{ averageEarlyTime.toFixed(1) }} 天</strong></div>
+              </v-card-text>
+            </v-card>
+
+            <!-- 逾期任务卡片 -->
+            <v-card class="kpi-card mt-4">
+              <v-card-title class="headline text-center">🚨 逾期任务</v-card-title>
+              <v-card-text>
+                <div v-for="task in overdueTasks" :key="task.id" class="task-item">
+                  <div><strong>任务名称:</strong> {{ task.title }}</div>
+                  <div><strong>负责人:</strong> {{ teamStore.getName(task.employeeId) }}</div>
+                  <div><strong>截止日期:</strong> {{ task.deadline }}</div>
+                </div>
+              </v-card-text>
+            </v-card>
+
+            <!-- 员工 KPI 卡片 -->
+            <v-card class="kpi-card mt-4">
+              <v-card-title class="headline text-center">📊 员工 KPI</v-card-title>
+              <v-card-text>
+                <!-- 展示每个员工的KPI -->
+                <div v-for="employee in employeeKPIs" :key="employee.employeeId" class="employee-kpi">
+                  <div><strong>{{ employee.name }}:</strong> {{ employee.kpi.toFixed(2) }}</div>
+                </div>
+                <!-- 展示每个团队的平均KPI -->
+                <div v-for="teamKPI in teamKPIs" :key="teamKPI.teamId" class="team-kpi">
+                  <div>团队 <strong>{{ teamKPI.teamId }}</strong> 平均KPI: {{ teamKPI.averageKPI.toFixed(2) }}</div>
+                </div>
+              </v-card-text>
+            </v-card>
+          </v-container>
+
+          </v-col>
+        </v-row>
+      </v-container>
 
       <!-- 统计周期 -->
       <v-card-actions>
@@ -434,6 +690,73 @@ const handleResize = () => {
 .status-overview .text-h5 {
   margin-bottom: 8px;
 }
+
+/* 样式增强 */
+.kpi-card {
+  border-left:5px solid #bdfa88;
+  background-color: #ffffff;
+  transition: transform 0.3s, box-shadow 0.3s ease-in-out;
+  border-radius: 10px;
+  box-shadow: 0 2px 6px rgba(162, 0, 255, 0.2);
+}
+
+.kpi-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+}
+
+/* 最佳员工 */
+.kpi-value {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: #ec45ac;
+  margin-bottom: 10px;
+}
+/* 名称 */
+.kpi-subtext {
+  color: #9a6600;
+  font-size: 1rem;
+  margin-bottom: 5px;
+}
+/* 数值颜色 */
+.kpi-subtext strong {
+  color: #02f81f;
+}
+
+.kpi-card .text-center {
+  text-align: center;
+}
+/* 逾期任务卡片 */
+.task-item {
+  margin-bottom: 15px;
+  padding: 15px;
+  border-radius: 8px;
+  background-color: #f9f9f9;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+}
+/* 名称颜色 */
+.task-item strong {
+  color: #f96666;
+}
+
+/* 员工 KPI行间距 */
+.employee-kpi,
+.team-kpi {
+  margin-bottom: 5px;
+}
+/* 数值颜色 */
+.employee-kpi div,
+.team-kpi div {
+  font-size: 1rem;
+  color: #018342;
+}
+/* 名称颜色 */
+.employee-kpi div strong,
+.team-kpi div strong {
+  color: #36A2EF;
+}
+
+
 
 
 .project-progress .late-project {

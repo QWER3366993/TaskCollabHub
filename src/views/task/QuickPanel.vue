@@ -186,8 +186,8 @@ const toggleTaskStatus = async (task: Task) => {
         // 直接更新任务状态 & 添加日志
         task.status = newStatus;
         task.operations = [...(task.operations || []), newOperation];
-
         await taskStore.updateTask(task.id, { status: newStatus, operations: task.operations });
+        task.completedTime = new Date().toISOString();  // 设置任务完成时间
     } catch (error) {
         createToast('状态更新失败', { type: 'danger', timeout: 3000 });
         task.status = originalStatus; // 回滚状态

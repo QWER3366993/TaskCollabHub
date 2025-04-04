@@ -11,6 +11,7 @@ export interface Task {
   comments?: Comment[]; // 评论
   creator: string; // 创建者 ID
   scheduledTime: string; // 调度时间
+  completedTime ?: string;  // 完成时间
   deadline?: string; // 截止时间
   files?: FileItem[];
   reminderTime?: string; // 任务截止前提醒时间
