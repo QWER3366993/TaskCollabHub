@@ -79,7 +79,6 @@ onMounted(() => {
 .layout_container {
   width: 100%;
   height: 100vh;
-  position: relative;
   /* 添加相对定位 */
 
   .layout_sidebar {

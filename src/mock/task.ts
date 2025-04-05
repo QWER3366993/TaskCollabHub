@@ -152,7 +152,37 @@ const mockUsers = [
     email: 'pdx@example.com',
     phone: '13800138001',
     token: 'pdx-token'
-  }
+  },
+  {
+    userId: 'user003',
+    username: 'zyg',
+    password: '123456',
+    authorities: ['manager'],
+    avatar: '/章鱼哥.jpg',
+    email: 'zyg@example.com',
+    phone: '13800138002',
+    token: 'zyg-token',
+  },
+  {
+    userId: 'user004',
+    username: 'xlb',
+    password: '123456',
+    authorities: ['member'],
+    avatar: '/蟹老板.jpg',
+    email: 'xlb@example.com',
+    phone: '13800138003',
+    token: 'xlb-token',
+  },
+  {
+    userId: 'user005',
+    username: 'plb',
+    password: '123456',
+    authorities: ['admin'],
+    avatar: '/痞老板.jpg',
+    email: 'plb@example.com',
+    phone: '13800138004',
+    token: 'plb-token',
+  },
 ];
 
 const mockProjects: Project[] = [
@@ -527,7 +557,7 @@ const mockTeams: Team[] = [
         workload: 40,
         position: 'DBA',
         authorities: ['member'],
-        online: true,
+        online: false,
       }
     ]
   },
@@ -604,7 +634,7 @@ const mockTeamMembers: Employee[] = [
     workload: 40,
     position: 'DBA',
     authorities: ['member'],
-    online: true,
+    online: false,
   },
   {
     employeeId: 'e005',
@@ -1065,7 +1095,8 @@ export default [
       userId: employee.userId,
       status: employee.status,
       workload: employee.workload,
-      position: employee.position
+      position: employee.position,
+      online: employee.online
     }))
   },
 
@@ -1245,6 +1276,29 @@ export default [
       return mockMemos;
     }
   },
+
+  // 获取用户列表
+  {
+    url: '/users',
+    method: 'get',
+    response: () => {
+      return mockUsers;
+    }
+  },
+
+  // 获取角色列表
+  {
+    url: '/roles',
+    method: 'get',
+    response: () => {
+      return [
+        { roleId: 'admin', roleName: '系统管理员' },
+        { roleId: 'manager', roleName: '经理' },
+        { roleId: 'member', roleName: '普通员工' }
+      ];
+    }
+  },
+
 
 
   // WebSocket连接
