@@ -151,3 +151,27 @@ export const fetchEmployees = async (): Promise<Employee[]> => {
 //   });
 //   return response.data;
 // };
+
+ // 获取日程列表
+ export const getSchedules = async () => {
+  const response = await service.get('/schedules');
+  return response;
+};
+
+// 创建日程
+export const createSchedule = async (scheduleData: any) => {
+  const response = await service.post('/schedule', scheduleData);
+  return response;
+}
+
+// 更新日程
+export const updateSchedule = async (scheduleId: string, scheduleData: any) => {
+  const response = await service.put(`/schedule/${scheduleId}`, scheduleData);
+  return response;
+}
+
+// 删除日程
+export const deleteSchedule = async (scheduleId: string) => {
+  const response = await service.delete(`/schedule/${scheduleId}`);
+  return response;
+}

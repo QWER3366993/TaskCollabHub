@@ -135,7 +135,7 @@ const filterTasksByProject = async () => {
     await taskStore.getProjectTasks(selectedProjectId.value);
   } else {
     await taskStore.loadAllTasksWithProjects(); // 使用新的合并方法
-    console.log('filteredTasks computed called',filteredTasks.value)
+    // console.log('过滤',filteredTasks.value)
   }
 };
 // 过滤后的任务列表

@@ -97,18 +97,18 @@ onMounted(() => {
       align-items: center;
       /* 水平居中对齐 */
       width: 100%;
-      height: 200px;
+      height: 230px;
       /* 高度自动适应内容 */
       color: rgb(17, 186, 248);
       /* 文字颜色 */
-      padding: 35px;
+      padding: 5px;
       /* 内边距，确保内容不紧贴边缘 */
 
 
       img {
-        width: 80px;
+        width: 125px;
         /* 图片大小 */
-        height: 80px;
+        height: 125px;
         margin-bottom: 30px;
         /* 图片和文字之间的间距 */
       }

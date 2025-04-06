@@ -2,37 +2,23 @@
 import { ref, onMounted } from 'vue';
 import '@/assets/main.css'
 
-// src（图片路径）、alt（图片描述）属性
-// const slides = ref([
-//     { src: '/carousel/1.png', alt: 'Slide 1' },
-//     { src: '/carousel/2.png', alt: 'Slide 2' },
-//     { src: '/carousel/3.png', alt: 'Slide 3' },
-//     { src: '/carousel/4.png', alt: 'Slide 4' },
-//     { src: '/carousel/5.png', alt: 'Slide 5' },
-// ]);
 
-// 在组件加载时预加载图片，避免轮播时出现空白
-// onMounted(() => {
-//   slides.value.forEach(slide => {
-//     const img = new Image();
-//     img.src = slide.src;
-//   });
-// });
+const backgroundImage = '/background.jpg'; // 替换为您的单张图片路径
+
+// 预加载图片，避免空白
+onMounted(() => {
+  const img = new Image();
+  img.src = backgroundImage;
+});
 </script>
 
 <template>
     <v-app>
         <v-container fluid class="fill-container">
-            <!-- Vuetify 的轮播图组件 -->
-            <!--导航控制部分仅在鼠标悬停时才出现、cycle属性自动轮播、interval设置其轮播间隔、隐藏轮播分隔符 hide-delimiters -->
-            <!-- <v-carousel show-arrows="hover" cycle interval='5000' hide-delimiters>
-                <v-carousel-item v-for="(slide, i) in slides" :key="i">
-                    <div>
-                        <img :src="slide.src" :alt="slide.alt" class="carousel-image" loading="lazy" />                    </div>
-                </v-carousel-item>
-            </v-carousel> -->
+            <!-- 显示单张背景图片 -->
+            <img :src="backgroundImage" alt="Background Image" class="background-image" />
         </v-container>
-        <!-- 覆盖层，放在轮播图之上 -->
+        <!-- 覆盖层，放在背景图片之上 -->
         <div class="overlay">
             <router-view />
         </div>
@@ -41,6 +27,46 @@ import '@/assets/main.css'
 
 <style scoped>
 .fill-container {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  width: 100vw;
+}
+
+.background-image {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-size: cover;  /* 确保图片覆盖整个容器 */
+  background-position: center;  /* 图片居中 */
+  background-repeat: no-repeat;  /* 防止图片重复 */
+  z-index: 1;
+}
+
+.overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 2;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  pointer-events: none;
+  /* 使覆盖层不响应鼠标事件，鼠标事件透过覆盖层作用于下面的背景图 */
+}
+
+.overlay>* {
+  pointer-events: auto;
+  /* 使覆盖层内的子元素响应鼠标事件 */
+}
+
+.fill-container {
     position: relative;
     display: flex;
     justify-content: center;
@@ -48,7 +74,6 @@ import '@/assets/main.css'
     height: 100vh;
     width: 100vw;
 }
-
 
 .carousel-image {
     position: absolute;
@@ -59,7 +84,6 @@ import '@/assets/main.css'
     overflow-x: hidden;
 
 }
-
 
 .overlay {
     position: absolute;

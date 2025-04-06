@@ -18,3 +18,11 @@ export interface Team {
     avatar?: string; // 头像
     online: boolean // 在线状态
   }
+
+  export interface Schedule {
+    id: string;
+    title: string;
+    date: string;
+    time: string;
+    participants: string[];
+  }

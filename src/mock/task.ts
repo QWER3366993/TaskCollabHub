@@ -2,7 +2,7 @@ import type { MockMethod } from 'vite-plugin-mock';
 import type { Task, OperationLog, FileItem } from '@/types/task';
 import type { Employee } from '@/types/team';
 import type { User } from '@/types/user';
-import type { Team } from '@/types/team';
+import type { Team, Schedule } from '@/types/team';
 import type { Notice, NoticeType } from '@/types/notice'
 import type { ChatMessage, ChatStatus } from '@/types/chat'
 import type { UpdateOnlineStatusParams } from '@/api/chat'
@@ -787,6 +787,30 @@ const mockMemos: Memo[] = [
 ]
 
 
+const mockSchedules: Schedule[] = [
+  {
+    id: '1',
+    title: '团队会议',
+    date: '2025-04-10',
+    time: '10:00',
+    participants: ['e001', 'e002', 'e003'],
+  },
+  {
+    id: '2',
+    title: '项目更新通知',
+    date: '2025-04-11',
+    time: '14:00',
+    participants: ['e001', 'e004'],
+  },
+  {
+    id: '3',
+    title: '代码审查',
+    date: '2025-04-12',
+    time: '09:00',
+    participants: ['e002', 'e003'],
+  },
+];
+
 // 严格匹配的WebSocket实现
 const createChatWebSocket = () => ({
   url: '/chat',
@@ -1299,7 +1323,14 @@ export default [
     }
   },
 
-
+// 模拟获取日程列表
+  {
+    url: '/schedules',
+    method: 'get',
+    response: () => {
+      return mockSchedules;
+    },
+  },
 
   // WebSocket连接
   createChatWebSocket()
