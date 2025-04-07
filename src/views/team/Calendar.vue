@@ -328,47 +328,47 @@ onMounted(async () => {
     <div class="calendar-wrapper pa-4">
       <FullCalendar class="custom-calendar" :options="calendarOptions" />
     </div>
+
+    <!-- 新增/编辑日程对话框 -->
+    <v-dialog v-model="scheduleDialog" max-width="600px">
+      <v-card class="rounded-lg">
+        <v-card-title class="d-flex align-center">
+          <v-icon icon="edit" class="mr-2"></v-icon>
+          {{ isEditing ? '编辑日程' : '新建日程' }}
+        </v-card-title>
+        <v-card-text>
+          <v-form @submit.prevent="handleSubmit">
+            <v-text-field v-model="currentSchedule.title" label="日程标题" required
+              :rules="[v => !!v || '标题不能为空']"></v-text-field>
+
+            <v-row>
+              <v-col cols="6">
+                <v-text-field v-model="currentSchedule.date" label="日期" type="date" required
+                  :rules="[v => !!v || '请选择日期']"></v-text-field>
+              </v-col>
+              <v-col cols="6">
+                <v-text-field v-model="currentSchedule.time" label="时间" type="time"
+                  :disabled="!currentSchedule.time"></v-text-field>
+              </v-col>
+            </v-row>
+
+            <v-combobox v-model="currentSchedule.participants" :items="teamStore.employees" item-title="name"
+              item-value="employeeId" label="参与人员" multiple chips :rules="[v => v.length > 0 || '至少选择一个参与者']">
+              <template v-slot:selection="{ item }">
+                <v-chip>{{ item.title }}</v-chip>
+              </template>
+            </v-combobox>
+
+            <v-card-actions class="pa-4">
+              <v-spacer></v-spacer>
+              <v-btn color="primary" type="submit">{{ isEditing ? '更新' : '创建' }}</v-btn>
+              <v-btn color="secondary" @click="scheduleDialog = false">取消</v-btn>
+            </v-card-actions>
+          </v-form>
+        </v-card-text>
+      </v-card>
+    </v-dialog>
   </div>
-
-  <!-- 新增/编辑日程对话框 -->
-  <v-dialog v-model="scheduleDialog" max-width="600px">
-    <v-card class="rounded-lg">
-      <v-card-title class="d-flex align-center">
-        <v-icon icon="edit" class="mr-2"></v-icon>
-        {{ isEditing ? '编辑日程' : '新建日程' }}
-      </v-card-title>
-      <v-card-text>
-        <v-form @submit.prevent="handleSubmit">
-          <v-text-field v-model="currentSchedule.title" label="日程标题" required
-            :rules="[v => !!v || '标题不能为空']"></v-text-field>
-
-          <v-row>
-            <v-col cols="6">
-              <v-text-field v-model="currentSchedule.date" label="日期" type="date" required
-                :rules="[v => !!v || '请选择日期']"></v-text-field>
-            </v-col>
-            <v-col cols="6">
-              <v-text-field v-model="currentSchedule.time" label="时间" type="time"
-                :disabled="!currentSchedule.time"></v-text-field>
-            </v-col>
-          </v-row>
-
-          <v-combobox v-model="currentSchedule.participants" :items="teamStore.employees" item-title="name"
-            item-value="employeeId" label="参与人员" multiple chips :rules="[v => v.length > 0 || '至少选择一个参与者']">
-            <template v-slot:selection="{ item }">
-              <v-chip>{{ item.title }}</v-chip>
-            </template>
-          </v-combobox>
-
-          <v-card-actions class="pa-4">
-            <v-spacer></v-spacer>
-            <v-btn color="primary" type="submit">{{ isEditing ? '更新' : '创建' }}</v-btn>
-            <v-btn color="secondary" @click="scheduleDialog = false">取消</v-btn>
-          </v-card-actions>
-        </v-form>
-      </v-card-text>
-    </v-card>
-  </v-dialog>
 </template>
 
 <style scoped lang="scss">
@@ -384,11 +384,11 @@ onMounted(async () => {
 // 深度样式覆盖
 :deep(.custom-calendar) {
 
-  /* 关键修正4 - 锁定列宽 */
+  /*  锁定列宽 */
   .fc-col-header-cell,
   .fc-daygrid-day {
-    width: 50px !important; // 固定列宽
-    height: 50px !important; // 固定行高
+    width: 90px !important; // 固定列宽
+    height: 90px !important; // 固定行高
   }
 
   // 工具栏样式
@@ -405,6 +405,7 @@ onMounted(async () => {
       border-radius: 6px;
       text-transform: capitalize;
       transition: all 0.2s;
+
       &:hover {
         transform: translateY(-1px);
       }

@@ -3,7 +3,7 @@ export interface Team {
     name: string;
     description: string;
     createdAt?: string;     
-    employees: Employee[];
+    employees: string[];
   }
 
   export interface Employee {

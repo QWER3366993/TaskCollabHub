@@ -11,6 +11,8 @@ const router = useRouter();
 const userStore = useUserStore();
 const teams = ref<Team[]>([]);
 const employees = ref<Employee[]>([]);
+// 存储员工信息的映射
+const employeeMap = new Map();
 
 // 控制创建团队对话框的显隐
 const createTeamDialogVisible = ref(false);
@@ -31,19 +33,9 @@ const createTeam = async () => {
       createToast('无法获取当前用户的员工信息', { type: 'danger' });
       return;
     }
-    // 添加当前用户到成员列表
-    newTeam.value.employees.push({
-      employeeId: currentEmployee.employeeId, // 必须
-      userId: currentEmployee.userId,         // 必须
-      name: currentEmployee.name,             // 可选
-      teamId: '',                            // 创建时通常不需要（后端分配）
-      status: currentEmployee.status,        // 可选
-      position: currentEmployee.position,    // 可选
-      workload: currentEmployee.workload,    // 可选
-      authorities: currentEmployee.authorities,
-      avatar: currentEmployee.avatar,
-      online: currentEmployee.online,
-    });
+    // 添加当前用户的员工 ID 到成员列表
+    newTeam.value.employees.push(currentEmployee.employeeId);
+
     // 提交创建团队请求
     await teamStore.createNewTeam(newTeam.value);
     createTeamDialogVisible.value = false;
@@ -53,6 +45,26 @@ const createTeam = async () => {
     createToast('创建失败', { type: 'danger' });
   } finally {
     await teamStore.getTeamList();
+  }
+};
+
+// 加载员工列表
+const loadEmployees = async () => {
+  try {
+    const result = await teamStore.getEmployees();
+    if (Array.isArray(result)) {
+      // 通过员工ID将每个员工信息存储到 employeeMap 中
+      result.forEach(employee => {
+        employeeMap.set(employee.employeeId, {
+          name: employee.name,
+          avatar: employee.avatar || 'default-avatar.png', // 如果没有头像，使用默认头像
+        });
+      });
+    } else {
+      console.error('接口返回值异常:', result);
+    }
+  } catch (error) {
+    console.error('加载员工失败:', error);
   }
 };
 
@@ -66,20 +78,6 @@ const loadTeams = async () => {
   } catch (error) {
     console.error('加载团队列表失败:', error);
     throw error;
-  }
-};
-
-// 加载员工列表
-const loadEmployees = async () => {
-  try {
-    const result = await teamStore.getEmployees();
-    if (Array.isArray(result)) {
-      employees.value = result;
-    } else {
-      console.error('接口返回值异常:', result);
-    }
-  } catch (error) {
-    console.error('加载员工失败:', error);
   }
 };
 
@@ -129,11 +127,12 @@ onMounted(async () => {
           <div class="member-list">
             <template v-if="item.employees?.length">
               <div v-for="(member, index) in item.employees" :key="index" variant="outlined" class="ma-1">
+                <!-- 从 employeeMap 获取员工信息 -->
                 <v-avatar size="24" class="mr-2">
-                  <img :src="member.avatar" v-if="member.avatar">
+                  <img :src="employeeMap.get(member)?.avatar" v-if="employeeMap.get(member)?.avatar" />
                   <v-icon v-else>account</v-icon>
                 </v-avatar>
-                {{ member.name }}
+                {{ employeeMap.get(member)?.name || '未知成员' }}
               </div>
             </template>
             <span v-else class="text-grey">暂无成员</span>

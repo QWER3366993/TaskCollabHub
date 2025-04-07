@@ -9,12 +9,13 @@ import { useTeamStore } from '@/stores/team';
 import type { Employee, Team } from '@/types/team';
 import { useProjectStore } from '@/stores/project';
 import { createToast } from 'mosha-vue-toastify';
+import { useUserStore } from '@/stores/user';
 
-
+const userStore = useUserStore();
 const router = useRouter();
 const taskStore = useTaskStore();
 const projectStore = useProjectStore();
-const userTeams = ref<Team[]>([]); // 当前用户所属团队
+const employeeTeams = ref<Team[]>([]); // 当前用户所属团队
 const members = ref<Employee[]>([]); // 分配成员列表
 const loadingTeams = ref(true); // 团队加载状态
 const teamStore = useTeamStore();
@@ -108,10 +109,10 @@ const addTask = () => {
     teamId: teamStore.currentEmployee?.teamId || '',
     title: '',
     description: '',
-    employeeId: '',
+    employeeId: members.value[0]?.employeeId || '', // 默认选择第一个成员
     status: '待处理',
     priority: '低',
-    creator: '',
+    creator: teamStore.currentEmployee?.employeeId || '', // 设置创建者ID
     scheduledTime: dayjs().format('YYYY-MM-DD HH:mm:ss'),
     deadline: dayjs().format('YYYY-MM-DD HH:mm:ss'),
     reminderTime: '',
@@ -232,14 +233,17 @@ const deleteFile = () => {
   deleteConfirmDialog.value = false;
 };
 
-// 加载团队列表
-// 加载当前用户所属团队
-const loadUserTeams = async () => {
+// 加载当前员工所属团队
+const loadEmployeeTeams = async () => {
   try {
     loadingTeams.value = true; // 开始加载
-    const userId = teamStore.currentEmployee?.userId;
-    if (userId) {
-      userTeams.value = await teamStore.getTeamByemployId(userId);
+    const employeeId = userStore.employee?.employeeId;
+    if (!employeeId) {
+      console.error('用户信息未加载或不存在');
+      return;
+    }
+    if (employeeId) {
+      employeeTeams.value = await teamStore.getTeamByemployId(employeeId);
     }
   } catch (error) {
     console.error('加载用户团队失败:', error);
@@ -283,13 +287,15 @@ let intervalId: any;
 // 初始化
 onMounted(async () => {
   updateTime();
+  await userStore.getUserInfo();
   intervalId = setInterval(updateTime, 1000);
   // 初始化时间选择器
   reminderMenu.value = tasks.value.map(() => false);
+  await teamStore.getEmployees()
   // 动态获取团队数据
-  await loadUserTeams();
+  await loadEmployeeTeams();
   // 如果有默认团队（例如当前团队）
-  if (teamStore.currentEmployee?.teamId && userTeams.value.some(t => t.id === teamStore.currentEmployee?.teamId)) {
+  if (teamStore.currentEmployee?.teamId && employeeTeams.value.some(t => t.id === teamStore.currentEmployee?.teamId)) {
     project.value.teamId = teamStore.currentEmployee?.teamId;
     await handleTeamChange(teamStore.currentEmployee?.teamId);
   }
@@ -352,12 +358,13 @@ watch(
                 <v-card-text>
                   <v-text-field v-model="project.title" label="项目名称" required />
                   <!-- 团队选择器 -->
-                  <v-select v-model="project.teamId" :items="userTeams" label="所属团队" item-title="name" item-value="id"
-                    :loading="loadingTeams" :rules="[v => !!v || '必须选择团队']" @update:modelValue="handleTeamChange">
+                  <v-select v-model="project.teamId" :items="employeeTeams" label="所属团队" item-title="name"
+                    item-value="id" :loading="loadingTeams" :rules="[v => !!v || '必须选择团队']"
+                    @update:modelValue="handleTeamChange">
                     <template v-slot:no-data>
                       <v-list-item>
                         <v-list-item-title>
-                          {{ userTeams.length ? '无匹配团队' : '您不属于任何团队' }}
+                          {{ employeeTeams.length ? '无匹配团队' : '您不属于任何团队' }}
                         </v-list-item-title>
                       </v-list-item>
                     </template>
@@ -416,6 +423,17 @@ watch(
                 </v-list-item>
               </v-list>
               <v-select v-model="task.priority" :items="['高', '中', '低']" label="优先级" />
+              <!-- 团队选择器 -->
+              <v-select v-model="project.teamId" :items="employeeTeams" label="所属团队" item-title="name" item-value="id"
+                :loading="loadingTeams" :rules="[v => !!v || '必须选择团队']" @update:modelValue="handleTeamChange">
+                <template v-slot:no-data>
+                  <v-list-item>
+                    <v-list-item-title>
+                      {{ employeeTeams.length ? '无匹配团队' : '您不属于任何团队' }}
+                    </v-list-item-title>
+                  </v-list-item>
+                </template>
+              </v-select>
               <!-- 分配成员 -->
               <v-select v-model="task.employeeId" :items="members" label="分配成员" item-title="name"
                 item-value="employeeId" :disabled="!project.teamId" :rules="[v => !!v || '必须选择成员']">

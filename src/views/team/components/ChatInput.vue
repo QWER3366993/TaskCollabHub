@@ -1,106 +1,123 @@
+<!-- ChatInput.vue -->
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useChatStore } from '@/stores/chat'
-import type { ChatMessage } from '@/types/chat'
-import type { Employee } from '@/types/team'
 import { useTeamStore } from '@/stores/team'
+import type { ChatMessage } from '@/types/chat'
+import type { FileItem } from '@/types/task'
+
+const props = defineProps<{
+  sessionId: string
+  sessionType: 'private' | 'group' | 'system'
+}>()
 
 const teamStore = useTeamStore()
 const chatStore = useChatStore()
 const draft = ref('')
 const fileInput = ref<HTMLInputElement>()
-const mentions = ref<Employee[]>([])
-const senderName = teamStore.currentEmployee?.name || "未知用户"
 
 const sendMessage = async () => {
   if (!draft.value.trim()) return
+
   const message: Omit<ChatMessage, 'id' | 'timestamp'> = {
-    sessionId: chatStore.currentSessionId,
-    type: 'text',
+    sessionId: props.sessionId,
+    sessionType: props.sessionType,
     content: draft.value,
-    sender: senderName,
-    receiverType: chatStore.currentSessionType,
-    mentions: mentions.value,
+    sender: teamStore.currentEmployee!.employeeId,
     isRead: false
   }
 
   await chatStore.sendMessage(message)
   draft.value = ''
-  mentions.value = []
 }
 
-const handleFileUpload = async (e: Event) => {
-  const files = (e.target as HTMLInputElement)?.files
-  if (files?.length) {
-    const file = files[0]
-    const fileMessage: Omit<ChatMessage, 'id' | 'timestamp'> = {
-      sessionId: chatStore.currentSessionId,
-      type: 'file',
-      content: file.name,
-      sender: senderName,
-      receiverType: chatStore.currentSessionType,
-      isRead: false,
-      file: {
-        id: crypto.randomUUID(),
-        name: file.name,
-        size: file.size,
-        type: file.type,
-        url: URL.createObjectURL(file),
-        uploadTime: new Date().toISOString(),
-      }
-    }
-    await chatStore.sendMessage(fileMessage)
+const handleFile = async (e: Event) => {
+  const file = (e.target as HTMLInputElement)?.files?.[0]
+  if (!file) return
+
+  const fileItem: FileItem = {
+    id: crypto.randomUUID(),
+    name: file.name,
+    size: file.size,
+    type: file.type,
+    url: URL.createObjectURL(file),
+    uploadTime: new Date().toISOString()
   }
-}
 
-const checkMention = async (text: string) => {
-  const match = text.match(/@(\w+)$/)
-  if (match) {
-    const username = match[1]
-    const employee = teamStore.employees.find(e =>
-      e.name === username || e.employeeId === username
-    )
-    if (employee) mentions.value.push(employee)
+  const message: Omit<ChatMessage, 'id' | 'timestamp'> = {
+    sessionId: props.sessionId,
+    sessionType: props.sessionType,
+    content: `发送文件：${file.name}`,
+    sender: teamStore.currentEmployee!.employeeId,
+    file: fileItem,
+    isRead: false
   }
-}
 
+  await chatStore.sendMessage(message)
+}
 </script>
 
 <template>
   <div class="chat-input">
-    <input v-model="draft" @input="checkMention(draft)" @keydown.enter="sendMessage" placeholder="输入消息..." />
-    <input ref="fileInput" type="file" hidden @change="handleFileUpload" />
-    <button @click="fileInput?.click()">📎</button>
-    <button @click="sendMessage">发送</button>
+    <input
+      v-model="draft"
+      @keydown.enter.prevent="sendMessage"
+      placeholder="输入消息..."
+    />
+    
+    <input
+      ref="fileInput"
+      type="file"
+      hidden
+      @change="handleFile"
+    />
+    
+    <button @click="fileInput?.click()">
+      📎
+    </button>
+    
+    <button @click="sendMessage">
+      发送
+    </button>
   </div>
 </template>
 
 <style scoped>
 .chat-input {
   display: flex;
-  align-items: center;
-  padding: 16px;
+  gap: 8px;
+  padding: 12px;
+  background: #fff;
   border-top: 1px solid #eee;
-}
 
-.chat-input input {
-  flex: 1;
-  padding: 8px;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  margin-right: 8px;
-}
+  input {
+    flex: 1;
+    padding: 8px 12px;
+    border: 1px solid #ddd;
+    border-radius: 20px;
+    outline: none;
 
-.chat-input button {
-  padding: 8px 16px;
-  border: none;
-  background-color: #007bff;
-  color: white;
-  border-radius: 4px;
-  cursor: pointer;
-}
+    &:focus {
+      border-color: #2196f3;
+    }
+  }
 
-.chat-input button:hover {
-  background-color: #0056b3;
+  button {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 20px;
+    background: #2196f3;
+    color: white;
+    cursor: pointer;
+    transition: opacity 0.2s;
+
+    &:hover {
+      opacity: 0.9;
+    }
+
+    &:active {
+      opacity: 0.8;
+    }
+  }
 }
 </style>

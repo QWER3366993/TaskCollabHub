@@ -4,10 +4,11 @@ import type { Employee } from '@/types/team';
 import type { User } from '@/types/user';
 import type { Team, Schedule } from '@/types/team';
 import type { Notice, NoticeType } from '@/types/notice'
-import type { ChatMessage, ChatStatus } from '@/types/chat'
-import type { UpdateOnlineStatusParams } from '@/api/chat'
+import type { ChatMessage, SystemMessage, ChatSession } from '@/types/chat'
 import type { Memo } from '@/types/memo';
 import type { Project } from '@/types/project';
+import { WebSocketServer, WebSocket } from 'ws';
+
 // 自定义路径参数类型
 interface MockParams {
   params: {
@@ -503,85 +504,21 @@ const mockTeams: Team[] = [
     id: '1',
     name: '前端开发组',
     description: '专注于前端技术开发',
-    employees: [
-      {
-        employeeId: 'e001',
-        name: '海绵宝宝',
-        avatar: '/海绵宝宝.jpg',
-        teamId: '1',
-        userId: 'user001',
-        status: '在职',
-        workload: 70,
-        position: '前端工程师',
-        authorities: ['admin'],
-        online: true,
-      },
-      {
-        employeeId: 'e002',
-        name: '派大星',
-        avatar: '/派大星.jpg',
-        teamId: '1',
-        userId: 'user002',
-        status: '在职',
-        workload: 50,
-        position: 'UI设计师',
-        authorities: ['manager'],
-        online: true,
-      }
-    ]
+    employees: ['e001', 'e002']  // 引用员工的 ID
   },
   {
     id: '2',
     name: '后端开发组',
     description: '负责后端架构和API开发',
-    employees: [
-      {
-        employeeId: 'e003',
-        name: '章鱼哥',
-        avatar: '/章鱼哥.jpg',
-        teamId: '2',
-        userId: 'user003',
-        status: '在职',
-        workload: 60,
-        position: '后端工程师',
-        authorities: ['manager'],
-        online: true,
-      },
-      {
-        employeeId: 'e004',
-        name: '蟹老板',
-        avatar: '/蟹老板.jpg',
-        teamId: '2',
-        userId: 'user004',
-        status: '在职',
-        workload: 40,
-        position: 'DBA',
-        authorities: ['member'],
-        online: false,
-      }
-    ]
+    employees: ['e003', 'e004']
   },
   {
     id: '3',
     name: '测试团队',
     description: '进行系统测试和质量保障',
-    employees: [
-      {
-        employeeId: 'e005',
-        name: '痞老板',
-        avatar: '/111.jpg',
-        teamId: '3',
-        userId: 'user005',
-        status: '在职',
-        workload: 30,
-        position: '后端工程师',
-        authorities: ['admin'],
-        online: true,
-      }
-    ]
+    employees: ['e005']
   }
 ];
-
 
 // 团队成员列表
 const mockTeamMembers: Employee[] = [
@@ -650,100 +587,6 @@ const mockTeamMembers: Employee[] = [
   }
 ];
 
-// 聊天相关Mock数据
-const mockChatData = {
-  messages: [
-    // 文本消息
-    {
-      id: 'msg1',
-      sessionId: 'e001_e002',
-      type: 'text',
-      content: '派大星，我们一起去抓水母吧！',
-      sender: 'e001',
-      receiverId: 'e002',
-      receiverType: 'employee',
-      timestamp: '2024-03-25T10:00:00Z',
-      isRead: false
-    },
-    // 文件消息
-    {
-      id: 'msg2',
-      sessionId: 'e001_e002',
-      type: 'file',
-      content: '请查收文件',
-      sender: 'e002',
-      receiverId: 'e001',
-      receiverType: 'employee',
-      timestamp: '2024-03-25T10:05:00Z',
-      file: {
-        id: 'f1',
-        name: '需求文档.pdf',
-        size: 2.4 * 1024 * 1024,
-        type: 'application/pdf',
-        url: '/需求文档.pdf',
-        uploadTime: '2024-03-25T09:00:00Z',
-        uploader: 'e002',
-        scope: 'chat'
-      },
-      isRead: true
-    },
-    // 系统消息
-    {
-      id: 'sys1',
-      sessionId: 'team_1',
-      type: 'system',
-      content: JSON.stringify([mockTeamMembers[0]]), // 序列化Employee数组
-      sender: 'system',
-      receiverType: 'team',
-      timestamp: '2024-03-25T09:00:00Z',
-      system: true,
-      isRead: false,
-      mentions: [mockTeamMembers[0]] // 使用Employee对象
-    },
-    {
-      id: 'msg3',
-      sessionId: 'e001_e003',
-      type: 'text',
-      content: '认证系统设计方案已上传，请查收',
-      sender: 'e001',
-      receiverId: 'e003',
-      receiverType: 'employee',
-      timestamp: '2023-07-25T15:30:00Z',
-      isRead: false
-    },
-    {
-      id: 'msg4',
-      sessionId: 'team_1',
-      type: 'system',
-      content: '系统维护通知：本周六 00:00-02:00 进行系统升级',
-      sender: 'system',
-      receiverType: 'team',
-      timestamp: '2023-07-25T16:00:00Z',
-      system: true,
-      isRead: false
-    },
-  ] as ChatMessage[],
-
-  // 在线状态通过friendsList的online字段维护
-  friendsList: mockTeamMembers.map(m => ({
-    ...m,
-    online: Math.random() > 0.5 // 初始随机状态
-  })) as Employee[]
-};
-
-// 聊天状态Mock
-const mockChatStatus: ChatStatus = {
-  employeeId: 'e001',
-  unreadCount: 2,
-  lastActive: '2024-03-25T14:30:00Z',
-  friendsList: mockTeamMembers,
-  historyMessage: mockChatData['messages'],
-  systemMessages: [
-    '系统：海绵宝宝 已上线',
-    '系统：新版本v1.2.0已发布'
-  ]
-};
-
 const mockMemos: Memo[] = [
   {
     id: '1',
@@ -811,70 +654,56 @@ const mockSchedules: Schedule[] = [
   },
 ];
 
-// 严格匹配的WebSocket实现
-const createChatWebSocket = () => ({
-  url: '/chat',
-  method: 'get',
-  ws: true,
-  setup: (ws: any) => {
-    // 心跳检测
-    const heartbeatInterval = setInterval(() => {
-      ws.send(JSON.stringify({ type: 'pong' }));
-    }, 15000);
-
-    ws.on('message', (raw: string) => {
-      const data = JSON.parse(raw);
-
-      // 处理认证
-      if (data.type === 'auth') {
-        if (data.token === 'valid_token') {
-          // 推送初始好友列表状态
-          ws.send(JSON.stringify({
-            type: 'presence',
-            data: mockChatData.friendsList.map(f => ({
-              employeeId: f.employeeId,
-              online: f.online,
-            }))
-          }));
-        }
-        return;
-      }
-
-      // 处理状态更新（严格匹配UpdateOnlineStatusParams）
-      if (data.type === 'statusUpdate') {
-        const employee = mockChatData.friendsList.find(
-          f => f.employeeId === data.employeeId
-        );
-        if (employee) {
-          employee.online = data.status;
-        }
-      }
-
-      // 处理消息（严格匹配SendMessageParams）
-      if (data.type === 'message') {
-        const newMessage: ChatMessage = {
-          ...data,
-          id: crypto.randomUUID(),
-          timestamp: new Date().toISOString(),
-          isRead: false
-        };
-
-        // 存储消息
-        mockChatData.messages.push(newMessage);
-
-        // 广播消息
-        ws.send(JSON.stringify({
-          type: 'message',
-          data: newMessage
-        }));
-      }
-    });
-
-    ws.on('close', () => {
-      clearInterval(heartbeatInterval);
-    });
+const mockChatSessions: ChatSession[] = [
+  {
+    id: 't001',
+    type: 'group',
+    name: '前端开发组',
+    members: ['e001', 'e002', 'e003'],
+    lastMessage: '大家记得今天下午的代码评审',
+    unread: 2,
+    timestamp: '2023-07-25T14:30:00Z'
+  },
+  {
+    id: 'e001_e002',
+    type: 'private',
+    name: '李四',
+    members: ['e001', 'e002'],
+    lastMessage: '那个组件逻辑我重构好了',
+    unread: 1,
+    timestamp: '2023-07-25T15:00:00Z'
   }
-});
+];
+
+const mockMessages: ChatMessage[] = [
+  {
+    id: 'm1',
+    sessionId: 't001',
+    sessionType: 'group',
+    content: '今天我们要完成首页优化',
+    sender: 'e002',
+    timestamp: '2023-07-25T09:00:00Z',
+    isRead: true
+  },
+  {
+    id: 'm2',
+    sessionId: 't001',
+    sessionType: 'group',
+    content: '接口文档已更新到GitHub',
+    sender: 'e001',
+    timestamp: '2023-07-25T09:05:00Z',
+    isRead: false,
+    file: {
+      id: 'f1',
+      name: 'api-docs.pdf',
+      size: 1024 * 1024 * 2,
+      type: 'application/pdf',
+      url: '/files/api-docs.pdf',
+      uploadTime: '2023-07-25T09:04:00Z'
+    }
+  }
+];
+
 
 // JWT密钥
 const JWT_SECRET = 'mock_secret';
@@ -1151,7 +980,7 @@ export default [
     method: 'get',
     response: (request: { query: { employeeId: string } }) => {
       const employeeId = request.query.employeeId;
-      const teams = mockTeams.filter(t => t.employees.some(m => m.employeeId === employeeId));
+      const teams = mockTeams.filter(t => t.employees.includes(employeeId));  // 使用 includes 查找 employeeId
       return teams.length > 0 ? teams : [];
     }
   },
@@ -1231,67 +1060,6 @@ export default [
     }
   },
 
-  // 获取历史消息
-  {
-    url: '/chat/history',
-    method: 'get',
-    response: (request: { query: { channelId: string, before?: string, limit?: number } }) => {
-      const { channelId, before, limit } = request.query;
-
-      // 确保 filter 的返回值是数组
-      const filteredMessages = mockChatData.messages
-        .filter(m =>
-          m.sessionId === channelId &&
-          (!before || new Date(m.timestamp) < new Date(before))
-        );
-
-      // 返回分片后的消息列表
-      return filteredMessages.slice(0, limit || 20);
-    }
-  },
-
-  // 获取未读数
-  {
-    url: '/chat/unread',
-    method: 'get',
-    response: ({ query }: { query: { sessionId: string } }) => {
-      return mockChatData.messages.filter(m =>
-        m.sessionId === query.sessionId &&
-        !m.isRead &&
-        m.receiverType === 'employee' // 仅统计私聊未读
-      ).length;
-    }
-  },
-
-  // 在线状态查询
-  {
-    url: '/chat/presence',
-    method: 'get',
-    response: ({ query }: { query: { employeeId: string } }) => {
-      const friend = mockChatData.friendsList.find(
-        f => f.employeeId === query.employeeId
-      );
-      return friend?.online || false;
-    }
-  },
-
-  // 更新在线状态
-  {
-    url: '/chat/status',
-    method: 'put',
-    response: ({ data }: { data: UpdateOnlineStatusParams }) => {
-      const friend = mockChatData.friendsList.find(
-        f => f.employeeId === data.employeeId
-      );
-      if (friend) {
-        friend.online = data.status;
-      }
-      return { success: !!friend };
-    }
-  },
-
-
-
   // 获取备忘录
   {
     url: '/memos',
@@ -1323,7 +1091,7 @@ export default [
     }
   },
 
-// 模拟获取日程列表
+  // 模拟获取日程列表
   {
     url: '/schedules',
     method: 'get',
@@ -1332,8 +1100,62 @@ export default [
     },
   },
 
-  // WebSocket连接
-  createChatWebSocket()
+  // 聊天相关接口
+  {
+    url: '/chat/sessions',
+    method: 'get',
+    response: () => mockChatSessions
+  },
+  {
+    url: '/chat/messages',
+    method: 'get',
+    response: (request: { query: { sessionId: string } }) => {
+      return mockMessages.filter(m => m.sessionId === request.query.sessionId);
+    }
+  },
+  {
+    url: '/chat/unread',
+    method: 'get',
+    response: () => ({
+      total: 3,
+      details: {
+        't001': 2,
+        'e001_e002': 1
+      }
+    })
+  },
+  {
+    url: '/employee/online',
+    method: 'get',
+    response: () => mockTeamMembers.filter(e => e.online)
+  },
+  // WebSocket模拟接口
+  {
+    url: '/ws',
+    method: 'get',
+    ws: true,
+    setup: (wss: WebSocketServer) => {
+      wss.on('connection', (ws: WebSocket) => {
+        // 定时发送模拟消息
+        const timer = setInterval(() => {
+          const mockMessage = {
+            id: `mock_${Date.now()}`,
+            sessionId: 't001',
+            sessionType: 'group',
+            content: `系统时间：${new Date().toLocaleTimeString()}`,
+            sender: 'system',
+            timestamp: new Date().toISOString(),
+            isRead: false
+          };
+          ws.send(JSON.stringify(mockMessage));
+        }, 5000);
+
+        ws.on('close', () => {
+          clearInterval(timer);
+        });
+      });
+    }
+  }
 
 ] as MockMethod[];
 

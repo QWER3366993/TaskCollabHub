@@ -1,44 +1,41 @@
 <!-- 实时通讯 -->
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { computed } from 'vue'
 // 导入子组件
-import MemberList from '@/views/team/components/ChatMessages.vue'
+import MemberList from '@/views/team/components/MemberList.vue'
 import ChatMessages from '@/views/team/components/ChatMessages.vue'
 import ChatInput from '@/views/team/components/ChatInput.vue'
+import { useTeamStore } from '@/stores/team'
 import { storeToRefs } from 'pinia'
 import { useChatStore } from '@/stores/chat'
-import type { ChatMessage } from '@/types/chat'
-import type { Employee } from '@/types/team'
-
+import { onMounted } from 'vue'
+import { useUserStore } from '@/stores/user'
 // 状态管理
-const chartStore = useChatStore()
-// 获取状态管理中的数据
-const { historyMessage, friendsList } = storeToRefs(chartStore)
-const messages = computed(() => historyMessage.value)
+const userStore = useUserStore()
+const teamStore = useTeamStore()
+const chatStore = useChatStore()
+const { activeSessionId, sessions, messages } = storeToRefs(chatStore)
+const { employees } = storeToRefs(teamStore)
 
-const onlineUsers = computed(() => {
-  return (friendsList.value as Employee[]).filter(employee => employee && typeof employee === 'object' && 'online' in employee && employee.online)
-})
-const handleSend = async (message: ChatMessage) => {
-  try {
-    await chartStore.addMessage(message);
-  } catch (error) {
-    console.error("发送消息失败:", error);
-  }
-};
+const currentSession = computed(() =>
+  sessions.value.find(s => s.id === activeSessionId.value)
+)
 
+onMounted(async () => {
+  await userStore.getUserInfo();
+  await teamStore.getEmployees();
+  await teamStore.getTeamList();
+});
 </script>
 
 <template>
   <div class="chat-container">
-    <!-- 左侧成员列表 -->
     <div class="sidebar">
-      <MemberList :online-users="onlineUsers" />
+      <MemberList :sessions="sessions" :employees="employees" :active-session-id="activeSessionId" />
     </div>
-    <!-- 右侧主消息区 -->
     <div class="main-area">
-      <ChatMessages :messages="messages" />
-      <ChatInput @send-message="handleSend" />
+      <ChatMessages v-if="currentSession" :messages="messages" :session-id="activeSessionId" />
+      <ChatInput v-if="currentSession" :session-id="activeSessionId" :session-type="currentSession.type" />
     </div>
   </div>
 </template>
@@ -48,6 +45,7 @@ const handleSend = async (message: ChatMessage) => {
   display: grid;
   grid-template-columns: 240px 1fr;
   height: 100%;
+  padding: 15px;
 }
 
 .sidebar {
@@ -63,12 +61,12 @@ const handleSend = async (message: ChatMessage) => {
   overflow: hidden;
 }
 
-.main-area > * {
+.main-area>* {
   flex: 1;
   overflow-y: auto;
 }
 
-.main-area > :last-child {
+.main-area> :last-child {
   flex: none;
   background-color: #fff;
   border-top: 1px solid #eee;

@@ -258,9 +258,9 @@ onMounted(async () => {
               <!-- 编辑删除按钮 -->
               <v-card-actions v-if="isAdmin">
                 <v-spacer />
-                <v-btn color="primary" icon="edit" variant="tonal" @click.stop="openEditor(notice)">
+                <v-btn  v-if="isAdmin" color="primary" icon="edit" variant="tonal" @click.stop="openEditor(notice)">
                 </v-btn>
-                <v-btn color="error" icon="delete" variant="tonal" @click.stop="confirmDelete(notice.id)">
+                <v-btn v-if="isAdmin" color="error" icon="delete" variant="tonal" @click.stop="confirmDelete(notice.id)">
                 </v-btn>
               </v-card-actions>
             </v-card>
@@ -419,9 +419,9 @@ onMounted(async () => {
 .admin-toolbar {
   position: fixed;
   /* 固定在页面 */
-  bottom: 20px;
+  top: 520px;
   /* 离底部20px */
-  right: 20px;
+  right: 0px;
   background: rgba(149, 166, 210, 0.8) !important;
   backdrop-filter: blur(4px);
   border-bottom: 1px solid rgba(66, 72, 86, 0.12);

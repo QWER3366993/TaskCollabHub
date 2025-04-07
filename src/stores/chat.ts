@@ -1,184 +1,167 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
-import type { ChatMessage, ChatStatus } from '@/types/chat';
 import type { Employee } from '@/types/team';
-import dayjs from 'dayjs';
-import { fetchHistory, fetchUnreadCount, updateOnlineStatus, getPresence, sendMessage } from '@/api/chat';
-import { fetchEmployees } from '@/api/team';
-import { useTeamStore } from '@/stores/team';
-import { createToast } from 'mosha-vue-toastify';
-import type { GetChatHistoryParams ,UpdateOnlineStatusParams } from '@/api/chat';
+import type { ChatMessage, ChatSession, SessionType, SystemMessage } from '@/types/chat';
+import { useTeamStore } from './team';
+import { send } from '@/utils/websocket'; // 引入 WebSocket 工具方法
+import { useUserStore } from './user';
 
 export const useChatStore = defineStore("chat", () => {
     const teamStore = useTeamStore();
+    const userStore = useUserStore();
     // 定义状态
-    const onlineStatus = ref(false);
-    const receiverId = ref('');
-    const currentSessionId = ref("team-default") // 当前会话ID
-    const currentSessionType = ref<'employee' | 'team'>('team'); // 当前会话类型
-    const historyMessage = ref<ChatMessage[]>([]);
-    const friendsList = ref<Employee[]>([]);
-    const systemMessages = ref<string[]>([]);
-    const unreadCount = ref<Record<string, number>>({}); // 记录各个会话的未读消息数
-    const socket = ref<WebSocket | null>(null)
-
-
-    // 连接WebSocket
-    function connectWebSocket() {
-        socket.value = new WebSocket('ws://your-websocket-url')
-
-        socket.value.onopen = () => {
-            console.log('WebSocket connection established')
-        }
-
-        socket.value.onmessage = (event) => {
-            const message: ChatMessage = JSON.parse(event.data)
-            historyMessage.value.push(message)
-        }
-
-        socket.value.onerror = (error) => {
-            console.error('WebSocket error:', error)
-        }
-
-        socket.value.onclose = () => {
-            console.log('WebSocket connection closed')
-        }
-    }
-
-    // 获取历史消息
-    const getHistory = async (params: GetChatHistoryParams) => {
-        const data = await fetchHistory(params);
-        historyMessage.value = data;
-    };
+    const sessions = ref<ChatSession[]>([]);
+    const messages = ref<ChatMessage[]>([]);
+    const activeSessionId = ref<string>("");
+    const employees = ref<any[]>([]);
+    const currentTeam = ref<any>(null);
+    const currentUser = computed(() => teamStore.currentEmployee);
 
     // 发送消息
-    const sendMessage = (message: Omit<ChatMessage, 'id' | 'timestamp'>) => {
-        if (!socket.value || socket.value.readyState !== WebSocket.OPEN) {
-            console.error('WebSocket is not open');
+    const sendMessage = async (message: Omit<ChatMessage, 'id' | 'timestamp'>) => {
+        try {
+            const fullMessage: ChatMessage = {
+                ...message,
+                id: crypto.randomUUID(),
+                timestamp: new Date().toISOString()
+            };
+
+            // 使用 WebSocket 发送
+            const success = send(fullMessage);
+            if (success) {
+                messages.value.push(fullMessage);
+            }
+            return success;
+        } catch (error) {
+            console.error("发送消息失败:", error);
             return false;
         }
-        const fullMessage: ChatMessage = {
-            ...message,
-            id: crypto.randomUUID(),
-            timestamp: dayjs().format('YYYY-MM-DD HH:mm:ss'),
-        };
-        socket.value.send(JSON.stringify(fullMessage));
-        historyMessage.value.push(fullMessage);
-        return true;
     };
 
-    // 获取在线状态
-    const getOnlineStatus = async (userId: string): Promise<boolean> => {
-        try {
-            const response = await getPresence(userId);
-            onlineStatus.value = response;
-            // return !!onlineStatus.value;  // 或者使用这段代码替换if-else,确保返回布尔值
-            if (onlineStatus.value) {
-                console.log("用户在线");
-                return true;
-            } else {
-                console.log("用户离线");
-                return false;
+    // 新增方法：清除未读
+    const clearUnread = (sessionId: string) => {
+        const session = sessions.value.find(s => s.id === sessionId);
+        if (session) {
+            session.unread = 0;
+        }
+    };
+
+    // 初始化聊天数据
+    const initializeChat = async () => {
+        const currentTeamId = teamStore.currentEmployee?.teamId; // 获取当前团队ID
+        if (!currentTeamId) {
+            console.error('无法初始化聊天：缺少团队ID');
+            return;
+        }
+        const [teamData, employeeData] = await Promise.all([
+            teamStore.getTeamById(currentTeamId),
+            teamStore.getEmployees()
+        ]);
+        currentTeam.value = teamData;
+        employees.value = employeeData;
+
+        // 初始化群聊会话
+        if (teamData) {
+            sessions.value.push({
+                id: teamData.id,
+                type: 'group',
+                name: teamData.name,
+                members: teamData.employees.map(m => m.employeeId),
+                unread: 0,
+                timestamp: new Date().toISOString()
+            });
+        }
+    };
+    // 处理消息接收
+    const handleMessage = (message: ChatMessage) => {
+        messages.value.push(message);
+
+        // 更新会话状态
+        const session = sessions.value.find(s => s.id === message.sessionId);
+        if (session) {
+            session.lastMessage = message.content;
+            session.timestamp = message.timestamp;
+            if (session.id !== activeSessionId.value) session.unread++;
+        }
+    };
+
+    // 生成系统通知内容
+    const generateSystemContent = (msg: SystemMessage): string => {
+        switch (msg.type) {
+            case 'online':
+                return `${msg.userName} 已上线`;
+            case 'offline':
+                return `${msg.userName} 已离线`;
+            case 'join':
+                return `${msg.userName} 加入了群组 ${msg.teamId}`;
+            case 'leave':
+                return `${msg.userName} 离开了群组 ${msg.teamId}`;
+            default:
+                return `系统通知：${JSON.stringify(msg)}`;
+        }
+    };
+
+    // 处理系统通知
+    const handleSystemNotice = (message: SystemMessage) => {
+        const content = generateSystemContent(message);
+        messages.value.push({
+            id: `sys-${Date.now()}`,
+            sessionId: 'system',
+            sessionType: 'system',
+            content,
+            sender: 'system',
+            timestamp: new Date().toISOString(),
+            isRead: false
+        });
+
+        // 如果是上下线通知，更新成员状态
+        if (['online', 'offline'].includes(message.type)) {
+            const user = employees.value.find(e => e.id === message.userId);
+            if (user) {
+                user.status = message.type === 'online';
             }
-        } catch (error) {
-            console.error("获取在线状态失败:", error);
-            throw error;
         }
     };
 
-    // 更新在线状态
-    const setOnlineStatus = async (params: UpdateOnlineStatusParams) => {
-        try {
-            const data = await updateOnlineStatus(params);
-            onlineStatus.value = params.status;
-        } catch (error) {
-            console.error("更新在线状态失败:", error);
-            createToast("状态更新失败，请重试", { type: "danger" });
+    // 切换会话
+    const switchSession = (sessionId: string) => {
+        activeSessionId.value = sessionId;
+        clearUnread(sessionId); // 切换时清除未读
+    };
+
+    // 生成私聊会话
+    const createPrivateSession = (targetUser: any) => {
+        if (!currentUser.value) {
+            console.error('无法生成私聊会话：当前用户未定义');
+            return null; // 或者抛出异常，根据业务需求决定
         }
-    };
-   
-    // 获取好友列表 & 系统消息
-    const getFriendsList = async (): Promise<Employee[]> => {
-        const response = await fetchEmployees();
-        console.log("获取到的好友列表:", response);
-        friendsList.value = response.filter(emp => emp.employeeId !== teamStore.currentEmployee?.employeeId);
-        // 将过滤后的好友列表赋值给系统消息
-        systemMessages.value = friendsList.value.map(friend => friend.name);
-        return friendsList.value ;
-    };
-
-    // 添加消息
-    const addMessage = async (message: ChatMessage) => {
-        historyMessage.value.push(message);
-        sessionStorage.setItem(message.sender, JSON.stringify(historyMessage.value));
-    };
-
-    // 切换聊天窗口
-    const showChat = async (Id: string) => {
-        if (receiverId.value === Id) return;
-        receiverId.value = Id;
-        const history = sessionStorage.getItem(Id);
-        historyMessage.value = history ? JSON.parse(history) : [];
-    };
-
-    // 获取所有未读消息总数
-    const totalUnread = computed(() => {
-        return Object.values(unreadCount.value).reduce((sum, count) => sum + count, 0);
-    });
-
-    // 加载未读消息数
-    const loadUnreadCount = async (sessionId: string) => {
-        try {
-            const unreadData = await fetchUnreadCount(sessionId); // 获取未读消息数
-            if (unreadData && typeof unreadData === 'object') {
-                // 合并新数据到现有数据中
-                unreadCount.value = { ...unreadCount.value, ...unreadData };
-            } else {
-                console.error('Invalid unread count data format:', unreadData);
-            }
-        } catch (error) {
-            console.error('Failed to load unread count:', error);
+        const sessionId = [currentUser.value.employeeId, targetUser.id].sort().join('_');
+        if (!sessions.value.some(s => s.id === sessionId)) {
+            sessions.value.push({
+                id: sessionId,
+                type: 'private',
+                name: targetUser.name,
+                members: [currentUser.value.employeeId, targetUser.id],
+                unread: 0,
+                timestamp: new Date().toISOString()
+            });
         }
+        return sessionId;
     };
 
-    // 更新未读消息计数
-    function setUnreadCount(sessionId: string, count: number) {
-        unreadCount.value[sessionId] = count;
-    }
-
-    // 增加未读消息数
-    function incrementUnread(sessionId: string) {
-        unreadCount.value[sessionId] = (unreadCount.value[sessionId] || 0) + 1;
-    }
-
-    // 清空未读消息数
-    function clearUnread(sessionId: string) {
-        unreadCount.value[sessionId] = 0;
-    }
 
     return {
-        onlineStatus,
-        currentSessionId,
-        currentSessionType,
-        receiverId,
-        historyMessage,
-        friendsList,
-        systemMessages,
-        unreadCount,
-        totalUnread,
-        socket,
-        getHistory,
-        connectWebSocket,
-        sendMessage,
-        getOnlineStatus,
-        setOnlineStatus,
-        setUnreadCount,
-        incrementUnread,
-        updateOnlineStatus,
-        clearUnread,
-        loadUnreadCount,
-        getFriendsList,
-        addMessage,
-        showChat,
+        sessions,
+        messages,
+        activeSessionId,
+        employees,
+        currentTeam,
+        initializeChat,
+        handleMessage,
+        handleSystemNotice,
+        switchSession,
+        createPrivateSession,
+        sendMessage, 
+        clearUnread  
     };
 });

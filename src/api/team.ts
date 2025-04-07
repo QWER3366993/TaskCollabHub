@@ -25,20 +25,37 @@ export const fetchTeamById = async (teamId: string): Promise<Team> => {
   return response.data;
 };
 
+// 获取员工详情
+export const fetchEmployeeById = async (userId: string): Promise<Employee> => {
+  const response = await service({
+    url: `/employees/${userId}`,
+    method: 'get',
+  });
+  return response.data;
+};
+
 //根据成员获取所在团队列表
 export const fetchTeamByemployeeId = async (employeeId: string): Promise<Team[] | []> => {
   const response = await service({
     url: `/employees/${employeeId}/teams`,  
     method: 'get',
   });
-  return response.data;
+  // 返回的数据是团队数据，但 team 的 employees 只是 ID，你需要在此处理员工信息
+  const teamsWithEmployees = response.data.map((team: Team) => {
+    return {
+      ...team,
+      employees: team.employees.map((employeeId: string) => fetchEmployeeById(employeeId)) // 根据 ID 获取员工详细信息
+    };
+  });
+
+  return teamsWithEmployees;
 };
 
 // 创建新团队
 export const createTeam = async (teamData: {
   name: string;
   description: string;
-  employees?: Employee[]
+  employees?: string[]
 }
 ): Promise<Team> => {
   const response = await service({
@@ -46,20 +63,20 @@ export const createTeam = async (teamData: {
     method: 'post',
     data: {
       ...teamData,
-      members: teamData.employees // 根据后端字段命名调整
+      members: teamData.employees // 提交的是员工 ID 数组
     },
   });
   return response.data;
 };
 
 // 更新团队信息
-export const updateTeam = async (teamId: string, teamData: { name: string; description: string; employees: Employee[] }): Promise<Team> => {
+export const updateTeam = async (teamId: string, teamData: { name: string; description: string; employees: string[] }): Promise<Team> => {
   const response = await service({
     url: `/teams/${teamId}`,
     method: 'put',
     data: {
       ...teamData,
-      members: teamData.employees
+      members: teamData.employees // 提交的是员工 ID 数组
     },
   });
   return response.data;
@@ -84,15 +101,6 @@ export const deleteTeam = async (teamId: string): Promise<Team> => {
   return response.data;
 };
 
-// 获取员工详情
-export const fetchEmployeeById = async (userId: string): Promise<Employee> => {
-  const response = await service({
-    url: `/employees/${userId}`,
-    method: 'get',
-  });
-  return response.data;
-};
-
 // 添加成员到团队
 export const addMemberToTeam = async (teamId: string, employeeIds: string | string[]): Promise<Team> => {
   const ids = Array.isArray(employeeIds) ? employeeIds : [employeeIds];
@@ -113,7 +121,7 @@ export const removeMemberFromTeam = async (teamId: string, memberId: string): Pr
   return response.data;
 };
 
-// 获取特定团队成员
+// 获取某个团队的成员（根据ID数组获取详情）
 export const fetchTeamMembers = async (teamId: string): Promise<Employee[]> => {
   try {
     const response = await service({
