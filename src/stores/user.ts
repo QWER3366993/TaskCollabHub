@@ -6,6 +6,12 @@ import type { User, UserQueryParams, Role } from '@/types/user'
 import type { Employee } from '@/types/team'
 import { createToast } from 'mosha-vue-toastify'
 
+interface UserStoreType {
+  token: string
+  user: User
+  errorMessage: string
+}
+
 export const useUserStore = defineStore('user', () => {
   const token = ref<string | null>(getToken() || '')  // 存储token
   const users = ref<User[]>([])
@@ -17,16 +23,20 @@ export const useUserStore = defineStore('user', () => {
 
   // 登录
   const loginUser = async (userInfo: { username: string; password: string }) => {
-    const data = await login(userInfo);
-    if (!data) {
-      throw new Error('登录失败，未获取到有效Token');
-    }
-    setToken(data)
-    token.value = data
-    await getUserInfo(); // 获取用户信息
-    if (data.error) {
-      errorMessage.value = '登录失败：' + data.message
-      createToast(errorMessage.value, { position: 'top-center', showIcon: true })
+    try {
+      const data = await login(userInfo)
+      if (data.error) {
+        createToast('登录失败：' + data.message, {
+          position: 'top-center',
+          showIcon: true
+        })
+        return
+      }
+
+      setToken(data.token)
+      token.value = data.token
+    } catch (error) {
+      console.error('Login error:', error)
     }
   }
 

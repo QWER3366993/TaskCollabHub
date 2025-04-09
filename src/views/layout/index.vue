@@ -49,7 +49,9 @@ onMounted(() => {
     <div class="layout_sidebar" :class="{ fold: settingStore.fold }">
       <div class="logo">
         <img src="../../../logo.png" alt="">
-        <p>Planify</p>
+        <p style="font-family: 'Arial'; font-weight: bold; font-style: italic; color: #4CAF50;">
+          Planify
+        </p>
       </div>
       <SideBar :menu-list="routeStore.primaryRoutes" @menu-click="handleMenuClick"></SideBar>
     </div>

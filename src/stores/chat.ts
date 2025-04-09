@@ -66,7 +66,7 @@ export const useChatStore = defineStore("chat", () => {
                 id: teamData.id,
                 type: 'group',
                 name: teamData.name,
-                members: teamData.employees.map(m => m.employeeId),
+                members: teamData.employees,
                 unread: 0,
                 timestamp: new Date().toISOString()
             });

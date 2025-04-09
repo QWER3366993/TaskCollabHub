@@ -27,25 +27,23 @@ const service = axios.create({
   validateStatus: (status) => {
     // 自定义HTTP状态码的验证逻辑，以决定是否抛出错误
     return status >= 200 && status < 300
-  },
-  headers: {
-    'Content-Type': 'application/json',
   }
 })
 
 // request拦截器
-service.interceptors.request.use(config => {
-  const token = getToken()
-  if (token) {
-    // 让每个请求携带自定义token 根据实际情况自行修改
-    config.headers['Authorization'] = `Bearer ${token}`
-  }
-  // 动态设置Content-Type，允许在特定请求中覆盖
-  if (!config.headers['Content-Type']) {
-    config.headers['Content-Type'] = 'application/json'
-  }
-  return config
-},
+service.interceptors.request.use(
+  (config) => {
+    const token = getToken()
+    if (token) {
+      // 让每个请求携带自定义token 请根据实际情况自行修改
+      config.headers['Authorization'] = 'Bearer ' + token
+    }
+    // 动态设置Content-Type，允许在特定请求中覆盖
+    if (!config.headers['Content-Type']) {
+      config.headers['Content-Type'] = 'application/json'
+    }
+    return config
+  },
   (error) => {
     // 移除错误信息打印，改为合适的错误处理
     Promise.reject(error)
@@ -65,9 +63,5 @@ service.interceptors.response.use(
     return Promise.reject(error)
   }
 )
-
-// 默认错误处理
-const defaultError = () => createToast('发生了一些错误，请联系管理员', { position: 'top-center', showIcon: true })  // 使用 toast 进行错误提示
-const defaultFailure = (message: string) => createToast(message, { position: 'top-center', showIcon: true })  // 失败时显示 message
 
 export default service;

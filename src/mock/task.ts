@@ -717,7 +717,8 @@ export default [
     response: ({ body }: { body: User }) => {
       const { username, password } = body;
       const checkUser = mockUsers.find(
-        (user) => user.username === username && user.password === password)
+        // 这里暂且只验证账号，因为密码进行了加密，mock中使用的是明文。无法比较
+        (user) => user.username === username)
       if (!checkUser) {
         return {
           code: 401,

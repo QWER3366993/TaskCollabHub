@@ -331,4 +331,30 @@ export const router = createRouter({
 //   }
 // })
 
+// router.beforeEach((to, from, next) => {
+//   const store = useStore(); // 获取状态管理的 store
+
+//   // 用户已登录
+//   if (store.auth.user != null) {
+//     if (to.path === '/') {
+//       // 登录用户访问登录页面，重定向到 /env
+//       next('/env');
+//     } else {
+//       next(); // 允许访问其他页面
+//     }
+//   } 
+//   // 用户未登录
+//   else {
+//     if (to.path.startsWith('/env')) {
+//       // 未登录用户访问 /env 页面，重定向到 /
+//       next('/');
+//     } else if (to.matched.length === 0) {
+//       // 路由未匹配时重定向到 /
+//       next('/');
+//     } else {
+//       next(); // 允许访问登录相关页面
+//     }
+//   }
+// });
+
 export default router

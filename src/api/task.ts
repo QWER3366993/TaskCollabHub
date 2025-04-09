@@ -48,6 +48,7 @@ export const fetchTasksByProject = async (projectId: string): Promise<Task[]> =>
   return response.data;
 };
 
+// 根据团队获取任务列表
 export const fetchTasksByTeam = async (teamId: string): Promise<Task[]> => {
   const response = await service({
     url: `/tasks?teamId=${teamId}`,
@@ -57,9 +58,9 @@ export const fetchTasksByTeam = async (teamId: string): Promise<Task[]> => {
 };
 
 // 根据参与人员获取任务列表
-export const fetchTasksByUser = async (userId: string): Promise<Task[]> => {
+export const fetchTasksByUser = async (employeeId: string): Promise<Task[]> => {
   const response = await service({
-    url: `/tasks?employeeId=${userId}`,
+    url: `/tasks?employeeId=${employeeId}`,
     method: 'get',
   });
   return response.data;

@@ -1,6 +1,8 @@
 <script lang="ts" setup>
 import { onMounted, getCurrentInstance } from 'vue';
 import { createToast } from 'mosha-vue-toastify';
+import { convertToHash } from '@/utils/crypto'
+
 import {
   usernameRules,
   passwordRules,
@@ -39,12 +41,13 @@ const forgotPassword: () => void = () => {
 
 const handRegister = async () => {
   const { valid } = await instance.ctx.$refs.form.validate();
+  const user = { username: username.value, password: convertToHash(password.value) }
   if (valid) {
     if (username.value == '' || password.value == '') {
       createToast('用户名或密码不能为空！', { position: 'top-center', showIcon: true });
     } else {
       try {
-        const res = await login({ username: username.value, password: password.value });
+        const res = await login(user);
         createToast(res.data.msg, { position: 'top-center', showIcon: true });
       } catch (e) {
         alert(e);

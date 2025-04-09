@@ -6,11 +6,14 @@ import { useUserStore } from '@/stores/user';
 import { login } from '@/api/user';
 import { usernameRules, passwordRules, username, password, show1 } from '@/hooks/useValidRule';
 import { VForm } from 'vuetify/components/VForm'; // 明确导入类型
-import { useTeamStore } from '@/stores/team';
+import { storeToRefs } from 'pinia';
+import { convertToHash } from '@/utils/crypto'
 
 const router = useRouter(); // 使用 useRouter 钩子获取 router 实例
 const userStore = useUserStore();
-const teamStore = useTeamStore();
+const { token } = storeToRefs(userStore)
+
+
 // 表单引用
 const formRef = ref<InstanceType<typeof VForm>>();
 
@@ -31,37 +34,22 @@ const handleLogin = async () => {
     return;
   }
   const { valid } = await formRef.value.validate();
-  console.log('表单验证结果:', valid); // 查看控制台输出
   if (valid) {
-    if (username.value == '' || password.value == '') {
-      createToast('用户名或密码不能为空！', { position: 'top-center', showIcon: true });
-      return;
-    } else {
-      try {
-        // 发送登录请求
-        const response = await login({ username: username.value, password: password.value });
-        // 确保后端返回了 token
-        if (!response) {
-          throw new Error('登录失败：未返回 Token');
-        }
-        // 1. 确保 Token 存储完成
-        await userStore.loginUser({
-          username: username.value,
-          password: password.value
-        });
-        // 2. 显式等待用户信息加载（store已添加该方法）
-        // await userStore.getUserInfo();
-
-        // 3. 检查用户信息是否有效
-        if (!userStore.user.userId) {
-          throw new Error('用户信息加载失败');
-        }
-        // 4. 执行跳转
-        router.push('/noticeboard1');
-      } catch (error) {
-        createToast('登录失败，请检查凭证', { type: 'danger' });
-        throw error; // 这里要抛出错误，以便在 loginUser 方法中捕获
+    const user = { username: username.value, password: convertToHash(password.value) }
+    try {
+      // 发送登录请求返回token
+      const response = await login(user)
+      // 确保后端返回了 token
+      if (!response) {
+        throw new Error('登录失败：未返回 Token');
       }
+      if (token) {
+        await userStore.getUserInfo();
+        await router.push('/noticeboard1');
+      }
+    } catch (error) {
+      reset()
+      throw error; // 这里要抛出错误，以便在 loginUser 方法中捕获
     }
   }
 };
@@ -73,17 +61,6 @@ const reset = () => {
     formRef.value.reset();
   }
 };
-
-// 初始化加载顺序
-onMounted(async () => {
-  // 第一步：加载用户数据
-  await userStore.getUserInfo()
-  // 第二步：用户数据存在时加载关联员工数据
-  if (userStore.user?.userId) {
-    await teamStore.getEmployeeById(userStore.user.userId)
-  }
-}
-)
 
 </script>
 
