@@ -31,7 +31,7 @@ export const useMemoStore = defineStore('memo', () => {
   const updateMemoInternal = async (memo: Memo) => {
     try {
       const updatedMemo = await updateMemo(memo)
-      const index = memos.value.findIndex(item => item.id === memo.id)
+      const index = memos.value.findIndex(item => item.memoId === memo.memoId)
       if (index !== -1) {
         memos.value[index] = updatedMemo
       }
@@ -44,7 +44,7 @@ export const useMemoStore = defineStore('memo', () => {
   const deleteMemoInternal = async (id: string) => {
     try {
       await deleteMemo(id)
-      memos.value = memos.value.filter(memo => memo.id !== id)
+      memos.value = memos.value.filter(memo => memo.memoId !== id)
     } catch (error) {
       console.error('删除备忘录失败', error)
     }

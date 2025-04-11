@@ -20,11 +20,11 @@ export const createMemo = async (memo: Memo): Promise<Memo> => {
 
 // 更新备忘录
 export const updateMemo = async (memo: Memo): Promise<Memo> => {
-  const response = await service.put(`${'/memos'}/${memo.id}`, memo)
+  const response = await service.put(`/memos/${memo.memoId}`, memo)
   return response.data
 }
 
 // 删除备忘录
 export const deleteMemo = async (id: string): Promise<void> => {
-  await service.delete(`${'/memos'}/${id}`)
+  await service.delete(`/memos/${id}`)
 }

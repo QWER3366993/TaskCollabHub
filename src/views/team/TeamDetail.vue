@@ -38,8 +38,8 @@ const loadTeamData = async (teamId: string) => {
     const teamDetails = await teamStore.getTeamById(teamId);
     if (teamDetails) {
       team.value = teamDetails;
-      if (teamDetails.id) {
-        teamMembers.value = await teamStore.getTeamMembers(teamDetails.id);
+      if (teamDetails.teamId) {
+        teamMembers.value = await teamStore.getTeamMembers(teamDetails.teamId);
       } else {
         teamMembers.value = teamStore.employees;
       }

@@ -28,6 +28,24 @@ const statusOptions = ['已完成', '未完成']
 // 表单规则
 const requiredRule = (v: string) => !!v || '必填项'
 
+// 删除对话框
+const showDeleteDialog = ref(false)
+const deletingMemoId = ref<string | null>(null)
+
+const confirmDelete = (id: string) => {
+  deletingMemoId.value = id
+  showDeleteDialog.value = true
+}
+
+const executeDelete = async () => {
+  if (deletingMemoId.value) {
+    await memoStore.deleteMemo(deletingMemoId.value)
+    showDeleteDialog.value = false
+    deletingMemoId.value = null
+  }
+}
+/*************** */
+
 // 计算属性
 const filteredMemos = computed(() => {
   return memoStore.memos.filter(memo => {
@@ -65,7 +83,7 @@ const closeEditor = () => {
 }
 
 const saveMemo = async () => {
-  if (editingMemo.value.id) {
+  if (editingMemo.value.memoId) {
     await memoStore.updateMemo(editingMemo.value as Memo)
   } else {
     await memoStore.addMemo(editingMemo.value as Memo)
@@ -136,7 +154,7 @@ onMounted(async () => {
 
     <!-- 备忘录列表 -->
     <v-row>
-      <v-col v-for="memo in filteredMemos" :key="memo.id" cols="12" sm="6" md="4" lg="3">
+      <v-col v-for="memo in filteredMemos" :key="memo.memoId" cols="12" sm="6" md="4" lg="3">
         <v-card class="memo-card" :class="{ 'completed': memo.completed }">
           <v-card-title class="d-flex align-center">
             <v-checkbox v-model="memo.completed" color="success" hide-details
@@ -159,7 +177,7 @@ onMounted(async () => {
             <v-btn variant="text" color="primary" size="small" @click="openEditor(memo)">
               编辑
             </v-btn>
-            <v-btn variant="text" color="error" size="small" @click="deleteMemo(memo.id!)">
+            <v-btn variant="text" color="error" size="small" @click="confirmDelete(memo.memoId!)">
               删除
             </v-btn>
           </v-card-actions>
@@ -171,7 +189,7 @@ onMounted(async () => {
     <v-dialog v-model="showEditor" max-width="600">
       <v-card>
         <v-toolbar color="primary">
-          <v-toolbar-title>{{ editingMemo.id ? '编辑备忘录' : '新建备忘录' }}</v-toolbar-title>
+          <v-toolbar-title>{{ editingMemo.memoId ? '编辑备忘录' : '新建备忘录' }}</v-toolbar-title>
           <v-btn icon @click="closeEditor">
             <v-icon>close</v-icon>
           </v-btn>
@@ -193,12 +211,35 @@ onMounted(async () => {
 
           <v-card-actions>
             <v-spacer></v-spacer>
-            <v-btn variant="text" @click="closeEditor">取消</v-btn>
             <v-btn color="primary" type="submit">保存</v-btn>
+            <v-btn variant="text" @click="closeEditor">取消</v-btn>
           </v-card-actions>
         </v-form>
       </v-card>
     </v-dialog>
+
+    <!-- 添加在模板的v-container内（建议放在编辑弹窗后面） -->
+    <v-dialog v-model="showDeleteDialog" max-width="400">
+      <v-card>
+        <v-toolbar color="error" density="compact">
+          <v-toolbar-title>删除确认</v-toolbar-title>
+          <v-btn icon @click="showDeleteDialog = false">
+            <v-icon>close</v-icon>
+          </v-btn>
+        </v-toolbar>
+
+        <v-card-text class="pt-4">
+          <div class="text-body-1">确定要删除这个备忘录吗？</div>
+          <div class="text-caption text-medium-emphasis mt-2">该操作不可撤销</div>
+        </v-card-text>
+
+        <v-card-actions class="justify-end">
+          <v-btn color="error" variant="tonal" @click="executeDelete">确认删除</v-btn>
+          <v-btn variant="text" @click="showDeleteDialog = false">取消</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+
   </v-container>
 </template>
 
@@ -304,6 +345,5 @@ onMounted(async () => {
       border-top: 1px solid rgba(0, 0, 0, 0.08);
     }
   }
-
 }
 </style>

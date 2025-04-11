@@ -273,6 +273,7 @@ const handleTeamChange = async (newTeamId: string) => {
   try {
     // 更新项目团队ID
     project.value.teamId = newTeamId;
+    console.log('团队变更处理:', newTeamId);
     // 加载新团队成员
     members.value = await fetchMembers(newTeamId);
     // 自动更新所有任务的团队ID
@@ -287,6 +288,14 @@ const handleTeamChange = async (newTeamId: string) => {
   }
 }
 
+// 验证工作量
+const validateWorkload = (employeeId: string) => {
+  if (!employeeId) return true;
+  // 根据 employeeId 查找成员
+  const member = members.value.find(m => m.employeeId === employeeId);
+  if (!member) return true; // 如果未找到成员，默认返回 true
+  return member.workload <= 70; // 返回 true/false 控制验证状态
+};
 
 let intervalId: any;
 // 初始化
@@ -362,18 +371,7 @@ watch(
                 <v-card-title>项目信息</v-card-title>
                 <v-card-text>
                   <v-text-field v-model="project.title" label="项目名称" required />
-                  <!-- 团队选择器 -->
-                  <v-select v-model="project.teamId" :items="employeeTeams" label="所属团队" item-title="name"
-                    item-value="id" :loading="loadingTeams" :rules="[v => !!v || '必须选择团队']"
-                    @update:modelValue="handleTeamChange">
-                    <template v-slot:no-data>
-                      <v-list-item>
-                        <v-list-item-title>
-                          {{ employeeTeams.length ? '无匹配团队' : '您不属于任何团队' }}
-                        </v-list-item-title>
-                      </v-list-item>
-                    </template>
-                  </v-select>
+
                   <!-- 项目截止时间 -->
                   <v-menu v-model="deadlineProjectMenu" :close-on-content-click="false">
                     <template #activator="{ props }">
@@ -429,8 +427,9 @@ watch(
               </v-list>
               <v-select v-model="task.priority" :items="['高', '中', '低']" label="优先级" />
               <!-- 团队选择器 -->
-              <v-select v-model="project.teamId" :items="employeeTeams" label="所属团队" item-title="name" item-value="id"
-                :loading="loadingTeams" :rules="[v => !!v || '必须选择团队']" @update:modelValue="handleTeamChange">
+              <v-select v-model="project.teamId" :items="employeeTeams" label="所属团队" item-title="name"
+                item-value="teamId" :loading="loadingTeams" :rules="[v => !!v || '必须选择团队']"
+                @update:modelValue="handleTeamChange">
                 <template v-slot:no-data>
                   <v-list-item>
                     <v-list-item-title>
@@ -440,8 +439,31 @@ watch(
                 </template>
               </v-select>
               <!-- 分配成员 -->
-              <v-select v-model="task.employeeId" :items="members" label="分配成员" item-title="name"
-                item-value="employeeId" :disabled="!project.teamId" :rules="[v => !!v || '必须选择成员']">
+              <v-select v-model="task.employeeId" :items="members" label="分配成员" item-title="name" item-value="employeeId"
+                :disabled="!project.teamId" :rules="[v => !!v || '必须选择成员',
+                (value) => validateWorkload(value) || '该成员任务负载过高（>70）！'
+                ]">
+                <!-- 自定义选项展示 -->
+                <template v-slot:item="{ props, item }">
+                  <v-list-item v-bind="props">
+                    <v-list-item-title>
+                      <span class="text-caption ">{{ item.raw.position }}</span>
+                    </v-list-item-title>
+                    <v-list-item-subtitle>
+                      任务负载:
+                      <span :class="{ 'text-red': item.raw.workload > 60, 'text-green': item.raw.workload <= 30 }">
+                        {{ item.raw.workload }} %
+                      </span>
+                    </v-list-item-subtitle>
+                  </v-list-item>
+                </template>
+
+                <!-- 选中后的展示 -->
+                <template v-slot:selection="{ item }">
+                  <span>{{ item.raw.name }}</span>
+                  <span class="text-caption text-grey ml-2">{{ item.raw.position }}</span>
+                </template>
+
                 <template v-slot:no-data>
                   <v-list-item>
                     <v-list-item-title>

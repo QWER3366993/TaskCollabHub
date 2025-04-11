@@ -17,10 +17,15 @@ const employeeMap = new Map();
 // 控制创建团队对话框的显隐
 const createTeamDialogVisible = ref(false);
 // Omit<Team, 'id'> 是一个类型操作符，用于从 Team 类型中排除 id 属性
-const newTeam = ref<Omit<Team, 'id'>>({ name: '', description: '', employees: [] });
+const newTeam = ref<Omit<Team, 'id'>>({
+  name: '', description: '', employees: [],
+  teamId: ''
+});
 
-const isManager = computed(
-  () => userStore.user.authorities?.includes('manager'));
+const isAdmin = computed(() =>
+  userStore.user?.authorities?.includes('ROLE_ADMIN') ||
+  userStore.user?.authorities?.includes('ROLE_Manager')
+);
 
 // 创建团队
 const createTeam = async () => {
@@ -39,7 +44,7 @@ const createTeam = async () => {
     // 提交创建团队请求
     await teamStore.createNewTeam(newTeam.value);
     createTeamDialogVisible.value = false;
-    newTeam.value = { name: '', description: '', employees: [] };
+    newTeam.value = { name: '', description: '', employees: [], teamId: '' };
     createToast('创建成功', { type: 'success' });
   } catch (error) {
     createToast('创建失败', { type: 'danger' });
@@ -110,7 +115,7 @@ onMounted(async () => {
     <!-- 顶部操作栏 -->
     <div class="d-flex align-center mb-4">
       <h2 class="text-h5 flex-grow-1">团队列表</h2>
-      <v-btn color="primary" @click="createTeamDialogVisible = true">
+      <v-btn  v-if="isAdmin" color="primary" @click="createTeamDialogVisible = true">
         <v-icon>add</v-icon>
         新建团队
       </v-btn>
@@ -143,7 +148,7 @@ onMounted(async () => {
           <div class="action-buttons">
             <v-tooltip text="编辑">
               <template #activator="{ props }">
-                <v-btn v-bind="props" icon variant="text" color="primary" @click="editTeam(item.id)">
+                <v-btn v-bind="props" icon variant="text" color="primary" @click="editTeam(item.teamId)">
                   <v-icon>edit</v-icon>
                 </v-btn>
               </template>
@@ -151,7 +156,7 @@ onMounted(async () => {
             <!--  添加v-if="isAdmin"，普通员工不可见 -->
             <v-tooltip text="删除">
               <template #activator="{ props }">
-                <v-btn v-bind="props" icon variant="text" color="grey" @click="deleteTeam(item.id)">
+                <v-btn  v-if="isAdmin" v-bind="props" icon variant="text" color="grey" @click="deleteTeam(item.teamId)">
                   <v-icon>delete</v-icon>
                 </v-btn>
               </template>

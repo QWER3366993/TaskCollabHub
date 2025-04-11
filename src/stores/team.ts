@@ -265,6 +265,7 @@ export const useTeamStore = defineStore('team', () => {
     try {
       // 优先从缓存读取
       const cached = teamMembers.value.filter(e => e.teamId === teamId);
+      console.log('getTeamMembers:', cached);
       if (cached.length > 0) return cached;
 
       // 无缓存则请求数据

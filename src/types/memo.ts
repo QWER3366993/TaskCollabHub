@@ -1,6 +1,6 @@
 
 export interface Memo {
-    id?: string
+    memoId?: string
     title: string
     content: string
     category: string

@@ -150,6 +150,8 @@ const teamKPIs = computed(() => {
     const averageKPI = teamData.count > 0 ? teamData.totalKPI / teamData.count : 0;
     result.push({ teamId, averageKPI });
   });
+  // result.sort((a, b) => Number(a.teamId) - Number(b.teamId)); //  按团队id排序
+  result.sort((a, b) => b.averageKPI - a.averageKPI); // 按平均KPI降序
 
   return result;
 });
@@ -192,9 +194,11 @@ const sortedProjects = computed(() => {
 
 // 计算进度颜色
 const getProgressColor = (progress: number): string => {
-  if (progress >= 90) return 'success';
-  if (progress >= 70) return 'warning';
-  return 'error';
+  if (progress >= 95) return 'success';
+  if (progress >= 80) return 'info';
+  if (progress >= 50) return 'warning';
+  if (progress >= 30) return 'deep-orange';
+  return 'error'; // 0~29
 }
 
 // 导出 Excel 或 PDF
@@ -594,7 +598,7 @@ const handleResize = () => {
             <v-card class="kpi-card mt-4">
               <v-card-title class="headline text-center">🚨 逾期任务</v-card-title>
               <v-card-text>
-                <div v-for="task in overdueTasks" :key="task.id" class="task-item">
+                <div v-for="task in overdueTasks" :key="task.taskId" class="task-item">
                   <div><strong>任务名称:</strong> {{ task.title }}</div>
                   <div><strong>负责人:</strong> {{ teamStore.getName(task.employeeId) }}</div>
                   <div><strong>截止日期:</strong> {{ task.deadline }}</div>

@@ -72,7 +72,6 @@ const viewDetail = async (notice: Notice) => {
       console.error("Notice ID is invalid.");
       return;
     }
-    const updatedNotice = await getNoticeDetailAndUpdateHit(notice.noticeId);
     // 跳转到公告详情页面
     router.push({
       name: 'noticedetail',
