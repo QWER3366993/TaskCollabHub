@@ -1,5 +1,5 @@
 export interface Team {
-    id: string;
+    teamId: string;
     name: string;
     description: string;
     createdAt?: string;     
@@ -20,7 +20,7 @@ export interface Team {
   }
 
   export interface Schedule {
-    id: string;
+    scheduleId: string;
     title: string;
     date: string;
     time: string;

@@ -23,7 +23,7 @@ export const getInfo = async () => {
 
 // 获取员工信息接口
 export const fetchEmployeeByUserId = async (userId: string) => {
-  const response = await service.get(`/employees/${userId}`);
+  const response = await service.get(`/employees/user-id/${userId}`);
   return response.data;
 }
 

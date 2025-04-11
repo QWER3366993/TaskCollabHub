@@ -19,7 +19,7 @@ const teamStore = useTeamStore();
 const taskId = computed(() => route.params.id as string); // 从路由参数中获取任务 ID
 const teamId = ref<string>('');
 const defaultTask: Task = {
-  id: '',
+  taskId: '',
   title: '加载中...',
   description: '',
   status: '待处理',
@@ -32,6 +32,11 @@ const defaultTask: Task = {
   teamId: '',
   employeeId: ''
 };
+
+const isAdmin = computed(() =>
+  userStore.user?.authorities?.includes('ROLE_ADMIN') ||
+  userStore.user?.authorities?.includes('ROLE_Manager')
+);
 
 // 编辑相关状态
 const editTask = ref<Task>({ ...defaultTask });
@@ -309,11 +314,11 @@ onMounted(async () => {
             </div>
             <div>
               <!-- ‌tonal‌：按钮有颜色渐变效果 -->
-              <v-btn variant="tonal" color="primary" prepend-icon="edit" @click="toggleEdit">
+              <v-btn v-if="isAdmin" variant="tonal" color="primary" prepend-icon="edit" @click="toggleEdit">
                 {{ isEditing ? '完成' : '编辑' }}
               </v-btn>
               <!-- 删除按钮 -->
-              <v-btn variant="tonal" color="error" prepend-icon="delete" @click="deleteDialog = true">删除</v-btn>
+              <v-btn v-if="isAdmin" variant="tonal" color="error" prepend-icon="delete" @click="deleteDialog = true">删除</v-btn>
               <!-- 删除确认对话框 -->
               <v-dialog v-model="deleteDialog" max-width="400">
                 <v-card>

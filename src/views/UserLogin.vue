@@ -38,11 +38,8 @@ const handleLogin = async () => {
     const user = { username: username.value, password: convertToHash(password.value) }
     try {
       // 发送登录请求返回token
-      const response = await login(user)
+      await userStore.loginUser(user)
       // 确保后端返回了 token
-      if (!response) {
-        throw new Error('登录失败：未返回 Token');
-      }
       if (token) {
         await userStore.getUserInfo();
         await router.push('/noticeboard1');

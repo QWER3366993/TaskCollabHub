@@ -37,8 +37,8 @@ const notificationContent = ref('');
 
 // 管理员权限判断
 const isAdmin = computed(() =>
-  userStore.user?.authorities?.includes('admin') ||
-  userStore.user?.authorities?.includes('manager')
+  userStore.user?.authorities?.includes('ROLE_ADMIN') ||
+  userStore.user?.authorities?.includes('ROLE_Manager')
 );
 
 // 日程表单对话框
@@ -68,7 +68,7 @@ const openEditDialog = (scheduleId: string) => {
   const event = calendarEvents.value.find(e => e.id === scheduleId)
   if (event) {
     currentSchedule.value = {
-      id: event.id,
+      scheduleId: event.id,
       title: event.title,
       date: event.start.split('T')[0],
       time: event.extendedProps.time === '全天' ? '' : event.start.split('T')[1]?.substring(0, 5),
@@ -89,7 +89,7 @@ const handleSubmit = async () => {
     }
 
     if (isEditing.value) {
-      await updateSchedule(currentSchedule.value.id!, scheduleData)
+      await updateSchedule(currentSchedule.value.scheduleId!, scheduleData)
       createToast('日程更新成功', { type: 'success' })
     } else {
       await createSchedule(scheduleData)
@@ -108,8 +108,9 @@ const handleSubmit = async () => {
 const loadCalendarEvents = async () => {
   try {
     const response = await getSchedules();
+    console.log('加载日程成功:', response.data);
     calendarEvents.value = response.data.map((schedule: Schedule) => ({
-      id: schedule.id,
+      id: schedule.scheduleId,
       title: schedule.title,
       start: schedule.time
         ? `${schedule.date}T${schedule.time}`

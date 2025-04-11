@@ -25,7 +25,7 @@ interface MockParams {
 
 export const mockNotices: Notice[] = [
   {
-    id: "1",
+    noticeId: "1",
     title: "轮播图1",
     coverImage: "/default-cover.jpg",
     type: "carousel",
@@ -35,7 +35,7 @@ export const mockNotices: Notice[] = [
     hit: 120
   },
   {
-    id: "2",
+    noticeId: "2",
     title: "轮播图2",
     coverImage: "/海绵宝宝.jpg",
     content: "这是轮播图2的详细内容...",      // 新增
@@ -49,7 +49,7 @@ export const mockNotices: Notice[] = [
 
   // 政策法规 mock 数据
   {
-    id: "4",
+    noticeId: "4",
     title: "国家数据安全管理办法",
     type: "policy",
     url: "https://example.com/data-security",
@@ -59,7 +59,7 @@ export const mockNotices: Notice[] = [
     hit: 120
   },
   {
-    id: "5",
+    noticeId: "5",
     title: "科技企业税收优惠政策",
     type: "policy",
     url: "https://example.com/tech-tax",
@@ -69,7 +69,7 @@ export const mockNotices: Notice[] = [
     hit: 95
   },
   {
-    id: "6",
+    noticeId: "6",
     title: "人工智能伦理规范",
     type: "policy",
     url: "https://example.com/ai-ethics",
@@ -82,7 +82,7 @@ export const mockNotices: Notice[] = [
 
   // 科技热点 mock 数据
   {
-    id: "7",
+    noticeId: "7",
     title: "人工智能最新突破",
     type: "technology",
     url: "https://example.com/ai-breakthrough",
@@ -92,7 +92,7 @@ export const mockNotices: Notice[] = [
     hit: 250
   },
   {
-    id: "8",
+    noticeId: "8",
     title: "量子计算商业化进程",
     type: "technology",
     url: "https://example.com/quantum-computing",
@@ -102,7 +102,7 @@ export const mockNotices: Notice[] = [
     hit: 190
   },
   {
-    id: "9",
+    noticeId: "9",
     title: "6G 通信技术研究进展",
     type: "technology",
     url: "https://example.com/6g-communication",
@@ -112,7 +112,7 @@ export const mockNotices: Notice[] = [
     hit: 160
   },
   {
-    id: "10",
+    noticeId: "10",
     title: "企业年度技术峰会",
     type: "technology",
     coverImage: "/tech-summit.jpg",
@@ -122,7 +122,7 @@ export const mockNotices: Notice[] = [
     hit: 280
   },
   {
-    id: "11",
+    noticeId: "11",
     title: "新员工入职指南",
     type: "policy",
     url: "/onboarding-guide.pdf",
@@ -210,7 +210,7 @@ const mockProjects: Project[] = [
     isLate: false,
     tasks: [
       {
-        id: 't101',
+        taskId: 't101',
         projectId: 'p001',
         teamId: '1',
         employeeId: 'e001',
@@ -227,7 +227,7 @@ const mockProjects: Project[] = [
         operations: []
       },
       {
-        id: 't102',
+        taskId: 't102',
         projectId: 'p001',
         teamId: '1',
         employeeId: 'e002',
@@ -256,7 +256,7 @@ const mockProjects: Project[] = [
     isLate: false,
     tasks: [
       {
-        id: 't201',
+        taskId: 't201',
         projectId: 'p002',
         teamId: '2',
         employeeId: 'e003',
@@ -286,7 +286,7 @@ const mockProjects: Project[] = [
     isLate: false,
     tasks: [
       {
-        id: 't301',
+        taskId: 't301',
         projectId: 'p003',
         teamId: '2',
         employeeId: 'e004',
@@ -307,7 +307,7 @@ const mockProjects: Project[] = [
 
 const mockTasks: Task[] = [
   {
-    id: '1',
+    taskId: '1',
     teamId: '1',
     employeeId: 'e001', // 归属前端组
     title: '上山打老虎', // 海绵宝宝的任务
@@ -378,7 +378,7 @@ const mockTasks: Task[] = [
     ],
   },
   {
-    id: '2',
+    taskId: '2',
     teamId: '2', // 归属后端组
     employeeId: 'e003', // 章鱼哥的任务
     title: '任务2',
@@ -393,7 +393,7 @@ const mockTasks: Task[] = [
     files: []
   },
   {
-    id: '3',
+    taskId: '3',
     teamId: '3',
     employeeId: 'e005',
     title: '用户认证系统重构',
@@ -501,19 +501,19 @@ let mockPublicFiles: FileItem[] = [
 // 模拟的团队列表
 const mockTeams: Team[] = [
   {
-    id: '1',
+    teamId: '1',
     name: '前端开发组',
     description: '专注于前端技术开发',
     employees: ['e001', 'e002']  // 引用员工的 ID
   },
   {
-    id: '2',
+    teamId: '2',
     name: '后端开发组',
     description: '负责后端架构和API开发',
     employees: ['e003', 'e004']
   },
   {
-    id: '3',
+    teamId: '3',
     name: '测试团队',
     description: '进行系统测试和质量保障',
     employees: ['e005']
@@ -632,21 +632,21 @@ const mockMemos: Memo[] = [
 
 const mockSchedules: Schedule[] = [
   {
-    id: '1',
+    scheduleId: '1',
     title: '团队会议',
     date: '2025-04-10',
     time: '10:00',
     participants: ['e001', 'e002', 'e003'],
   },
   {
-    id: '2',
+    scheduleId: '2',
     title: '项目更新通知',
     date: '2025-04-11',
     time: '14:00',
     participants: ['e001', 'e004'],
   },
   {
-    id: '3',
+    scheduleId: '3',
     title: '代码审查',
     date: '2025-04-12',
     time: '09:00',
@@ -756,7 +756,7 @@ export default [
 
   // 根据用户ID获取员工信息
   {
-    url: '/employees/:userId',
+    url: '/employees/user/:userId',
     method: 'get',
     response: (request: { query: { userId: string } }) => {
       const employee = mockTeamMembers.find(
@@ -798,7 +798,7 @@ export default [
         return { message: '项目不存在' }
       }
       const task = project.tasks.find(t =>
-        t.id === request.query.taskId
+        t.taskId === request.query.taskId
       )
       return task || null;
     }
@@ -810,7 +810,7 @@ export default [
     method: 'get',
     response: () => mockTasks.map(task => ({
       projectId: task.projectId,
-      id: task.id,
+      id: task.taskId,
       title: task.title,
       status: task.status,
       employeeId: task.employeeId,
@@ -830,7 +830,7 @@ export default [
       const taskId = request.query.taskId;
       console.log('请求的 taskId:', taskId);
 
-      const task = mockTasks.find(t => t.id === taskId);
+      const task = mockTasks.find(t => t.taskId === taskId);
       return task || null;
     }
   },
@@ -868,7 +868,7 @@ export default [
     url: '/tasks/:id/files',
     method: 'post',
     response: ({ params, body }: MockParams) => {
-      const task = mockTasks.find(t => t.id === params.id);
+      const task = mockTasks.find(t => t.taskId === params.id);
       if (!task) return { code: 404 };
       const newFile: FileItem = {
         id: `file${(task.files?.length || 0) + 1}`, // 使用可选链操作符确保安全访问 length
@@ -970,7 +970,7 @@ export default [
     method: 'get',
     response: (request: { query: { teamId: string } }) => {
       const teamId = request.query.teamId;
-      const team = mockTeams.find(t => t.id === teamId);
+      const team = mockTeams.find(t => t.teamId === teamId);
       return team || null;
     }
   },
@@ -1002,7 +1002,7 @@ export default [
     url: '/tasks/:id/operations',
     method: 'get',
     response: ({ params }: MockParams) => { // 正确获取路径参数
-      const task = mockTasks.find(t => t.id === params.id);
+      const task = mockTasks.find(t => t.taskId === params.id);
       return {
         items: task?.operations || [],
         total: task?.operations?.length || 0
@@ -1029,7 +1029,7 @@ export default [
 
   // 获取分类公告(动态判断公告类型)
   {
-    url: '/notices/:type',
+    url: '/notices/type/:type',
     method: 'get',
     response: (request: { query: { type?: string } }) => {
       const type = request.query.type as NoticeType
@@ -1039,22 +1039,11 @@ export default [
 
   // 获取公告详情
   {
-    url: '/notice/:id',
+    url: '/notices/:id',
     method: 'get',
     response: (request: { query: { id: string } }) => {
       const noticeId = request.query.id;
-      const notice = mockNotices.find(n => n.id === noticeId)
-      return notice || null;
-    }
-  },
-
-  // 更新点击量
-  {
-    url: '/notices/:id/hit',
-    method: 'put',
-    response: (request: { query: { id: string } }) => {
-      const noticeId = request.query.id;
-      const notice = mockNotices.find(n => n.id === noticeId)
+      const notice = mockNotices.find(n => n.noticeId === noticeId)
       if (notice)
         notice.hit++
       return notice || null;
@@ -1126,7 +1115,7 @@ export default [
     })
   },
   {
-    url: '/employee/online',
+    url: '/employees/online',
     method: 'get',
     response: () => mockTeamMembers.filter(e => e.online)
   },

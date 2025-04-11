@@ -3,7 +3,7 @@ export interface Task {
   teamId: string; // 所属团队 ID
   employeeId: string; // 负责人 ID
   projectId?: string // 项目关联字段
-  id: string;
+  taskId: string;
   title: string;
   description: string;
   status: '待处理' | '进行中' | '已完成';

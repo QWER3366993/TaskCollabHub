@@ -26,9 +26,9 @@ export const fetchTeamById = async (teamId: string): Promise<Team> => {
 };
 
 // 获取员工详情
-export const fetchEmployeeById = async (userId: string): Promise<Employee> => {
+export const fetchEmployeeById = async (employeeId: string): Promise<Employee> => {
   const response = await service({
-    url: `/employees/${userId}`,
+    url: `/employees/employee-id/${employeeId}`,
     method: 'get',
   });
   return response.data;
@@ -37,7 +37,7 @@ export const fetchEmployeeById = async (userId: string): Promise<Employee> => {
 //根据成员获取所在团队列表
 export const fetchTeamByemployeeId = async (employeeId: string): Promise<Team[] | []> => {
   const response = await service({
-    url: `/employees/${employeeId}/teams`,  
+    url: `/employees/${employeeId}/teams`,
     method: 'get',
   });
   // 返回的数据是团队数据，但 team 的 employees 只是 ID，你需要在此处理员工信息
@@ -160,8 +160,8 @@ export const fetchEmployees = async (): Promise<Employee[]> => {
 //   return response.data;
 // };
 
- // 获取日程列表
- export const getSchedules = async () => {
+// 获取日程列表
+export const getSchedules = async () => {
   const response = await service.get('/schedules');
   return response;
 };

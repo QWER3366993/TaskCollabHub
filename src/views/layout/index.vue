@@ -125,7 +125,7 @@ onMounted(() => {
   }
 
   .layout_sideview {
-    width: 500px;
+    width: 350px;
     height: 100vh;
     /* 添加高度 */
     /* 添加背景色以便查看 */
@@ -138,11 +138,11 @@ onMounted(() => {
 
   //导航栏样式
   .layout_tabbar {
-    width: calc(100% - 660px);
+    width: calc(100% - 510px);
     height: 60px;
     position: absolute;
     top: 0;
-    left: 660px;
+    left: 510px;
     transition: all 0.5s;
     /* 添加过渡效果 */
 
@@ -154,12 +154,12 @@ onMounted(() => {
   }
 
   .layout_main {
-    width: calc(100% - 590px);
+    width: calc(100% - 440px);
     height: calc(100vh - 60px);
     position: absolute;
     top: 60px;
     /* 确保内容不紧贴顶部(修改height后同样需要修改这里，防止页面覆盖) */
-    left: 625px;
+    left: 475px;
     padding: 20px;
     overflow: auto;
     transition: all 0.5s;

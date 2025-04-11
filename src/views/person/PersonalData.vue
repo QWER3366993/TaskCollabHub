@@ -3,6 +3,7 @@
 import { ref, watch, reactive, computed, onMounted } from 'vue'
 import { useUserStore } from '@/stores/user'
 import { useTeamStore } from '@/stores/team'
+import { storeToRefs } from 'pinia'
 import type { Team, Employee } from '@/types/team'
 import type { User } from '@/types/user'
 import { createToast } from 'mosha-vue-toastify'
@@ -114,9 +115,11 @@ const employee = computed(() => {
 
 const user = computed<User>(() => userStore.user || {})
 
-const involvedTeam = computed<Team | null>(() =>
-  teamStore.availableTeams.find(t => t.id === employee.value.teamId) || null
-)
+const involvedTeam = computed(() => {
+  const teamId = userStore.employee?.teamId; // 获取团队 ID
+  return teamStore.teams.find(t => t.teamId === teamId) || null; // 查找对应的团队
+});
+
 const userAvatar = computed(() =>
   user.value.avatar || employee.value.avatar || '/default-avatar.png'
 )
@@ -333,19 +336,21 @@ const handleEmailSubmit = async () => {
   }
 }
 
+const getEmployeeById = (employeeId: string): Employee | undefined => {
+  return teamStore.employees.find(emp => emp.employeeId === employeeId);
+};
+
 // 初始化加载
 onMounted(async () => {
   try {
+    await teamStore.getEmployees()
+    await teamStore.getTeamList()
     await userStore.getUserInfo()
-    if (userStore.user?.userId) {
-      await teamStore.getEmployeeById(userStore.user.userId)
-      if (teamStore.currentEmployee?.employeeId) {
-        await teamStore.getTeamByemployId(teamStore.currentEmployee.employeeId)
-        // console.log('[DEBUG] 员工所属团队列表:', teamStore.availableTeams);
-        if (teamStore.availableTeams.length > 0) {
-          await teamStore.getTeamById(teamStore.availableTeams[0].id);
-          // console.log('[DEBUG] 加载员工所在团队列表中的第一个团队详情:', teamStore.teamDetail);
-        }
+    if (userStore.employee?.employeeId) {
+      await teamStore.getTeamByemployId(userStore.employee.employeeId)
+      if (teamStore.availableTeams.length > 0) {
+        await teamStore.getTeamById(teamStore.availableTeams[0].teamId);
+        // console.log('[DEBUG] 加载员工所在团队列表中的第一个团队详情:', teamStore.teamDetail);
       }
     }
     initProfileForm()
@@ -485,23 +490,23 @@ onMounted(async () => {
                       团队成员 ({{ involvedTeam.employees.length }})
                     </h4>
                     <v-list lines="two">
-                      <v-list-item v-for="member in involvedTeam.employees" :key="member.employeeId">
+                      <v-list-item v-for="employeeId in involvedTeam.employees" :key="employeeId">
                         <template #prepend>
                           <v-avatar size="40">
-                            <v-img :src="member.avatar || '/default-avatar.png'"></v-img>
+                            <v-img :src="getEmployeeById(employeeId)?.avatar || '/default-avatar.png'"></v-img>
                           </v-avatar>
                         </template>
 
                         <v-list-item-title>
-                          {{ member.name }}
-                          <v-chip v-if="member.employeeId === employee.employeeId" size="x-small" color="info"
-                            class="ml-2">
+                          {{ getEmployeeById(employeeId)?.name }}
+                          <v-chip v-if="employeeId === employee.employeeId" size="x-small" color="info" class="ml-2">
                             本人
                           </v-chip>
                         </v-list-item-title>
                         <v-list-item-subtitle>
-                          {{ member.position }}
-                          <v-icon :color="member.online ? 'success' : 'grey'" size="small" class="ml-2">
+                          {{ getEmployeeById(employeeId)?.position }}
+                          <v-icon :color="getEmployeeById(employeeId)?.online ? 'success' : 'grey'" size="small"
+                            class="ml-2">
                             admin_panel_settings
                           </v-icon>
                         </v-list-item-subtitle>
@@ -535,17 +540,18 @@ onMounted(async () => {
                         <v-expansion-panel-text>
                           <v-form @submit.prevent="handlePasswordSubmit" class="pa-3">
                             <v-text-field v-model="passwordForm.oldPassword" :type="showPassword ? 'text' : 'password'"
-                              label="原密码"  autocomplete="current-password" required :rules="[requiredRule]"
+                              label="原密码" autocomplete="current-password" required :rules="[requiredRule]"
                               :append-inner-icon="showPassword ? 'visibility_off' : 'visibility'"
                               @click:append-inner="showPassword = !showPassword"></v-text-field>
                             <v-text-field v-model="passwordForm.newPassword"
-                              :type="showNewPassword ? 'text' : 'password'" label="新密码" autocomplete="new-password" required :rules="passwordRules"
+                              :type="showNewPassword ? 'text' : 'password'" label="新密码" autocomplete="new-password"
+                              required :rules="passwordRules"
                               :append-inner-icon="showNewPassword ? 'visibility_off' : 'visibility'"
                               @click:append-inner="showNewPassword = !showNewPassword"></v-text-field>
 
                             <v-text-field v-model="passwordForm.confirmPassword"
-                              :type="showConfirmPassword ? 'text' : 'password'" label="确认新密码" autocomplete="new-password" required
-                              :rules="confirmPasswordRules"
+                              :type="showConfirmPassword ? 'text' : 'password'" label="确认新密码"
+                              autocomplete="new-password" required :rules="confirmPasswordRules"
                               :append-inner-icon="showConfirmPassword ? 'visibility_off' : 'visibility'"
                               @click:append-inner="showConfirmPassword = !showConfirmPassword"></v-text-field>
                             <v-card-actions class="px-0">
@@ -568,17 +574,18 @@ onMounted(async () => {
                         </v-expansion-panel-title>
                         <v-expansion-panel-text>
                           <v-form @submit.prevent="handleEmailSubmit" class="pa-3">
-                            <v-text-field v-model="emailForm.newEmail" label="新邮箱地址" :rules="emailRules" autocomplete="email" required
-                              outlined></v-text-field>
+                            <v-text-field v-model="emailForm.newEmail" label="新邮箱地址" :rules="emailRules"
+                              autocomplete="email" required outlined></v-text-field>
 
                             <v-text-field v-model="emailForm.currentPassword" label="当前密码"
                               :type="showPassword ? 'text' : 'password'"
                               :append-inner-icon="showPassword ? 'visibility_off' : 'visibility'"
-                              @click:append-inner="showPassword = !showPassword" :rules="passwordRules" autocomplete="current-password" required
-                              outlined @blur="validateEmail"></v-text-field>
+                              @click:append-inner="showPassword = !showPassword" :rules="passwordRules"
+                              autocomplete="current-password" required outlined @blur="validateEmail"></v-text-field>
 
                             <v-text-field v-model="emailForm.verificationCode" label="验证码"
-                              :rules="[v => !!v || '必填项', v => v.length === 6 || '6位验证码']" autocomplete="one-time-code" required outlined>
+                              :rules="[v => !!v || '必填项', v => v.length === 6 || '6位验证码']" autocomplete="one-time-code"
+                              required outlined>
                               <template #append>
                                 <v-btn :disabled="!isEmailValid || codeCountdown > 0" @click="sendVerificationCode"
                                   variant="text" color="primary">

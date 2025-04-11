@@ -15,8 +15,10 @@ const teamStore = useTeamStore();
 const tasks = ref<Task[]>([]);
 const employees = ref<Employee[]>([]);
 
-const isManager = computed(
-  () => userStore.user.authorities?.includes('manager'));
+const isAdmin = computed(() =>
+  userStore.user?.authorities?.includes('ROLE_ADMIN') ||
+  userStore.user?.authorities?.includes('ROLE_Manager')
+);
 
 // 定义 headers
 const headers = ref([
@@ -83,7 +85,7 @@ const editTask = (task: Task) => {
       name: 'ProjectTaskDetail',
       params: {
         projectId: task.projectId,
-        taskId: task.id
+        taskId: task.taskId
       }
     })
   } else {
@@ -91,7 +93,7 @@ const editTask = (task: Task) => {
     router.push({
       name: 'IndependentTaskDetail',
       params: {
-        taskId: task.id
+        taskId: task.taskId
       }
     })
   }
@@ -279,10 +281,10 @@ onMounted(async () => {
                     </v-btn>
                   </template>
                 </v-tooltip>
-                <!--  添加v-if="isAdmin"，普通员工不可见 -->
-                <v-tooltip text="删除">
+                 <!-- 添加v-if="isAdmin"，普通员工不可见 -->
+                <v-tooltip text="删除" v-if="isAdmin">
                   <template #activator="{ props }">
-                    <v-btn v-bind="props" icon variant="text" color="grey" @click="deleteTask(item.id)">
+                    <v-btn v-bind="props" icon variant="text" color="grey" @click="deleteTask(item.taskId)">
                       <v-icon>delete</v-icon>
                     </v-btn>
                   </template>

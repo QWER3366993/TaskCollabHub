@@ -32,7 +32,6 @@ export const useUserStore = defineStore('user', () => {
         })
         return
       }
-
       setToken(data.token)
       token.value = data.token
     } catch (error) {

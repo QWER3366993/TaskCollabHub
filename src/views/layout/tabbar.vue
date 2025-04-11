@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { useSettingStore } from '@/stores/setting';
 import { useRoute, useRouter } from 'vue-router';
 import { useUserStore } from '@/stores/user';
@@ -81,6 +81,7 @@ const breadcrumbItems = computed(() => {
     icon: item.meta?.icon ? String(item.meta.icon) : ''
   }));
 });
+
 </script>
 
 <template>

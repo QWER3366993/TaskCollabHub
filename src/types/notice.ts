@@ -1,5 +1,5 @@
 export interface Notice {
-  id: string;
+  noticeId: string;
   title: string
   type: NoticeType
   coverImage?: string

@@ -11,6 +11,8 @@ export const useProjectStore = defineStore('project', () => {
   const currentProject = ref<Project | null>(null);
   const errorMessage = ref<string>('');
   const tasks = ref<Task[]>([]);
+
+  // 获取所有项目
   const getAllProjects = async (teamId: string) => {
     try {
       const data = await fetchProjects(teamId);

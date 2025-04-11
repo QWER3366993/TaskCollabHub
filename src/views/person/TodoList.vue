@@ -103,9 +103,6 @@ const getCategoryColor = (category: string): string => {
 };
 onMounted(async () => {
   await userStore.getUserInfo()
-  if (userStore.user?.userId) {
-    await teamStore.getEmployeeById(userStore.user.userId)
-  }
   await memoStore.loadMemos()
 })
 </script>

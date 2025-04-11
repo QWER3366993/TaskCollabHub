@@ -108,27 +108,29 @@ const updateRecent = (item: Omit<RecentItem, 'time'>) => {
 // 任务点击处理
 const handleTaskClick = (taskOrId: Task | string) => {
     const task = typeof taskOrId === 'string'
-        ? taskStore.tasks.find(t => t.id === taskOrId)
+        ? taskStore.tasks.find(t => t.taskId === taskOrId)
         : taskOrId;
     if (!task) return;
     updateRecent({
-        id: task.id,
+        id: task.taskId,
         type: 'task',
         title: task.title
     });
     if (task.projectId) {
         router.push({
-            name: 'project-task',
+            name: 'ProjectTaskDetail',
             params: {
                 projectId: task.projectId,
-                taskId: task.id
+                taskId: task.taskId
             }
         })
     } else {
         router.push({
-            name: 'independent-task',
-            params: { id: task.id }
-        })
+            name: 'IndependentTaskDetail',
+            params: {
+                taskId: task.taskId
+            }
+        });
     }
 };
 
@@ -147,10 +149,13 @@ const userTasks = computed(() => {
     const employeeId = userStore.employee?.employeeId;
     // 空值保护直接返回，不打印错误
     if (!employeeId) return [];
-    return taskStore.tasks.filter(t =>
-        t.creator === employeeId ||
+    // 过滤出当前用户参与的任务
+    const filteredTasks = taskStore.tasks.filter(t =>
         t.employeeId === employeeId
     );
+    // 添加日志来查看返回的任务
+    // console.log('当前用户参与的任务:', filteredTasks);
+    return filteredTasks;
 });
 
 
@@ -173,7 +178,7 @@ const toggleTaskStatus = async (task: Task) => {
         const newStatus = task.status === '已完成' ? '进行中' : '已完成';
         const newOperation: OperationLog = {
             id: crypto.randomUUID(),
-            taskId: task.id,
+            taskId: task.taskId,
             employeeId: currentEmployee.value?.employeeId || '',
             time: new Date().toISOString(),
             operationType: 'status_change',
@@ -186,7 +191,7 @@ const toggleTaskStatus = async (task: Task) => {
         // 直接更新任务状态 & 添加日志
         task.status = newStatus;
         task.operations = [...(task.operations || []), newOperation];
-        await taskStore.updateTask(task.id, { status: newStatus, operations: task.operations });
+        await taskStore.updateTask(task.taskId, { status: newStatus, operations: task.operations });
         task.completedTime = new Date().toISOString();  // 设置任务完成时间
     } catch (error) {
         createToast('状态更新失败', { type: 'danger', timeout: 3000 });
@@ -195,7 +200,7 @@ const toggleTaskStatus = async (task: Task) => {
 };
 
 const handleLogClick = (log: OperationLog) => {
-    const task = taskStore.tasks.find(t => t.id === log.taskId);
+    const task = taskStore.tasks.find(t => t.taskId === log.taskId);
     if (task) {
         router.push({
             name: 'taskdetail',
@@ -311,8 +316,8 @@ onMounted(async () => {
                     </template>
                     <!-- 修改任务列表模板 -->
                     <v-list lines="two">
-                        <v-list-item v-for="task in visibleTasks" :key="task.id" @click.exclude="handleTaskClick(task)"
-                            :class="{ 'overdue-task': isTaskOverdue(task) }">
+                        <v-list-item v-for="task in visibleTasks" :key="task.taskId"
+                            @click.exclude="handleTaskClick(task)" :class="{ 'overdue-task': isTaskOverdue(task) }">
                             <template #prepend>
                                 <v-checkbox :model-value="task.status === '已完成'" @click.stop
                                     @change="toggleTaskStatus(task)" color="primary" class="mr-2" />
@@ -394,7 +399,7 @@ onMounted(async () => {
                     <!-- 添加智能提醒展示 -->
                     <div class="upcoming-alert">
                         <v-alert v-if="upcomingDeadlines.length" border="start" :color="getUrgencyColor(task)"
-                            elevation="4" v-for="task in upcomingDeadlines" :key="task.id" class="task-alert">
+                            elevation="4" v-for="task in upcomingDeadlines" :key="task.taskId" class="task-alert">
 
                             <div class="d-flex align-center">
                                 <v-icon class="mr-2">alarm</v-icon>

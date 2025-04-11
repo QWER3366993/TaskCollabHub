@@ -71,7 +71,7 @@ export const useTeamStore = defineStore('team', () => {
       const members = await fetchTeamMembers(teamId);
       teamDetail.value = {
         ...data,
-        employees: members.map(member => member.employeeId) 
+        employees: members.map(member => member.employeeId)
       };
       return teamDetail.value;
     } catch (error) {
@@ -103,9 +103,9 @@ export const useTeamStore = defineStore('team', () => {
   };
 
   //获取员工详情
-  const getEmployeeById = async (userId: string) => {
+  const getEmployeeById = async (employeeId: string) => {
     try {
-      const employee = await fetchEmployeeById(userId);
+      const employee = await fetchEmployeeById(employeeId);
       if (employee) {
         currentEmployee.value = employee; // 更新当前选中的员工
         return employee; // 返回单个员工对象
@@ -172,7 +172,7 @@ export const useTeamStore = defineStore('team', () => {
       const updatedTeam = await updateTeam(teamId, teamData);
 
       // 找到需要更新的团队索引
-      const teamIndex = teams.value.findIndex(team => team.id === teamId);
+      const teamIndex = teams.value.findIndex(team => team.teamId === teamId);
       if (teamIndex !== -1) {
         teams.value[teamIndex] = {
           ...teams.value[teamIndex],
@@ -181,7 +181,7 @@ export const useTeamStore = defineStore('team', () => {
         };
       }
       // 更新详情数据
-      if (teamDetail.value?.id === teamId) {
+      if (teamDetail.value?.teamId === teamId) {
         teamDetail.value = {
           ...teamDetail.value,
           ...updatedTeam,
@@ -200,7 +200,7 @@ export const useTeamStore = defineStore('team', () => {
     try {
       await deleteTeam(teamId);
       // 过滤掉被删除的团队
-      teams.value = teams.value.filter(team => team.id !== teamId);
+      teams.value = teams.value.filter(team => team.teamId !== teamId);
       createToast('团队删除成功', { position: 'top-center', showIcon: true });
     } catch (error) {
       console.error(error);
@@ -209,44 +209,44 @@ export const useTeamStore = defineStore('team', () => {
   };
 
   // 辅助函数：将员工 ID 数组转换为 Employee 对象数组
-const convertEmployeeIdsToObjects = async (employeeIds: string[]): Promise<Employee[]> => {
-  const employeeObjects: Employee[] = [];
-  for (const id of employeeIds) {
-    const employee = await getEmployeeById(id);
-    if (employee) {
-      employeeObjects.push(employee);
+  const convertEmployeeIdsToObjects = async (employeeIds: string[]): Promise<Employee[]> => {
+    const employeeObjects: Employee[] = [];
+    for (const id of employeeIds) {
+      const employee = await getEmployeeById(id);
+      if (employee) {
+        employeeObjects.push(employee);
+      }
     }
-  }
-  return employeeObjects;
-};
+    return employeeObjects;
+  };
 
-// 添加成员到团队
-const addMember = async (teamId: string, employeeIds: string | string[]) => {
-  try {
-    const updatedTeam = await addMemberToTeam(teamId, employeeIds);
+  // 添加成员到团队
+  const addMember = async (teamId: string, employeeIds: string | string[]) => {
+    try {
+      const updatedTeam = await addMemberToTeam(teamId, employeeIds);
 
-    // 更新本地数据
-    const teamIndex = teams.value.findIndex(t => t.id === teamId);
-    if (teamIndex !== -1) {
-      // 将 Employee 对象数组转换为字符串数组
-      teams.value[teamIndex].employees = updatedTeam.employees; // 类型匹配
+      // 更新本地数据
+      const teamIndex = teams.value.findIndex(t => t.teamId === teamId);
+      if (teamIndex !== -1) {
+        // 将 Employee 对象数组转换为字符串数组
+        teams.value[teamIndex].employees = updatedTeam.employees; // 类型匹配
+      }
+
+      // 更新当前成员列表
+      teamMembers.value = await convertEmployeeIdsToObjects(updatedTeam.employees);
+      createToast('成员添加成功', { position: 'top-center', showIcon: true });
+    } catch (error) {
+      console.error(error);
+      createToast('添加成员失败', { position: 'top-center', showIcon: true });
     }
-
-    // 更新当前成员列表
-    teamMembers.value = await convertEmployeeIdsToObjects(updatedTeam.employees);
-    createToast('成员添加成功', { position: 'top-center', showIcon: true });
-  } catch (error) {
-    console.error(error);
-    createToast('添加成员失败', { position: 'top-center', showIcon: true });
-  }
-};
+  };
 
   // 从团队中移除成员
   const removeMember = async (teamId: string, memberId: string) => {
     try {
       const updatedTeam = await removeMemberFromTeam(teamId, memberId);
       // 更新本地数据
-      const teamIndex = teams.value.findIndex(t => t.id === teamId);
+      const teamIndex = teams.value.findIndex(t => t.teamId === teamId);
       if (teamIndex !== -1) {
         teams.value[teamIndex].employees =
           teams.value[teamIndex].employees.filter(e => e !== memberId);
@@ -266,12 +266,12 @@ const addMember = async (teamId: string, employeeIds: string | string[]) => {
       // 优先从缓存读取
       const cached = teamMembers.value.filter(e => e.teamId === teamId);
       if (cached.length > 0) return cached;
-  
+
       // 无缓存则请求数据
       const data = await fetchTeamMembers(teamId);
       teamMembers.value = [...teamMembers.value, ...data]; // 合并到全局缓存
       return data;
-  
+
     } catch (error) {
       errorMessage.value = '获取成员失败'; // 更准确的错误提示
       createToast(errorMessage.value, { type: 'danger' });
@@ -355,7 +355,7 @@ const addMember = async (teamId: string, employeeIds: string | string[]) => {
               employee.earlyCompletedTime += taskEarlyCompletionTime;
             }
           } else {
-            console.warn(`⚠️ 任务 ${task.id} 没有有效的 completedTime 或 scheduledTime`, task.completedTime, task.scheduledTime);
+            console.warn(`⚠️ 任务 ${task.taskId} 没有有效的 completedTime 或 scheduledTime`, task.completedTime, task.scheduledTime);
           }
         }
 

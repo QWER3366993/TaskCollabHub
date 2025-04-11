@@ -296,11 +296,12 @@ export const router = createRouter({
       // 此父路由只为权限管理能使用特殊布局（保留侧边栏）
       path: '/permission',
       name: 'permission',
-      component: () => import('@/views/layout/Index.vue'),  // 个人资料
+      component: () => import('@/views/layout/Index.vue'), 
       meta: {
         title: '权限管理',
         hidden: true,
-        icon: 'manage_accounts'
+        icon: 'manage_accounts',
+        requireAdmin: true 
       },
       redirect: '/person/personaldata',
       children: [
@@ -312,7 +313,8 @@ export const router = createRouter({
             title: '权限管理',
             hidden: false,
             icon: 'manage_accounts',
-            fullWidth: true
+            fullWidth: true,
+            requireAdmin: true 
           }
         }]
     }

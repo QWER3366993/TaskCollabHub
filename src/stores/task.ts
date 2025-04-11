@@ -139,7 +139,6 @@ export const useTaskStore = defineStore('task', () => {
     try {
       const data = await fetchTasksByProject(projectId);
       projectTasks.value = data;
-      console.log('获取项目任务列表成功', data);
       return data;
     } catch (error) {
       errorMessage.value = '获取项目任务列表失败';
@@ -203,11 +202,7 @@ export const useTaskStore = defineStore('task', () => {
       const projectTasks = await Promise.all(
         projects.value.map(async (project) => {
           const tasks = await fetchTasksByProject(project.projectId);
-          return tasks.map(t => ({
-            ...t,
-            // 强制添加 projectId 字段
-            projectId: project.projectId
-          }));
+          return tasks;
         })
       );
       // 3. 加载独立任务
@@ -217,7 +212,7 @@ export const useTaskStore = defineStore('task', () => {
         ...independentTasks,
         ...projectTasks.flat()
       ].filter((task, index, self) =>
-        self.findIndex(t => t.id === task.id) === index
+        self.findIndex(t => t.taskId === task.taskId) === index
       );
 
     } catch (error) {
@@ -308,7 +303,7 @@ export const useTaskStore = defineStore('task', () => {
   const updateTask = async (taskId: string, updatedTask: Partial<Task>): Promise<void> => {
     try {
       // 查找原任务
-      const originalTask = tasks.value.find(t => t.id === taskId);
+      const originalTask = tasks.value.find(t => t.taskId === taskId);
       if (!originalTask) {
         throw new Error('任务不存在');
       }
@@ -320,7 +315,7 @@ export const useTaskStore = defineStore('task', () => {
 
       // 更新本地数据
       tasks.value = tasks.value.map(task => {
-        if (task.id === taskId) {
+        if (task.taskId === taskId) {
           return { ...task, ...updatedTaskResponse };
         }
         return task;
@@ -367,14 +362,14 @@ export const useTaskStore = defineStore('task', () => {
     }
 
     // 3. 检查任务数据是否存在
-    if (!task?.id) {
+    if (!task?.taskId) {
       console.warn('任务数据无效，无法记录日志');
       return;
     }
 
     // 安全执行日志记录
     addOperationLog({
-      taskId: task.id,
+      taskId: task.taskId,
       employeeId: userStore.user.userId,
       operationType: 'view',
       operation: `查看任务：${task.title || '无标题任务'}`,
@@ -383,12 +378,12 @@ export const useTaskStore = defineStore('task', () => {
 
     // 更新访问记录（示例逻辑）
     if (recentVisits.value) {
-      const existingIndex = recentVisits.value.findIndex(v => v.id === task.id);
+      const existingIndex = recentVisits.value.findIndex(v => v.id === task.taskId);
       if (existingIndex > -1) {
         recentVisits.value[existingIndex].time = new Date().toISOString();
       } else {
         recentVisits.value.unshift({
-          id: task.id,
+          id: task.taskId,
           title: task.title || '新任务',
           time: new Date().toISOString()
         });
@@ -414,7 +409,7 @@ export const useTaskStore = defineStore('task', () => {
 
       // 执行删除操作
       await deleteTask(id);
-      tasks.value = tasks.value.filter((task) => task.id !== id);
+      tasks.value = tasks.value.filter((task) => task.taskId !== id);
 
       // 清理相关日志
       operationLogs.value = operationLogs.value.filter(log => log.taskId !== id);
@@ -562,7 +557,7 @@ export const useTaskStore = defineStore('task', () => {
       id: generateLogId()
     };
     // 同时更新任务对象的operations字段
-    const task = tasks.value.find(t => t.id === log.taskId);
+    const task = tasks.value.find(t => t.taskId === log.taskId);
     if (task) {
       task.operations = [...(task.operations || []), fullLog];
     }

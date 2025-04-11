@@ -33,6 +33,11 @@ const deletingFileId = ref('');
 // 新增状态
 const publishMode = ref<'task' | 'project'>('task') // 默认独立任务模式
 
+const isAdmin = computed(() =>
+  userStore.user?.authorities?.includes('ROLE_ADMIN') ||
+  userStore.user?.authorities?.includes('ROLE_Manager')
+);
+
 // 更新当前时间
 const updateTime = () => {
   const now = new Date();
@@ -295,7 +300,7 @@ onMounted(async () => {
   // 动态获取团队数据
   await loadEmployeeTeams();
   // 如果有默认团队（例如当前团队）
-  if (teamStore.currentEmployee?.teamId && employeeTeams.value.some(t => t.id === teamStore.currentEmployee?.teamId)) {
+  if (teamStore.currentEmployee?.teamId && employeeTeams.value.some(t => t.teamId === teamStore.currentEmployee?.teamId)) {
     project.value.teamId = teamStore.currentEmployee?.teamId;
     await handleTeamChange(teamStore.currentEmployee?.teamId);
   }
@@ -479,7 +484,7 @@ watch(
               <v-icon left>add</v-icon>
               添加任务
             </v-btn>
-            <v-btn color="success" @click="handleSubmit" class="rounded-pill px-" elevation="2">
+            <v-btn v-if="isAdmin" color="success" @click="handleSubmit" class="rounded-pill px-" elevation="2">
               <v-icon left>check</v-icon>
               提交{{ publishMode === 'project' ? '项目' : '任务' }}
             </v-btn>

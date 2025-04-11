@@ -3,7 +3,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useNoticeStore } from '@/stores/notice'
 import { useUserStore } from '@/stores/user'
-import { getNoticesByType, addNoticeHit, add, update, del } from '@/api/notice'
+import { getNoticeDetailAndUpdateHit, add, update, del } from '@/api/notice'
 import dayjs from 'dayjs'
 import type { Notice, NoticeType } from '@/types/notice'
 import ArticleEditor from '@/views/notice/ArticleEditor.vue'
@@ -15,7 +15,7 @@ const noticeStore = useNoticeStore()
 const userStore = useUserStore()
 
 // 管理员状态
-const isAdmin = computed(() => userStore.user?.authorities?.includes('admin'))
+const isAdmin = computed(() => userStore.user?.authorities?.includes('ROLE_ADMIN'))
 
 const searchKeyword = ref('')
 const currentCategory = ref('technology') // 当前类别（默认科技热点）
@@ -65,27 +65,35 @@ const loadNotices = async () => {
   await noticeStore.loadNotices()
 }
 
-// 查看公告详情
+// 查看公告并更新点击量
 const viewDetail = async (notice: Notice) => {
   try {
-    await addNoticeHit(notice.id)
+    if (!notice.noticeId) {
+      console.error("Notice ID is invalid.");
+      return;
+    }
+    const updatedNotice = await getNoticeDetailAndUpdateHit(notice.noticeId);
+    // 跳转到公告详情页面
     router.push({
       name: 'noticedetail',
-      params: { id: notice.id }
-    })
+      params: { id: notice.noticeId }
+    });
   } catch (error) {
-    console.error('记录点击量失败:', error)
+    console.error('记录点击量失败:', error);
   }
-}
+};
+
+
 
 // 打开编辑器（新增/编辑）
 const openEditor = (notice?: Notice) => {
   if (notice) {
-    currentEditId.value = notice.id
+    currentEditId.value = notice.noticeId
     newArticle.value = { ...notice }
   } else {
     currentEditId.value = null
     newArticle.value = {
+      noticeId: '',
       title: '',
       type: 'technology' as NoticeType,
       content: '',
@@ -99,6 +107,7 @@ const openEditor = (notice?: Notice) => {
 
 // 管理员操作
 const newArticle = ref<Omit<Notice, 'id' | 'hit' | 'createdAt'>>({
+  noticeId: '',
   title: '',
   type: 'technology',
   content: '',
@@ -129,10 +138,10 @@ const submitNotice = async () => {
     // 查找原始数据（如果是编辑）
     const originalNotice = currentEditId.value
       ? [...noticeStore.techNotices, ...noticeStore.policyNotices, ...noticeStore.carouselNotices]
-        .find(n => n.id === currentEditId.value)
+        .find(n => n.noticeId === currentEditId.value)
       : null;
     const payload: Notice = {
-      id: currentEditId.value || generateUUID(),
+      noticeId: currentEditId.value || generateUUID(),
       title: newArticle.value.title,
       type: newArticle.value.type,
       content: newArticle.value.content || '',
@@ -178,7 +187,7 @@ const handleDelete = async () => {
 
 // 初始化加载
 onMounted(async () => {
-  userStore.getUserInfo(); //初始时加载登录用户信息
+  await userStore.getUserInfo();  // 确保加载用户信息
   await loadNotices()
 });
 </script>
@@ -187,7 +196,7 @@ onMounted(async () => {
   <div class="news-container">
     <!-- 轮播图区域 -->
     <v-carousel progress="primary" show-arrows="hover" hide-delimiters cycle interval="5000" height="500">
-      <v-carousel-item v-for="item in noticeStore.carouselNotices" :key="item.id" :src="item.coverImage"
+      <v-carousel-item v-for="item in noticeStore.carouselNotices" :key="item.noticeId" :src="item.coverImage"
         :aspect-ratio="16 / 9" cover loading="lazy">
         <div class="carousel-overlay" @click="viewDetail(item)">
           <div class="carousel-content">
@@ -198,7 +207,7 @@ onMounted(async () => {
             <v-btn class="action-btn" color="primary" icon="edit" variant="tonal" @click.stop="openEditor(item)"
               style="margin-bottom: 120px;"></v-btn>
             <v-btn class="action-btn" color="error" icon="delete" variant="tonal"
-              @click.stop="confirmDelete(item.id)"></v-btn>
+              @click.stop="confirmDelete(item.noticeId)"></v-btn>
           </v-card-actions>
         </div>
       </v-carousel-item>
@@ -214,7 +223,7 @@ onMounted(async () => {
             科技热点
           </h3>
           <div class="news-list">
-            <v-card v-for="notice in noticeStore.techNotices" :key="notice.id" class="news-card mb-4"
+            <v-card v-for="notice in noticeStore.techNotices" :key="notice.noticeId" class="news-card mb-4"
               @click="viewDetail(notice)">
               <v-card-title>{{ notice.title }}</v-card-title>
               <v-card-subtitle>
@@ -230,7 +239,7 @@ onMounted(async () => {
                 <v-spacer />
                 <v-btn color="primary" icon="edit" variant="tonal" @click.stop="openEditor(notice)">
                 </v-btn>
-                <v-btn color="error" icon="delete" variant="tonal" @click.stop="confirmDelete(notice.id)">
+                <v-btn color="error" icon="delete" variant="tonal" @click.stop="confirmDelete(notice.noticeId)">
                 </v-btn>
               </v-card-actions>
             </v-card>
@@ -244,7 +253,7 @@ onMounted(async () => {
             政策法规
           </h3>
           <div class="news-list">
-            <v-card v-for="notice in noticeStore.policyNotices" :key="notice.id" class="news-card mb-4"
+            <v-card v-for="notice in noticeStore.policyNotices" :key="notice.noticeId" class="news-card mb-4"
               @click="viewDetail(notice)">
               <v-card-title>{{ notice.title }}</v-card-title>
               <v-card-subtitle>
@@ -258,9 +267,10 @@ onMounted(async () => {
               <!-- 编辑删除按钮 -->
               <v-card-actions v-if="isAdmin">
                 <v-spacer />
-                <v-btn  v-if="isAdmin" color="primary" icon="edit" variant="tonal" @click.stop="openEditor(notice)">
+                <v-btn v-if="isAdmin" color="primary" icon="edit" variant="tonal" @click.stop="openEditor(notice)">
                 </v-btn>
-                <v-btn v-if="isAdmin" color="error" icon="delete" variant="tonal" @click.stop="confirmDelete(notice.id)">
+                <v-btn v-if="isAdmin" color="error" icon="delete" variant="tonal"
+                  @click.stop="confirmDelete(notice.noticeId)">
                 </v-btn>
               </v-card-actions>
             </v-card>

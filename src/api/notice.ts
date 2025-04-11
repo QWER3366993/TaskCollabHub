@@ -4,29 +4,22 @@ import type { Notice, NoticeType } from '@/types/notice'
 // 获取公告列表
 export async function getNoticesByType(type: NoticeType) {
     const reponse = await service({
-        url: `/notices/${type}`,
+        url: `/notices/type/${type}`,
         method: 'get'
     })
     return reponse.data
 }
 
-// 获取公告详情
-export async function getNoticeDetail(id: string) {
-    const reponse = await service({
-        url: `/notice/${id}`,
-        method: 'get'
-    })
-    return reponse.data
-}
-
-// 发起 PUT 请求以更新某一资源的点击数
-export async function addNoticeHit(id: string) {
-    const reponse = await service({
-        url: `/notices/${id}/hit`,
-        method: 'put'
-    })
-    return reponse.data
-}
+// 获取公告详情并更新点击量
+export async function getNoticeDetailAndUpdateHit(id: string) {
+    try {
+      const response = await service.get(`/notices/${id}`);
+      return response.data; // 假设返回的是更新后的公告信息
+    } catch (error) {
+      console.error('获取公告详情并更新点击量时发生错误:', error);
+      throw error; // 抛出错误以便上层调用捕获
+    }
+  };
 
 
 // 发起 PUT 请求以更新某一资源的数据

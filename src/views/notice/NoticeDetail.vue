@@ -1,7 +1,7 @@
 <script lang='ts' setup>
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { getNoticeDetail } from '@/api/notice'
+import { getNoticeDetailAndUpdateHit } from '@/api/notice'
 import type { Notice, NoticeType } from '@/types/notice'
 import dayjs from 'dayjs'
 import DOMPurify from 'dompurify'
@@ -14,32 +14,32 @@ const errorMessage = ref('') // 错误信息
 
 // 类型映射工具
 const typeConfig = {
-  colors: {
-    carousel: 'red',
-    technology: 'blue',
-    policy: 'green',
-    other: 'grey'
-  },
-  labels: {
-    carousel: '轮播公告',
-    technology: '科技热点',
-    policy: '政策法规',
-    other: '其他公告'
-  }
-} 
+    colors: {
+        carousel: 'red',
+        technology: 'blue',
+        policy: 'green',
+        other: 'grey'
+    },
+    labels: {
+        carousel: '轮播公告',
+        technology: '科技热点',
+        policy: '政策法规',
+        other: '其他公告'
+    }
+}
 
 const getTypeColor = (type: NoticeType) => {
-  return typeConfig.colors[type] || 'grey'
+    return typeConfig.colors[type] || 'grey'
 }
 
 const getTypeLabel = (type: NoticeType) => {
-  return typeConfig.labels[type] || '其他公告'
+    return typeConfig.labels[type] || '其他公告'
 }
 
 // HTML 处理
 const sanitizeHTML = (html?: string) => {
-  if (!html) return ''
-  return DOMPurify.sanitize(html)
+    if (!html) return ''
+    return DOMPurify.sanitize(html)
 }
 
 // 加载公告详情
@@ -51,7 +51,7 @@ const loadNoticeDetail = async () => {
     }
     try {
         isLoading.value = true
-        const response = await getNoticeDetail(noticeId)
+        const response = await getNoticeDetailAndUpdateHit(noticeId)
         if (response) {
             notice.value = response
         } else {
@@ -146,34 +146,37 @@ onMounted(loadNoticeDetail)
 
 <style lang="scss" scoped>
 .notice-detail {
-  max-width: 1300px;
-  margin: 0 auto;
+    max-width: 1300px;
+    margin: 0 auto;
 
-  .cover-image {
-    position: relative;
-    
-    .cover-overlay {
-      background: linear-gradient(to top, rgba(120, 120, 120, 0.7) 20%, transparent);
-      height: 100%;
-    }
-  }
+    .cover-image {
+        position: relative;
 
-  .header-content {
-    margin-top: auto;
-    h1 {
-      line-height: 1.2;
-      text-shadow: 0 16px 3px rgba(52, 52, 52, 0.5);
+        .cover-overlay {
+            background: linear-gradient(to top, rgba(120, 120, 120, 0.7) 20%, transparent);
+            height: 100%;
+        }
     }
-    .meta-info {
-      display: flex;
-      gap: 1.5rem;
-      margin-top: 1rem;
-      opacity: 0.9;
+
+    .header-content {
+        margin-top: auto;
+
+        h1 {
+            line-height: 1.2;
+            text-shadow: 0 16px 3px rgba(52, 52, 52, 0.5);
+        }
+
+        .meta-info {
+            display: flex;
+            gap: 1.5rem;
+            margin-top: 1rem;
+            opacity: 0.9;
+        }
     }
-  }
-  .content-wrapper {
-    font-size: 1.1rem;
-    line-height: 1.8;
-   }
+
+    .content-wrapper {
+        font-size: 1.1rem;
+        line-height: 1.8;
+    }
 }
 </style>
