@@ -187,6 +187,7 @@ const handleDelete = async () => {
 // 初始化加载
 onMounted(async () => {
   await userStore.getUserInfo();  // 确保加载用户信息
+  
   await loadNotices()
 });
 </script>

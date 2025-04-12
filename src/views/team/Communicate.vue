@@ -1,7 +1,6 @@
 <!-- 实时通讯 -->
 <script setup lang="ts">
-import { computed } from 'vue'
-// 导入子组件
+import { ref, computed, onUnmounted } from 'vue'
 import MemberList from '@/views/team/components/MemberList.vue'
 import ChatMessages from '@/views/team/components/ChatMessages.vue'
 import ChatInput from '@/views/team/components/ChatInput.vue'
@@ -10,6 +9,8 @@ import { storeToRefs } from 'pinia'
 import { useChatStore } from '@/stores/chat'
 import { onMounted } from 'vue'
 import { useUserStore } from '@/stores/user'
+import type { SystemMessage } from '@/types/chat'
+
 // 状态管理
 const userStore = useUserStore()
 const teamStore = useTeamStore()
@@ -17,25 +18,64 @@ const chatStore = useChatStore()
 const { activeSessionId, sessions, messages } = storeToRefs(chatStore)
 const { employees } = storeToRefs(teamStore)
 
+let socket: WebSocket | null = null
+
+// 新增系统消息状态
+const systemMessages = ref<SystemMessage[]>([])
+
 const currentSession = computed(() =>
-  sessions.value.find(s => s.id === activeSessionId.value)
+  sessions.value.find(s => s.sessionId === activeSessionId.value)
 )
 
+const handleSelectSession = async (sessionId: string) => {
+  chatStore.switchSession(sessionId);
+  await chatStore.loadMessages(sessionId);
+};
+
 onMounted(async () => {
-  await userStore.getUserInfo();
-  await teamStore.getEmployees();
-  await teamStore.getTeamList();
-});
+  await userStore.getUserInfo()
+  await teamStore.getEmployees()
+  await teamStore.getTeamList()
+  await chatStore.loadSessions()
+
+})
+
+
+
+// 在父组件中处理新建私聊
+const handleCreatePrivate = async (targetUserId: string) => {
+  const sessionId = await chatStore.createPrivateSession(targetUserId)
+  chatStore.switchSession(sessionId)
+}
+
+// 创建系统消息的辅助函数
+function createSystemMessage(payload: { userId: string; isOnline: boolean }): SystemMessage {
+  const user = employees.value.find(emp => emp.userId === payload.userId)
+  return {
+    type: payload.isOnline ? 'online' : 'offline',
+    userId: payload.userId,
+    userName: user?.name || 'Unknown User', // 如果找不到用户，默认为 "Unknown User"
+    timestamp: new Date().toISOString()
+  }
+}
 </script>
 
 <template>
   <div class="chat-container">
     <div class="sidebar">
-      <MemberList :sessions="sessions" :employees="employees" :active-session-id="activeSessionId" />
+      <MemberList :sessions="sessions" :employees="employees" :active-session-id="activeSessionId"
+        :system-messages="systemMessages" @select="handleSelectSession" @create-private="handleCreatePrivate"/>
     </div>
     <div class="main-area">
-      <ChatMessages v-if="currentSession" :messages="messages" :session-id="activeSessionId" />
-      <ChatInput v-if="currentSession" :session-id="activeSessionId" :session-type="currentSession.type" />
+      <template v-if="currentSession">
+        <ChatMessages :messages="messages" :session-id="activeSessionId" />
+        <ChatInput :session-id="activeSessionId" :session-type="currentSession.type" />
+      </template>
+      <template v-else>
+        <div class="empty-session-tip">
+          <p>👈 请选择一个会话开始聊天</p>
+        </div>
+      </template>
     </div>
   </div>
 </template>
@@ -43,14 +83,14 @@ onMounted(async () => {
 <style scoped>
 .chat-container {
   display: grid;
-  grid-template-columns: 240px 1fr;
+  grid-template-columns: 200px 1fr;
   height: 100%;
   padding: 15px;
 }
 
 .sidebar {
   border-right: 1px solid #eee;
-  padding: 16px;
+  padding: 6px;
   background-color: #f9f9f9;
 }
 
@@ -59,6 +99,7 @@ onMounted(async () => {
   flex-direction: column;
   height: 100%;
   overflow: hidden;
+  background-color: #fff;
 }
 
 .main-area>* {
@@ -68,7 +109,16 @@ onMounted(async () => {
 
 .main-area> :last-child {
   flex: none;
-  background-color: #fff;
   border-top: 1px solid #eee;
+}
+
+.empty-session-tip {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #828282;
+  font-size: 16px;
+  padding: 30px;
 }
 </style>

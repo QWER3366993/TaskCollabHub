@@ -589,7 +589,7 @@ const mockTeamMembers: Employee[] = [
 
 const mockMemos: Memo[] = [
   {
-    id: '1',
+    memoId: '1',
     title: '项目会议记录',
     content: '讨论项目进度...',
     category: '工作',
@@ -598,7 +598,7 @@ const mockMemos: Memo[] = [
     attachments: []
   },
   {
-    id: '2',
+    memoId: '2',
     title: '学习计划',
     content: '完成 Vue 3 学习',
     category: '学习',
@@ -607,7 +607,7 @@ const mockMemos: Memo[] = [
     attachments: []
   },
   {
-    id: '9',
+    memoId: '9',
     title: '代码评审要点',
     content: `重点检查：
 1. 异常处理逻辑
@@ -619,7 +619,7 @@ const mockMemos: Memo[] = [
     attachments: []
   },
   {
-    id: '10',
+    memoId: '10',
     title: '团队建设活动',
     content: '计划组织季度团建活动，备选方案：\n- 户外拓展\n- 温泉度假\n- 密室逃脱',
     category: '生活',

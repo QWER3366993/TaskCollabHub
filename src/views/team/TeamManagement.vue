@@ -105,7 +105,9 @@ const deleteTeam = async (teamId: string) => {
 // 获取团队列表
 onMounted(async () => {
   await userStore.getUserInfo();
-  await Promise.all([loadEmployees(), loadTeams()]);
+  // 先加载员工信息，再加载团队信息
+  await loadEmployees();
+  await loadTeams();
 });
 
 </script>
@@ -115,7 +117,7 @@ onMounted(async () => {
     <!-- 顶部操作栏 -->
     <div class="d-flex align-center mb-4">
       <h2 class="text-h5 flex-grow-1">团队列表</h2>
-      <v-btn  v-if="isAdmin" color="primary" @click="createTeamDialogVisible = true">
+      <v-btn v-if="isAdmin" color="primary" @click="createTeamDialogVisible = true">
         <v-icon>add</v-icon>
         新建团队
       </v-btn>
@@ -156,7 +158,7 @@ onMounted(async () => {
             <!--  添加v-if="isAdmin"，普通员工不可见 -->
             <v-tooltip text="删除">
               <template #activator="{ props }">
-                <v-btn  v-if="isAdmin" v-bind="props" icon variant="text" color="grey" @click="deleteTeam(item.teamId)">
+                <v-btn v-if="isAdmin" v-bind="props" icon variant="text" color="grey" @click="deleteTeam(item.teamId)">
                   <v-icon>delete</v-icon>
                 </v-btn>
               </template>

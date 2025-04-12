@@ -293,7 +293,10 @@ export const useTeamStore = defineStore('team', () => {
     }
   };
 
-
+  const updateOnlineStatus = (userId: string, isOnline: boolean) => {
+    const emp = employees.value.find(e => e.employeeId === userId);
+    if (emp) emp.online = isOnline;
+  };
 
   // 获取员工姓名的方法(从 employees 数组中查找第一个 employeeId 匹配的员工对象)
   const getName = (employeeId: string) => {
@@ -416,6 +419,7 @@ export const useTeamStore = defineStore('team', () => {
     employeeOperationLogs,
     contributionData,
     getTeamList,
+    updateOnlineStatus,
     getTeamByemployId,
     createNewTeam,
     updateTeamInfo,

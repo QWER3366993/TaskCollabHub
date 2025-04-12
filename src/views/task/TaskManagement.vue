@@ -243,6 +243,7 @@ onMounted(async () => {
             <template #item.employeeId="{ item }">
               <div>
                 <v-avatar size="32" color="primary" class="mr-2">
+                  <!-- 如果 item.employeeId 存在，显示该 ID 的第一个字符 -->
                   <span class="text-white">{{ item.employeeId ? item.employeeId.charAt(0) : '' }}</span>
                 </v-avatar>
                 {{ teamStore.getName(item.employeeId) }}

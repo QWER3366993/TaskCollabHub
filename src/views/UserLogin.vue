@@ -8,7 +8,10 @@ import { usernameRules, passwordRules, username, password, show1 } from '@/hooks
 import { VForm } from 'vuetify/components/VForm'; // 明确导入类型
 import { storeToRefs } from 'pinia';
 import { convertToHash } from '@/utils/crypto'
+import { connect } from '@/utils/websocket'; // 确保你在 utils/websocket.ts 中已经封装了 connect 函数
+import { useChatStore } from '@/stores/chat';
 
+const chatStore = useChatStore()
 const router = useRouter(); // 使用 useRouter 钩子获取 router 实例
 const userStore = useUserStore();
 const { token } = storeToRefs(userStore)
@@ -42,6 +45,12 @@ const handleLogin = async () => {
       // 确保后端返回了 token
       if (token) {
         await userStore.getUserInfo();
+        if (userStore.user.username && token.value) {
+          connect(userStore.user.username, token.value);
+        } else {
+          console.error('用户ID或Token不存在，无法建立WebSocket连接');
+        }
+        await chatStore.initializeChat();
         await router.push('/noticeboard1');
       }
     } catch (error) {
@@ -51,7 +60,6 @@ const handleLogin = async () => {
   }
 };
 
-// 通过 instance.ctx 获取当前组件的上下文，并通过 $refs.form 访问到 v-form 元素，然后调用 reset() 方法来重置表单
 // 重置表单
 const reset = () => {
   if (formRef.value) {
