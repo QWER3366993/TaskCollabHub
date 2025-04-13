@@ -1,6 +1,6 @@
 import service from '@/utils/request'
 import type { Comment } from '@/types/comment'
-import type { Task, TaskCreateDTO, OperationLog, FileItem } from '@/types/task'
+import type { Task, TaskCreateDTO, OperationLog, FileItem, RecommendEmployeeDTO } from '@/types/task'
 import type { Employee } from '@/types/team'
 import type { User } from '@/types/user'
 import dayjs from 'dayjs'
@@ -143,35 +143,10 @@ export const fetchOperationLogs = async (taskId: string): Promise<OperationLog[]
   return response.data.items || [];  // 确保返回的格式符合预期
 };
 
-
-// 开始任务调度
-export const startTaskScheduling = async (): Promise<void> => {
-  await service({
-    url: '/start-task-scheduling',
-    method: 'post',
-  });
-};
-
-// 更新任务调度
-export const updateTaskScheduling = async (taskId: string, scheduledTime: string): Promise<void> => {
-  await service({
-    url: '/update-task-scheduling',
-    method: 'post',
-    data: {
-      taskId,
-      scheduledTime: dayjs(scheduledTime).format('YYYY-MM-DD HH:mm:ss'), // 使用 dayjs 格式化日期
-    }
-  });
-};
-
-// 获取任务调度列表
-export const fetchTaskSchedulingList = async (): Promise<any[]> => {
-  const response = await service({
-    url: '/task-scheduling-list',
-    method: 'get',
-  });
-  return response.data;
-};
+// 获取推荐员工
+export async function recommendEmployeeForTask(task: Partial<TaskCreateDTO>) {
+  return service.post<RecommendEmployeeDTO[]>('/employees/recommend', task)
+}
 
 // ==================== 文件相关接口 ====================
 // 公共文件操作

@@ -1,15 +1,16 @@
 <script setup lang="ts">
-import { ref, onMounted, watch, computed, onUnmounted } from 'vue';
+import { ref, reactive, onMounted, watch, computed, onUnmounted } from 'vue';
 import dayjs from 'dayjs';
 import { useRoute, useRouter } from 'vue-router';
 import { useTaskStore } from '@/stores/task';
-import type { TaskCreateDTO, FileItem } from '@/types/task';
+import type { TaskCreateDTO, FileItem, RecommendEmployeeDTO } from '@/types/task';
 import type { ProjectCreateDTO } from '@/types/project';
 import { useTeamStore } from '@/stores/team';
 import type { Employee, Team } from '@/types/team';
 import { useProjectStore } from '@/stores/project';
 import { createToast } from 'mosha-vue-toastify';
 import { useUserStore } from '@/stores/user';
+import { recommendEmployeeForTask } from '@/api/task';
 
 const userStore = useUserStore();
 const router = useRouter();
@@ -105,6 +106,37 @@ const tasks = ref<TaskCreateDTO[]>([
     files: []
   }
 ])
+
+
+const recommendations = ref<RecommendEmployeeDTO[][]>([]);
+
+const handleRecommendClick = async (index: number) => {
+  const taskDetail = tasks.value[index];
+  console.log('taskDetail before sending:', taskDetail); // 打印任务数据
+
+  try {
+    const result = await recommendEmployeeForTask({
+      title: taskDetail.title,
+      teamId: taskDetail.teamId,
+      description: taskDetail.description,
+      priority: taskDetail.priority,
+      deadline: dayjs(taskDetail.deadline).format('YYYY-MM-DDTHH:mm:ss')
+    });
+    console.log('推荐结果', result);
+    recommendations.value[index] = result.data;
+    tasks.value[index].employeeId = result.data[0]?.employeeId || '';
+    createToast('推荐成功!', {
+      type: 'success',
+      timeout: 3000
+    });
+  } catch (err) {
+    console.error('推荐失败', err);
+    createToast('获取推荐失败，请检查任务信息', {
+      type: 'danger',
+      timeout: 2000
+    });
+  }
+};
 
 
 // 添加新任务
@@ -341,6 +373,10 @@ watch(
   },
   { immediate: true }
 );
+
+
+
+
 </script>
 
 <template>
@@ -439,8 +475,8 @@ watch(
                 </template>
               </v-select>
               <!-- 分配成员 -->
-              <v-select v-model="task.employeeId" :items="members" label="分配成员" item-title="name" item-value="employeeId"
-                :disabled="!project.teamId" :rules="[v => !!v || '必须选择成员',
+              <v-select v-model="task.employeeId" :items="members" label="分配成员" item-title="name"
+                item-value="employeeId" :disabled="!project.teamId" :rules="[v => !!v || '必须选择成员',
                 (value) => validateWorkload(value) || '该成员任务负载过高（>70）！'
                 ]">
                 <!-- 自定义选项展示 -->
@@ -472,6 +508,36 @@ watch(
                   </v-list-item>
                 </template>
               </v-select>
+
+
+              <div v-if="recommendations[index]?.length" class="recommend-section">
+                <!-- 推荐首选部分 -->
+                <div class="text-subtitle-2 mt-1 mb-1  ml-2" v-if="recommendations[index]?.length">
+                  推荐首选：<v-icon size="16">stars</v-icon>
+                </div>
+
+                <v-chip class="ma-1" :color="empIndex === 0 ? 'blue' : 'green'" text-color="white"
+                  @click="task.employeeId = emp.employeeId" v-for="(emp, empIndex) in recommendations[index]"
+                  :key="emp.employeeId">
+                  <v-avatar start>
+                    <v-icon :size="empIndex === 0 ? '24' : '20'">{{ empIndex === 0 ? 'stars' : 'person' }}</v-icon>
+                  </v-avatar>
+                  {{ emp.employeeName }} ({{ emp.position }})
+                  <v-tooltip activator="parent" location="top">
+                    推荐得分：{{ emp.score }} | 工作负载：{{ emp.workload }}%
+                  </v-tooltip>
+                </v-chip>
+              </div>
+
+              <!-- 添加推荐按钮 -->
+              <v-btn color="info" @click="handleRecommendClick(index)" class="mt-2" density="compact"
+                style="padding: 4px 10px;">
+                <v-icon left size="20">auto_awesome</v-icon>
+                <span class="text-body-2" style="font-size: 14px;">智能推荐</span>
+              </v-btn>
+
+
+
               <!-- 调度时间：显示实时时间 -->
               <v-text-field v-model="currentTime" label="调度时间" readonly />
               <!-- 截止时间：可点击选择日期和时间 -->

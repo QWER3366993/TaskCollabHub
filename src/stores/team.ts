@@ -270,7 +270,7 @@ export const useTeamStore = defineStore('team', () => {
 
       // 无缓存则请求数据
       const data = await fetchTeamMembers(teamId);
-      teamMembers.value = [...teamMembers.value, ...data]; // 合并到全局缓存
+      teamMembers.value = data; // 合并到全局缓存
       return data;
 
     } catch (error) {

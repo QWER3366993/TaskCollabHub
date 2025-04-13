@@ -16,7 +16,6 @@ import {
   fetchTasksByUser,
   fetchUserRole,
   fetchOperationLogs,
-  updateTaskScheduling,
   fetchPublicFiles,
   uploadPublicFile,
   fetchTaskFiles,
@@ -346,7 +345,6 @@ export const useTaskStore = defineStore('task', () => {
     }
   };
 
-
   // 查看日志记录
   const recordViewLog = (task: Task) => {
     // 1. 检查 store 是否存在
@@ -462,31 +460,6 @@ export const useTaskStore = defineStore('task', () => {
     }
   }
 
-  /** 开始任务调度 */
-  const startTaskScheduling = async (): Promise<void> => {
-    try {
-      await startTaskScheduling();
-      await getAllTasks();
-      await fetchOperationLogs(currentTaskId.value);
-      createToast('任务调度成功', { position: 'top-center', showIcon: true, type: 'success' });
-    } catch (error) {
-      errorMessage.value = '任务调度失败';
-      createToast(errorMessage.value, { position: 'top-center', showIcon: true, type: 'danger' });
-    }
-  };
-
-  /** 更新任务调度 */
-  const updateTaskSchedule = async (taskId: string, scheduledTime: string): Promise<void> => {
-    try {
-      await updateTaskScheduling(taskId, scheduledTime);
-      await getAllTasks();
-      await getOperationLogs(taskId);
-      createToast('任务调度调整成功', { position: 'top-center', showIcon: true, type: 'success' });
-    } catch (error) {
-      errorMessage.value = '保存任务调度失败';
-      createToast(errorMessage.value, { position: 'top-center', showIcon: true, type: 'danger' });
-    }
-  };
   // ==================== 统计报告 ====================
   // 优先级分布
   const priorityDistribution = computed(() => {
@@ -688,8 +661,6 @@ export const useTaskStore = defineStore('task', () => {
     deleteTaskById,
     getUserRole,
     getOperationLogs,
-    updateTaskSchedule,
-    startTaskScheduling,
     addOperationLog,
     detectChanges,
     getFiles,

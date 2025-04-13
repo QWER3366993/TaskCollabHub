@@ -1,4 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import { useUserStore } from '@/stores/user';
+import { storeToRefs } from 'pinia';
 
 // 创建路由实例
 export const router = createRouter({
@@ -108,7 +110,7 @@ export const router = createRouter({
           path: 'independent/:taskId',
           name: 'IndependentTaskDetail',
           component: () => import('@/views/task/TaskDetail.vue'),
-          meta: { 
+          meta: {
             taskType: 'independent',
             title: '任务详情',
             hidden: true,
@@ -124,12 +126,12 @@ export const router = createRouter({
           path: 'project/:projectId/task/:taskId',
           name: 'ProjectTaskDetail',
           component: () => import('@/views/task/TaskDetail.vue'),
-          meta: { 
+          meta: {
             taskType: 'project',
             title: '任务详情',
             hidden: true,
             icon: 'details'
-           },
+          },
           props: route => ({
             taskType: 'project',
             projectId: route.params.projectId,
@@ -296,12 +298,12 @@ export const router = createRouter({
       // 此父路由只为权限管理能使用特殊布局（保留侧边栏）
       path: '/permission',
       name: 'permission',
-      component: () => import('@/views/layout/Index.vue'), 
+      component: () => import('@/views/layout/Index.vue'),
       meta: {
         title: '权限管理',
         hidden: true,
         icon: 'manage_accounts',
-        requireAdmin: true 
+        requireAdmin: true
       },
       redirect: '/person/personaldata',
       children: [
@@ -314,7 +316,7 @@ export const router = createRouter({
             hidden: false,
             icon: 'manage_accounts',
             fullWidth: true,
-            requireAdmin: true 
+            requireAdmin: true
           }
         }]
     }
@@ -324,39 +326,45 @@ export const router = createRouter({
   ]
 })
 
-// 路由守卫：检查用户是否登录
-// router.beforeEach((to, from, next) => {
-//   if (to.meta.requiresAuth && !localStorage.getItem('token')) {
-//     next({ name: 'login' })  // 如果需要认证但没有 token，则跳转到登录页面
-//   } else {
-//     next()  // 放行
+
+// 路由守卫：判断登录状态
+// router.beforeEach(async (to, from, next) => {
+//   const userStore = useUserStore()
+//   const { token, user } = storeToRefs(userStore)
+
+//   const isAuthenticated = !!token.value
+
+//   // 登录页路径（你的是 "/"）
+//   const loginPath = '/'
+//   // 需要登录才能访问的路径前缀
+//   const protectedPrefixes = ['/index', '/team', '/noticeboard']
+
+//   const isProtectedRoute = protectedPrefixes.some(prefix => to.path.startsWith(prefix))
+
+//   // 1. 未登录访问受保护页面 → 跳转登录页
+//   if (isProtectedRoute && !isAuthenticated) {
+//     return next(loginPath)
 //   }
+
+//   // 2. 登录了还访问登录页 → 跳转到主页
+//   if (isAuthenticated && to.path === loginPath) {
+//     return next('/index')
+//   }
+
+//   // 3. 登录了但用户信息还没加载 → 拉取信息
+//   if (isAuthenticated && !user.value) {
+//     try {
+//       await userStore.getUserInfo()
+//     } catch (error) {
+//       console.error('获取用户信息失败，退出登录', error)
+//       await userStore.logout()
+//       return next(loginPath)
+//     }
+//   }
+
+//   // 4. 正常放行
+//   next()
 // })
 
-// router.beforeEach((to, from, next) => {
-//   const store = useStore(); // 获取状态管理的 store
-
-//   // 用户已登录
-//   if (store.auth.user != null) {
-//     if (to.path === '/') {
-//       // 登录用户访问登录页面，重定向到 /env
-//       next('/env');
-//     } else {
-//       next(); // 允许访问其他页面
-//     }
-//   } 
-//   // 用户未登录
-//   else {
-//     if (to.path.startsWith('/env')) {
-//       // 未登录用户访问 /env 页面，重定向到 /
-//       next('/');
-//     } else if (to.matched.length === 0) {
-//       // 路由未匹配时重定向到 /
-//       next('/');
-//     } else {
-//       next(); // 允许访问登录相关页面
-//     }
-//   }
-// });
 
 export default router

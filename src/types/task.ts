@@ -24,7 +24,7 @@ export interface TaskCreateDTO {
   teamId: string; 
   title: string
   description: string
-  employeeId: string
+  employeeId?: string
   priority: '高' | '中' | '低';
   status: '待处理' | '进行中' | '已完成';
   creator: string
@@ -58,4 +58,12 @@ export interface OperationLog {
   details?: Record<string, { old: any; new: any }>; // 修改详情
 }
 
+
+export interface RecommendEmployeeDTO {
+  employeeId: string;
+  employeeName: string;
+  position: string;
+  workload: number;
+  score: number;
+}
 
