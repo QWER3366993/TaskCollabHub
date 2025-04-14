@@ -201,22 +201,54 @@ const getProgressColor = (progress: number): string => {
   return 'error'; // 0~29
 }
 
-// 导出 Excel 或 PDF
-const handleExport = (type: 'excel' | 'pdf') => {
+// 导出 Excel
+const handleExport = (type: 'excel') => {
   if (type === 'excel') {
-    const ws = XLSX.utils.json_to_sheet(projectsWithStatus.value)
-    const wb = XLSX.utils.book_new()
-    XLSX.utils.book_append_sheet(wb, ws, 'Projects')
-    const excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' })
-    const blob = new Blob([excelBuffer], { type: 'application/octet-stream' })
-    saveAs(blob, 'projects.xlsx')
-  } else if (type === 'pdf') {
-    const doc = new jsPDF()
-    doc.text('Projects Report', 20, 20)
-    projectsWithStatus.value.forEach((projectsWithStatus, index) => {
-      doc.text(`${index + 1}. ${projectsWithStatus.title} - ${projectsWithStatus.progress}%`, 20, 30 + (index * 10))
-    })
-    doc.save('projects.pdf')
+    // 创建工作簿
+    const wb = XLSX.utils.book_new();
+
+    // 任务状态概览
+    const statusDataSheet = XLSX.utils.json_to_sheet(statusData.value.map(item => ({
+      标题: item.title,
+      值: item.value,
+      图标: item.icon
+    })));
+    XLSX.utils.book_append_sheet(wb, statusDataSheet, '任务状态概览');
+
+    // 优先级分析
+    const priorityDataSheet = XLSX.utils.json_to_sheet(taskStore.priorityDistribution);
+    XLSX.utils.book_append_sheet(wb, priorityDataSheet, '优先级分析');
+
+    // 状态分布
+    const statusTrendDataSheet = XLSX.utils.json_to_sheet(taskStore.statusTrendData.values.map((value, index) => ({
+      日期: taskStore.statusTrendData.dates[index],
+      任务数量: value
+    })));
+    XLSX.utils.book_append_sheet(wb, statusTrendDataSheet, '状态分布');
+
+    // 成员贡献度
+    const contributionDataSheet = XLSX.utils.json_to_sheet(teamStore.contributionData.sortedEmployees.map(employee => ({
+      员工ID: employee.id,
+      员工姓名: teamStore.getName(employee.id),
+      完成任务数: employee.completed,
+      超期任务数: teamStore.contributionData.overdue[employee.overdue],
+      未完成任务数: teamStore.contributionData.pending[employee.pending]
+    })));
+    XLSX.utils.book_append_sheet(wb, contributionDataSheet, '成员贡献度');
+
+    // 项目进度
+    const projectsSheet = XLSX.utils.json_to_sheet(projectsWithStatus.value.map(project => ({
+      项目名称: project.title,
+      进度: `${project.progress}%`,
+      截止日期: project.deadline,
+      是否逾期: project.isLate ? '是' : '否'
+    })));
+    XLSX.utils.book_append_sheet(wb, projectsSheet, '项目进度');
+
+    // 导出 Excel 文件
+    const excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+    const blob = new Blob([excelBuffer], { type: 'application/octet-stream' });
+    saveAs(blob, 'report.xlsx');
   }
 }
 
@@ -520,10 +552,6 @@ const handleResize = () => {
       <v-btn color="primary" @click="handleExport('excel')">
         <v-icon left>excel</v-icon>
         导出Excel
-      </v-btn>
-      <v-btn color="error" class="ml-2" @click="handleExport('pdf')">
-        <v-icon left>pdfx</v-icon>
-        导出PDF
       </v-btn>
     </div>
 

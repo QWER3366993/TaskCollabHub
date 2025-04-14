@@ -30,9 +30,8 @@ const setupSocket = (username : string, token: string) => {
 
   socket.onmessage = (e) => {
     const raw = e.data
-    console.log(' 收到原始消息:', raw)
+    console.log(' 收到上线通知:', raw)
     const data = JSON.parse(raw)
-    console.log(' 解析后的数据:', data)
 
     if (data.type === 'presence') {
       chatStore.handleSystemNotice({

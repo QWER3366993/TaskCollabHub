@@ -20,7 +20,7 @@ const { employees } = storeToRefs(teamStore)
 
 let socket: WebSocket | null = null
 
-// 新增系统消息状态
+// 系统消息状态
 const systemMessages = ref<SystemMessage[]>([])
 
 const currentSession = computed(() =>
