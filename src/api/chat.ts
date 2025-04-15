@@ -3,9 +3,9 @@ import type { ChatMessage, SessionType, SystemMessage } from '@/types/chat';
 import type { Employee } from '@/types/team';
 
 // 获取初始未读消息数
-export const fetchInitialUnread = async () => {
+export const fetchInitialUnread = async ( sessionId: string) => {
   const response = await service({
-    url: '/chat/unread',
+    url: `/chat/unread/${sessionId}`,
     method: 'get'
   });
   return response.data;

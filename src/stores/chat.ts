@@ -19,6 +19,9 @@ export const useChatStore = defineStore("chat", () => {
     const currentTeam = ref<any>(null);
     const currentUser = computed(() => teamStore.currentEmployee);
     const wsReady = ref(false);
+    // 临时存储上线通知
+    const onlineNotices = ref<string[]>([])
+
     // WebSocket连接成功后设置为true
     const setWsReady = (ready: boolean) => {
         wsReady.value = ready;
@@ -70,6 +73,16 @@ export const useChatStore = defineStore("chat", () => {
         }
     };
 
+    const loadAllPossibleSessions = async () => {
+        const [sessionsRes, employeesRes] = await Promise.all([
+            fetchChatSessions(),
+            teamStore.getEmployees()
+        ])
+
+        sessions.value = sessionsRes
+        employees.value = employeesRes
+
+    }
 
 
     // 处理消息接收
@@ -112,12 +125,22 @@ export const useChatStore = defineStore("chat", () => {
             timestamp: new Date().toISOString(),
             isRead: false
         });
-
         // 如果是上下线通知，更新成员状态
         if (['online', 'offline'].includes(message.type)) {
-            const user = employees.value.find(e => e.id === message.userId);
+            const user = employees.value.find(e => e.userId === message.userId);
             if (user) {
                 user.status = message.type === 'online';
+            }
+            // 将上线信息添加到提示队列
+            if (message.type === 'online') {
+                const notice = `${message.userName} 上线了`
+                onlineNotices.value.push(notice)
+                // 10秒后移除提示
+                // setTimeout(() => {
+                //     const index = onlineNotices.value.indexOf(notice)
+                //     if (index !== -1) onlineNotices.value.splice(index, 1)
+
+                // }, 1000000)
             }
         }
     };
@@ -225,18 +248,6 @@ export const useChatStore = defineStore("chat", () => {
         }
     };
 
-    const loadAllPossibleSessions = async () => {
-        const [sessionsRes, employeesRes] = await Promise.all([
-            fetchChatSessions(),
-            teamStore.getEmployees()
-        ])
-
-        sessions.value = sessionsRes
-        employees.value = employeesRes
-    }
-
-
-
     return {
         sessions,
         messages,
@@ -244,6 +255,7 @@ export const useChatStore = defineStore("chat", () => {
         employees,
         currentTeam,
         ...getters,
+        onlineNotices,
         initializeChat,
         loadAllPossibleSessions,
         setWsReady,

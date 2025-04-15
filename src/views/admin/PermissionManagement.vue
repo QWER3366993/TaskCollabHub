@@ -23,7 +23,12 @@ const userParams = ref({
   id: '',
   name: '',
   username: '',
-  password: ''
+  password: '',
+  isEditing: false,
+  addTeamInfo: false,
+  teamId: '',
+  employeeId: '',
+  status: ''
 });
 
 // 分页参数
@@ -87,6 +92,7 @@ const mergedData = computed(() => {
   return userStore.users
     .map(user => {
       const employee = teamStore.employees.find(emp => emp.userId === user.userId);
+      const team = teamStore.teams.find(team => team.teamId === employee?.teamId);
       // 添加空值校验
       if (!employee || !employee.employeeId) {
         return null;
@@ -95,12 +101,14 @@ const mergedData = computed(() => {
         ...user,
         ...employee,
         userId: user.userId!, // 非空断言
-        employeeId: employee.employeeId
+        employeeId: employee.employeeId,
+        teamname: team?.name
       };
     })
     .filter(Boolean) as Array<{
       userId: string;
       employeeId: string;
+      teamId: string;
       [key: string]: any
     }>;
 });
@@ -127,30 +135,58 @@ const refresh = () => {
 
 // 添加用户
 const addUser = () => {
-  userParams.value = { id: '', name: '', username: '', password: '' };
+  userParams.value = {
+    id: '',
+    name: '',
+    username: '',
+    password: '',
+    isEditing: false,
+    addTeamInfo: false,
+    teamId: '',
+    employeeId: '',
+    status: ''
+  };
   drawer.value = true;
 };
 
 // 编辑用户
 const updateUser = (item: any) => {
-  userParams.value = { ...item };
+  userParams.value = { ...item, isEditing: true, addTeamInfo: false }; // 初始化 addTeamInfo 为 false
   drawer.value = true;
 };
 
 // 保存用户信息
 const save = async () => {
   try {
-    if (userParams.value.id) {
-      await updateUserInfo(userParams.value)
-    } else {
-      await userStore.createUser(userParams.value)
+    let userData = { ...userParams.value };
+
+    if (!userData.isEditing) {
+      userData.password = ''; // 或者 userData.password = undefined;
     }
-    drawer.value = false
-    await loadUsers()
+
+    if (userData.isEditing) {
+      if (userData.addTeamInfo) {
+        // 如果选择同时编辑员工信息，保留 teamId 和 employeeId
+        await updateUserInfo(userData);
+      } else {
+        // 如果不选择同时编辑员工信息，移除 teamId 和 employeeId
+        const { teamId, employeeId, ...rest } = userData;
+        await updateUserInfo(rest);
+      }
+    } else {
+      if (!userData.addTeamInfo) {
+        const { teamId, employeeId, ...rest } = userData; // 解结构移除属性
+        userData = rest as typeof userData; // 类型断言
+      }
+      await userStore.createUser(userData);
+    }
+
+    drawer.value = false;
+    await loadUsers();
   } catch (error) {
-    console.error('操作失败:', error)
+    console.error('操作失败:', error);
   }
-}
+};
 
 // 打开角色分配对话框，传入当前用户数据，并准备分配角色
 const setRole = (item: any) => {
@@ -244,6 +280,7 @@ const mapRoles = (authorities: string[]) => {
 
 // 获取用户列表时，自动加载
 onMounted(async () => {
+  await teamStore.getTeamList();
   // 先加载员工数据
   await teamStore.getEmployees();
   // 再加载其他数据
@@ -321,6 +358,7 @@ onMounted(async () => {
         {
           title: '用户角色', key: 'authorities', align: 'center',
         },
+        { title: '团队', key: 'teamname', align: 'center' },
         { title: '职务', key: 'position', align: 'center' },
         {
           title: '在线状态', key: 'online', align: 'center',
@@ -342,7 +380,10 @@ onMounted(async () => {
             </v-chip>
           </div>
         </template>
-
+        <!-- 团队显示 -->
+        <template v-slot:item.teamId="{ item }">
+          <span>{{ item.teamId }}</span>
+        </template>
         <!-- 职务显示 -->
         <template v-slot:item.online="{ item }">
           <v-chip :color="item.online ? 'success' : 'error'" variant="tonal"
@@ -393,7 +434,7 @@ onMounted(async () => {
       <v-card class="edit-dialog">
         <v-toolbar color="indigo-darken-3" density="compact">
           <v-toolbar-title class="text-white">
-            {{ userParams.id ? '编辑用户信息' : '新建用户' }}
+            {{ userParams.isEditing ? '编辑用户信息' : '新建用户' }}
           </v-toolbar-title>
           <v-btn icon @click="drawer = false">
             <v-icon color="white">close</v-icon>
@@ -413,9 +454,28 @@ onMounted(async () => {
                   density="comfortable" />
               </v-col>
 
+              <v-col cols="12" v-if="!userParams.isEditing">
+                <v-text-field v-model="userParams.password" label="初始密码" type="password" variant="outlined"
+                  :rules="passwordRules" density="comfortable" />
+              </v-col>
+
               <v-col cols="12">
-                <v-text-field v-if="!userParams.id" v-model="userParams.password" label="初始密码" type="password"
-                  variant="outlined" :rules="passwordRules" density="comfortable" />
+                <v-checkbox v-model="userParams.addTeamInfo" label="同时编辑团队和员工信息" density="comfortable" />
+              </v-col>
+
+              <v-col cols="12" v-if="userParams.addTeamInfo">
+                <v-select v-model="userParams.teamId" label="选择团队" :items="teamStore.teams" item-title="name"
+                  item-value="id" variant="outlined" density="comfortable" />
+              </v-col>
+
+              <v-col cols="12" v-if="userParams.addTeamInfo && userParams.isEditing">
+                <v-select v-model="userParams.employeeId" label="选择员工" :items="teamStore.employees" item-title="name"
+                  item-value="employeeId" variant="outlined" density="comfortable" />
+              </v-col>
+
+              <v-col cols="12" v-if="userParams.addTeamInfo && userParams.isEditing">
+                <v-select v-model="userParams.status" label="在职状态" :items="['在职', '离职', '休假']" variant="outlined"
+                  density="comfortable" />
               </v-col>
             </v-row>
 
@@ -428,7 +488,6 @@ onMounted(async () => {
               <v-btn variant="tonal" color="grey-darken-1" class="mr-2" @click="drawer = false">
                 取消
               </v-btn>
-
             </div>
           </v-form>
         </v-card-text>
@@ -500,6 +559,7 @@ onMounted(async () => {
     background: linear-gradient(145deg, rgb(211, 252, 201), #f8f9fa);
   }
 }
+
 .confirmation-card {
   border-radius: 8px;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
@@ -508,9 +568,9 @@ onMounted(async () => {
 
 /* 用户列表 */
 .user-list {
-  display: flex; 
-  flex-wrap: wrap; 
-  gap: 15px; 
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
   margin-top: 10px;
 }
 

@@ -223,7 +223,6 @@ const handleFileUpload = async (event: Event, index: number) => {
   const target = event.target as HTMLInputElement;
   if (!target.files?.length) return;
   const formData = new FormData();
-
   try {
     // 转换原生 File 到 FileItem 并添加到 FormData
     Array.from(target.files).forEach((file, i) => {
@@ -233,7 +232,7 @@ const handleFileUpload = async (event: Event, index: number) => {
         size: file.size,
         type: file.type.split('/')[0] || 'other', // 简化类型分类
         url: URL.createObjectURL(file),
-        uploader: teamStore.currentEmployee?.name || '未知用户',
+        uploader: userStore.employee?.name || '未知用户',
         uploadTime: dayjs().format('YYYY-MM-DD HH:mm:ss'),
         scope: 'task'
       };

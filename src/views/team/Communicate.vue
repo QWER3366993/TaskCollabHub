@@ -22,7 +22,6 @@ let socket: WebSocket | null = null
 
 // 系统消息状态
 const systemMessages = ref<SystemMessage[]>([])
-
 const currentSession = computed(() =>
   sessions.value.find(s => s.sessionId === activeSessionId.value)
 )
@@ -48,16 +47,6 @@ const handleCreatePrivate = async (targetUserId: string) => {
   chatStore.switchSession(sessionId)
 }
 
-// 创建系统消息的辅助函数
-function createSystemMessage(payload: { userId: string; isOnline: boolean }): SystemMessage {
-  const user = employees.value.find(emp => emp.userId === payload.userId)
-  return {
-    type: payload.isOnline ? 'online' : 'offline',
-    userId: payload.userId,
-    userName: user?.name || 'Unknown User', // 如果找不到用户，默认为 "Unknown User"
-    timestamp: new Date().toISOString()
-  }
-}
 </script>
 
 <template>

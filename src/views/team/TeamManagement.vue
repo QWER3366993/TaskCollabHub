@@ -10,10 +10,9 @@ const teamStore = useTeamStore();
 const router = useRouter();
 const userStore = useUserStore();
 const teams = ref<Team[]>([]);
-const employees = ref<Employee[]>([]);
 // 存储员工信息的映射
 const employeeMap = new Map();
-
+const employees = teamStore.employees
 // 控制创建团队对话框的显隐
 const createTeamDialogVisible = ref(false);
 // Omit<Team, 'id'> 是一个类型操作符，用于从 Team 类型中排除 id 属性
@@ -53,7 +52,7 @@ const createTeam = async () => {
   }
 };
 
-// 加载员工列表
+// 加载员工列表(带头像)
 const loadEmployees = async () => {
   try {
     const result = await teamStore.getEmployees();
@@ -129,16 +128,23 @@ onMounted(async () => {
         { title: '成员', key: 'memberName' },
         { title: '操作', key: 'actions' }
       ]">
+
+        <!-- 描述列显示 -->
+        <template #item.description="{ item }">
+          <div>{{ item.description.length > 20 ? item.description.substring(0, 20) + '...' : item.description }}</div>
+        </template>
         <!-- 成员列显示 -->
         <template #item.memberName="{ item }">
           <div class="member-list">
             <template v-if="item.employees?.length">
               <div v-for="(member, index) in item.employees" :key="index" variant="outlined" class="ma-1">
                 <!-- 从 employeeMap 获取员工信息 -->
-                <v-avatar size="24" class="mr-2">
-                  <img :src="employeeMap.get(member)?.avatar" v-if="employeeMap.get(member)?.avatar" />
-                  <v-icon v-else>account</v-icon>
-                </v-avatar>
+                <div class="avatar-container">
+                  <v-avatar size="24" class="mr-2">
+                    <img class="avatar" :src="employeeMap.get(member)?.avatar" v-if="employeeMap.get(member)?.avatar" />
+                    <v-icon v-else>account</v-icon>
+                  </v-avatar>
+                </div>
                 {{ employeeMap.get(member)?.name || '未知成员' }}
               </div>
             </template>
@@ -209,5 +215,39 @@ onMounted(async () => {
   .v-data-table__tr:hover & {
     opacity: 1;
   }
+}
+
+.avatar-container {
+  width: 100px;
+  overflow: hidden;
+}
+
+.avatar {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.member-list {
+  max-height: 120px; /* 设置最大高度 */
+  overflow-y: auto; /* 启用垂直滚动条 */
+}
+
+/* 滚动条样式 */
+.member-list::-webkit-scrollbar {
+  width: 5px; /* 滚动条宽度 */
+}
+
+.member-list::-webkit-scrollbar-track {
+  background: #f1f1f1; /* 滚动条轨道背景色 */
+}
+
+.member-list::-webkit-scrollbar-thumb {
+  background: #ddd; /* 滚动条滑块颜色 */
+  border-radius: 3px; /* 滑块圆角 */
+}
+
+.member-list::-webkit-scrollbar-thumb:hover {
+  background: #ccc; /* 滑块悬停颜色 */
 }
 </style>

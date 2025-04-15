@@ -138,15 +138,15 @@ onMounted(async () => {
           </v-col>
           <v-col>
             <v-text-field v-model="searchKeyword" density="compact" variant="solo" label="搜索备忘录"
-              prepend-inner-icon="search" class="mx-8 ml-2" hide-details></v-text-field>
+              prepend-inner-icon="search" class="ml-2" hide-details></v-text-field>
           </v-col>
           <v-col cols="auto">
             <v-select v-model="selectedCategory" :items="categories" label="分类" density="compact" variant="outlined"
-              style="max-width: 160px" clearable></v-select>
+              style="max-width: 130px" clearable></v-select>
           </v-col>
           <v-col cols="auto">
             <v-select v-model="selectedStatus" :items="statusOptions" label="状态" density="compact" variant="outlined"
-              style="max-width: 160px" class="ml-2" clearable></v-select>
+              style="max-width: 130px" class="ml-2" clearable></v-select>
           </v-col>
         </v-row>
       </v-toolbar>

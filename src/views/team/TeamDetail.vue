@@ -147,7 +147,7 @@ onMounted(async () => {
         <template #item.name="{ item }">
           <div class="d-flex align-center">
             <v-avatar size="36" class="mr-3">
-              <img :src="item.avatar" v-if="item.avatar">
+              <img class="avatar" :src="item.avatar" v-if="item.avatar">
               <v-icon v-else>account_circle</v-icon>
             </v-avatar>
             <div>
@@ -236,5 +236,11 @@ onMounted(async () => {
 :deep(.v-data-table-header__content) {
   /* 禁止换行 */
   white-space: nowrap;
+}
+
+.avatar {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 </style>

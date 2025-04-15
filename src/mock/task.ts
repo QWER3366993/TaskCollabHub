@@ -656,51 +656,41 @@ const mockSchedules: Schedule[] = [
 
 const mockChatSessions: ChatSession[] = [
   {
-    id: 't001',
-    type: 'group',
+    sessionId: 't001',
+    type: 'GROUP',
     name: '前端开发组',
     members: ['e001', 'e002', 'e003'],
     lastMessage: '大家记得今天下午的代码评审',
     unread: 2,
-    timestamp: '2023-07-25T14:30:00Z'
   },
   {
-    id: 'e001_e002',
-    type: 'private',
+    sessionId: 'e001_e002',
+    type: 'PRIVATE',
     name: '李四',
     members: ['e001', 'e002'],
     lastMessage: '那个组件逻辑我重构好了',
     unread: 1,
-    timestamp: '2023-07-25T15:00:00Z'
   }
 ];
 
 const mockMessages: ChatMessage[] = [
   {
-    id: 'm1',
+    messageId: 'm1',
     sessionId: 't001',
-    sessionType: 'group',
+    sessionType: 'GROUP',
     content: '今天我们要完成首页优化',
     sender: 'e002',
     timestamp: '2023-07-25T09:00:00Z',
     isRead: true
   },
   {
-    id: 'm2',
+    messageId: 'm2',
     sessionId: 't001',
-    sessionType: 'group',
+    sessionType: 'GROUP',
     content: '接口文档已更新到GitHub',
     sender: 'e001',
     timestamp: '2023-07-25T09:05:00Z',
     isRead: false,
-    file: {
-      id: 'f1',
-      name: 'api-docs.pdf',
-      size: 1024 * 1024 * 2,
-      type: 'application/pdf',
-      url: '/files/api-docs.pdf',
-      uploadTime: '2023-07-25T09:04:00Z'
-    }
   }
 ];
 

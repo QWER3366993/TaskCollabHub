@@ -3,10 +3,13 @@ import type { ChatSession, SystemMessage } from '@/types/chat'
 import type { Employee } from '@/types/team'
 import { onMounted, computed } from 'vue'
 import { useUserStore } from '@/stores/user';
+import { useChatStore } from '@/stores/chat';
+import { storeToRefs } from 'pinia'
 
+const chatStore = useChatStore();
 const userStore = useUserStore();
 const props = defineProps<{
-  sessions: ChatSession[] // 已存在的真实会话（来自数据库）
+  sessions: ChatSession[] 
   employees: Employee[]   // 所有团队成员
   activeSessionId?: string
   systemMessages: SystemMessage[]
@@ -17,7 +20,8 @@ const emit = defineEmits<{
   (e: 'create-private', targetUserId: string): void
 }>()
 
-
+const { onlineNotices } = storeToRefs(chatStore);  // 使用 store 中的在线通知
+console.log('onlineNotices:', onlineNotices.value);
 const currentUserId = userStore.user.userId
 // 1.处理会话名称显示
 const formatSessionName = (session: ChatSession) => {
@@ -88,22 +92,17 @@ const handleSessionClick = (session: ChatSession) => {
 
 onMounted(async () => {
   await userStore.getUserInfo();
+  await chatStore.loadAllPossibleSessions();
 });
 </script>
 
 <template>
   <div class="member-list">
-    <!-- 系统消息固定区域 -->
+    <!-- 用户上线提示 -->
     <div class="system-messages">
-      <div v-for="msg in systemMessages" :key="msg.timestamp" class="system-message">
-        <span class="icon">ℹ️</span>
-        <span class="content">
-          {{
-            msg.type === 'online' ? `${msg.userId} 上线` :
-              msg.type === 'offline' ? `${msg.userId} 下线` :
-                msg.timestamp
-          }}
-        </span>
+      <div v-for="(notice, index) in onlineNotices" :key="index">
+        <span style="margin-left: 6px;">🎉</span>
+        <span class="content">{{ notice }}</span>
       </div>
     </div>
 
@@ -165,13 +164,15 @@ onMounted(async () => {
 }
 
 .system-messages {
-  padding: 8px;
-  background: #f5f5f5;
+  padding:8px;
+  background: #e5fdec;
   border-bottom: 1px solid #e0e0e0;
   overflow-y: auto;
   font-size: 0.8em;
   color: #666;
-  padding: 4px 0;
+}
+.content { 
+  margin-left: 13px;
 }
 
 /* 会话项基础样式 */
