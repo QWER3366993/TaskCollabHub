@@ -48,7 +48,10 @@ export const addUser = async (userData: Omit<User, 'userId'>): Promise<User> => 
 
 // 更新用户信息
 export const updateUserInfo = async (userInfo: Partial<User>): Promise<User> => {
-  const response = await service.patch('/auth/userinfo', userInfo);
+  const response = await service.patch('/auth/userinfo', {
+    ...userInfo,
+    userId: userInfo.userId, // 明确指定要更新的用户
+  });
   return response.data;
 }
 
@@ -64,18 +67,18 @@ export const updateEmail = async (payload: {
   code: string
   password: string
 }) => {
-  const response = await service.put('/user/email', { payload });
+  const response = await service.patch('/user/email', { payload });
   return response.data;
 }
 
 // 发送验证码
-export const sendVerificationCode = async(email: string) => {
+export const sendVerificationCode = async (email: string) => {
   const response = await service.post('/user/send-verification', { email });
   return response.data;
 }
 
 // 获取所有角色接口
-export const reqAllRole = async() => {
+export const reqAllRole = async () => {
   const response = await service.get('/roles');
   return response.data;
 }
@@ -87,10 +90,13 @@ export const reqSetUserRole = async (data: { userId: string; roleId: string }) =
 }
 
 // 移除用户接口
-export async function removeUser(data: { userId: string }) {
-  const response = await service.delete('/user/remove', { data });
+export async function removeUser(userId: string) {
+  const response = await service.delete(`/user/remove`, {
+    params: { userId }
+  });
   return response.data;
 }
+
 
 // 批量删除用户接口
 export const batchDeleteUser = async (userIds: string[]): Promise<void> => {

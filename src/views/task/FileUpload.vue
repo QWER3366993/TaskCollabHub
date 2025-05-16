@@ -9,7 +9,6 @@ import { getFileIcon } from '@/types/fileTypeIcons'
 
 const route = useRoute();
 const taskStore = useTaskStore()
-const files = ref<FileItem[]>([])
 const taskId = route.query.id as string;
 const loading = ref(false)
 const uploadProgress = ref(0)
@@ -19,14 +18,23 @@ const uploadInput = ref<HTMLInputElement | null>(null);
 
 const emits = defineEmits(['update'])
 
-const headers = [
-  { title: '文件名', key: 'name' },
-  { title: '类型', key: 'type' },
-  { title: '大小', key: 'size' },
-  { title: '上传者', key: 'uploader' },
-  { title: '上传时间', key: 'createdAt' },
-  { title: '操作', key: 'actions' }
-]
+const headers = computed(() => {
+  const baseHeaders = [
+    { title: '文件名', key: 'name' },
+    { title: '类型', key: 'type' },
+    { title: '大小', key: 'size' },
+    { title: '上传者', key: 'uploader' },
+    { title: '上传时间', key: 'createdAt' },
+    { title: '操作', key: 'actions' }
+  ]
+
+  // 在 scope 为 'task' 时，添加任务 ID 列
+  if (currentScope.value === 'task') {
+    baseHeaders.unshift({ title: '任务名称', key: 'taskName' })
+  }
+
+  return baseHeaders
+})
 
 // 新增作用域切换
 const scopeOptions = [
@@ -41,6 +49,13 @@ const filteredFiles = computed(() => {
     file.name.toLowerCase().includes(searchQuery.value.toLowerCase())
   )
 })
+
+// 通过 taskId 查找对应的任务名称
+const getTaskNameById = (taskId: string | undefined): string => {
+  if (!taskId) return '任务ID未定义';
+  const task = taskStore.tasks.find(t => t.taskId === taskId);
+  return task ? task.title : '任务未找到';
+}
 
 // 文件上传处理
 const handleFileUpload = async (event: Event) => {
@@ -109,7 +124,7 @@ onMounted(async () => {
   loading.value = true
   try {
     await taskStore.getFiles();
-    files.value = taskStore.files
+    await taskStore.getAllTasks();
   } finally {
     loading.value = false
   }
@@ -156,9 +171,15 @@ onMounted(async () => {
         如果某个 key 对应的列没有显式定义 v-slot，v-data-table 会使用默认的渲染方式，直接显示对应属性的值。 
         在 headers 中，{ title: '上传者', key: 'uploader' } 定义了一个名为 uploader 的列。
         v-data-table 会自动查找每个文件对象的 uploader 属性，并将其值显示在这一列中。所以在此不用显示定义-->
-        <v-data-table :headers="headers" :items="filteredFiles" :loading="loading" class="elevation-1" style="width: 100%">
+        <v-data-table :headers="headers" :items="filteredFiles" :loading="loading" class="elevation-1"
+          style="width: 100%">
           <template v-slot:item.size="{ item }">
             {{ formatSize(item.size) }}
+          </template>
+
+          <!-- 动态显示任务名称列 -->
+          <template v-slot:item.taskName="{ item }">
+            {{ getTaskNameById(item.taskId) }} <!-- 根据 taskId 获取任务名称 -->
           </template>
 
           <!-- 使用图标替换文件类型文字 -->

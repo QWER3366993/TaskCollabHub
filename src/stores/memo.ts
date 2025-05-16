@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import type { Memo } from '@/types/memo'
 import { getMemos, createMemo, updateMemo, deleteMemo } from '@/api/memo'
+import { useUserStore } from '@/stores/user'
 
 export const useMemoStore = defineStore('memo', () => {
   // 储存备忘录数据
@@ -10,7 +11,13 @@ export const useMemoStore = defineStore('memo', () => {
   // 加载备忘录
   const loadMemos = async () => {
     try {
-      const data = await getMemos()
+      const userStore = useUserStore()
+      const employeeId = userStore.employee?.employeeId
+      if (!employeeId) {
+        console.warn('无法加载备忘录：未获取到 employeeId')
+        return
+      }
+      const data = await getMemos(employeeId)
       memos.value = data
     } catch (error) {
       console.error('加载备忘录失败', error)

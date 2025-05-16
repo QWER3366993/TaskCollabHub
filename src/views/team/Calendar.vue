@@ -78,16 +78,19 @@ const openEditDialog = (scheduleId: string) => {
     scheduleDialog.value = true
   }
 }
+
+// 提交日程前，提取参与人员的 employeeId
+const formatParticipants = (participants: any[]) => {
+  return participants.map((participant: any) => participant.employeeId);
+};
 // 统一提交处理
 const handleSubmit = async () => {
   if (!currentSchedule.value) return
-
   try {
     const scheduleData = {
       ...currentSchedule.value,
-      time: currentSchedule.value.time || null
+      participants: formatParticipants(currentSchedule.value.participants || []), // 提交仅包含员工 ID
     }
-
     if (isEditing.value) {
       await updateSchedule(currentSchedule.value.scheduleId!, scheduleData)
       createToast('日程更新成功', { type: 'success' })
@@ -374,7 +377,6 @@ onMounted(async () => {
 
 <style scoped lang="scss">
 .calendar-wrapper {
-  background: #ffffff;
   border-radius: 12px;
   box-shadow: 0 30px 50px rgba(222, 119, 9, 0.05);
   width: 100%;

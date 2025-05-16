@@ -17,28 +17,40 @@ import Echarts from 'vue-echarts'
 import * as echarts from 'echarts'
 
 const vuetify = createVuetify({
-    components: {
-      ...components,
-      VTimePicker, 
-    },
-    directives,
-    icons: {
-      defaultSet: 'md',
-      aliases,
-      sets: {
-        md
-      }
-    },
-    theme: {
-      themes: {
-        dark: {
-          colors: {
-            background: '#F5F6FA' // 使用 colors.background 设置背景颜色
-          }
+  components: {
+    ...components,
+    VTimePicker,
+  },
+  directives,
+  icons: {
+    defaultSet: 'md',
+    aliases,
+    sets: {
+      md
+    }
+  },
+  theme: {
+    defaultTheme: 'light', // 设置默认主题为明亮模式
+    themes: {
+      light: {
+        dark: false,
+        colors: {
+          primary: '#1867C0',    // 主色
+          secondary: '#5CBBF6',  // 辅助色
+          background: '#FFFFFF'  // 明亮模式背景色
+        }
+      },
+      dark: {
+        dark: true,
+        colors: {
+          primary: '#2196F3',     // 暗黑模式主色
+          secondary: '#64B5F6',   // 暗黑模式辅助色
+          background: '#121212'   // 暗黑背景色
         }
       }
     }
-  })
+  }
+})
 
 const app = createApp(App)
 const pinia = createPinia()
@@ -52,7 +64,7 @@ app.use(pinia)
 
 
 // 全局注册 Echarts
-app.component('e-charts',Echarts)
+app.component('e-charts', Echarts)
 // 全局挂载 echarts
 app.config.globalProperties.$echarts = echarts
 

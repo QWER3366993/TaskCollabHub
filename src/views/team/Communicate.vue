@@ -80,7 +80,6 @@ const handleCreatePrivate = async (targetUserId: string) => {
 .sidebar {
   border-right: 1px solid #eee;
   padding: 6px;
-  background-color: #f9f9f9;
 }
 
 .main-area {
@@ -88,7 +87,6 @@ const handleCreatePrivate = async (targetUserId: string) => {
   flex-direction: column;
   height: 100%;
   overflow: hidden;
-  background-color: #fff;
 }
 
 .main-area>* {

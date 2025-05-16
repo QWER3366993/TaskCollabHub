@@ -21,6 +21,7 @@ export const useChatStore = defineStore("chat", () => {
     const wsReady = ref(false);
     // 临时存储上线通知
     const onlineNotices = ref<string[]>([])
+    const notifications = ref<SystemMessage[]>([]) // 通知中心
 
     // WebSocket连接成功后设置为true
     const setWsReady = (ready: boolean) => {
@@ -97,25 +98,13 @@ export const useChatStore = defineStore("chat", () => {
         }
     };
 
-    // 生成系统通知内容
-    const generateSystemContent = (msg: SystemMessage): string => {
-        switch (msg.type) {
-            case 'online':
-                return `${msg.userName} 已上线`;
-            case 'offline':
-                return `${msg.userName} 已离线`;
-            case 'join':
-                return `${msg.userName} 加入了群组 ${msg.teamId}`;
-            case 'leave':
-                return `${msg.userName} 离开了群组 ${msg.teamId}`;
-            default:
-                return `系统通知：${JSON.stringify(msg)}`;
-        }
-    };
 
-    // 处理系统通知
-    const handleSystemNotice = (message: SystemMessage) => {
-        const content = generateSystemContent(message);
+    // 处理上下线提醒消息
+    const handlePresenceMessage = (message: SystemMessage) => {
+        const content = message.type === 'online'
+            ? `${message.userName} 已上线`
+            : `${message.userName} 已离线`;
+
         messages.value.push({
             messageId: `sys-${Date.now()}`,
             sessionId: 'system',
@@ -125,25 +114,57 @@ export const useChatStore = defineStore("chat", () => {
             timestamp: new Date().toISOString(),
             isRead: false
         });
-        // 如果是上下线通知，更新成员状态
-        if (['online', 'offline'].includes(message.type)) {
-            const user = employees.value.find(e => e.userId === message.userId);
-            if (user) {
-                user.status = message.type === 'online';
-            }
-            // 将上线信息添加到提示队列
-            if (message.type === 'online') {
-                const notice = `${message.userName} 上线了`
-                onlineNotices.value.push(notice)
-                // 10秒后移除提示
-                // setTimeout(() => {
-                //     const index = onlineNotices.value.indexOf(notice)
-                //     if (index !== -1) onlineNotices.value.splice(index, 1)
 
-                // }, 1000000)
-            }
+        const user = employees.value.find(e => e.userId === message.userId);
+        if (user) {
+            user.status = message.type === 'online';
+        }
+
+        if (message.type === 'online') {
+            const notice = `${message.userName} 上线了`;
+            onlineNotices.value.push(notice);
+            // 10秒后移除
+            // setTimeout(() => { ... }, 10000)
         }
     };
+
+    // 处理任务发布通知
+    const handleTaskNotifyMessage = (message: SystemMessage) => {
+        // 确保消息类型为 task_notify
+        if (message.type === 'task_notify') {
+            // 生成任务通知内容
+            const taskNotifyMessage: SystemMessage = {
+                ...message,
+                id: message.id || `task-${Date.now()}`, // 使用默认的生成ID
+                title: message.title || '任务发布通知', // 设置默认任务标题
+                content: message.content || '您有一个新任务' // 设置默认任务内容
+            };
+
+            // 将任务通知添加到通知中心
+            notifications.value.push(taskNotifyMessage);
+        }
+    };
+
+
+
+
+    const handleSystemNotice = (message: SystemMessage) => {
+        switch (message.type) {
+            case 'online':
+            case 'offline':
+                handlePresenceMessage(message);
+                break;
+
+            case 'task_notify':
+                handleTaskNotifyMessage(message);
+                break;
+
+            default:
+                console.warn('未知的系统消息类型:', message);
+        }
+    };
+
+
 
     // 切换会话
     const switchSession = (sessionId: string) => {

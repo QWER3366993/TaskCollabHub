@@ -3,7 +3,9 @@ import { ref, onMounted, computed } from 'vue';
 import { useSettingStore } from '@/stores/setting';
 import { useRoute, useRouter } from 'vue-router';
 import { useUserStore } from '@/stores/user';
+import { useTheme } from 'vuetify'
 
+const theme = useTheme()
 const userStore = useUserStore();
 const route = useRoute();
 const router = useRouter();
@@ -59,17 +61,28 @@ const predefineColors = ref([
 
 // 切换主题颜色
 const setColor = () => {
-  const el = document.documentElement;
-  el.style.setProperty('--el-color-primary', color.value);
+  // 分别更新 light 和 dark 主题下的 primary
+  theme.themes.value.light.colors.primary = color.value
+  theme.themes.value.dark.colors.primary = color.value
+  // 持久化到 localStorage，页面刷新依旧生效
+  localStorage.setItem('app-theme-color', color.value)
 };
 
 // 暗黑模式
-const dark = ref(false);
+const dark = ref(theme.current.value.dark);
+// 初始化时读取本地存储
+onMounted(() => {
+  const savedDark = localStorage.getItem('darkMode') === 'true';
+  dark.value = savedDark;
+  theme.global.name.value = savedDark ? 'dark' : 'light';
+});
 
-// 处理暗黑模式
+// 切换暗黑模式
 const changeDark = () => {
-  const html = document.documentElement;
-  dark.value ? (html.className = 'dark') : (html.className = '');
+  // 通过 Vuetify 主题 API 切换
+  theme.global.name.value = dark.value ? 'dark' : 'light';
+  // 持久化存储
+  localStorage.setItem('darkMode', dark.value.toString());
 };
 
 // 处理 breadcrumbs 数据
@@ -98,7 +111,7 @@ const breadcrumbItems = computed(() => {
         </template>
         <template v-slot:item="{ item }">
           <v-breadcrumbs-item v-if="item.title" :to="item.href" :disabled="item.disabled">
-            <v-icon size="18">{{ (item as BreadcrumbItemWithIcon ).icon }}</v-icon>
+            <v-icon size="18">{{ (item as BreadcrumbItemWithIcon).icon }}</v-icon>
             {{ item.title }}
           </v-breadcrumbs-item>
         </template>
@@ -125,15 +138,28 @@ const breadcrumbItems = computed(() => {
             <v-form>
               <v-text-field label="主题颜色" v-model="color" />
               <v-color-picker v-model="color" @update:modelValue="setColor" show-alpha :swatches="predefineColors" />
-              <v-text-field label="暗黑模式" style="margin-top: 20px;" />
-              <v-switch v-model="dark" @change="changeDark" />
+              <v-row align="center" class="mt-5 mx-1">
+                <v-col cols="8" class="pa-0">
+                  <span class="text-body-1">暗黑模式</span>
+                </v-col>
+
+                <v-col cols="4" class="pa-0 text-right">
+                  <v-switch v-model="dark" inset @change="changeDark" density="compact" color="info" hide-details>
+                    <template #thumb>
+                      <v-icon size="20" :color="'orange'">
+                        {{ dark ? 'dark_mode' : 'light_mode' }}
+                      </v-icon>
+                    </template>
+                  </v-switch>
+                </v-col>
+              </v-row>
             </v-form>
           </v-card-text>
         </v-card>
       </v-menu>
-      <v-avatar size="38" >
+      <v-avatar size="38">
         <img :src="avatarSrc" alt="用户头像" />
-        </v-avatar>
+      </v-avatar>
       <v-menu>
         <template v-slot:activator="{ props }">
           <v-btn v-bind="props">
@@ -160,8 +186,9 @@ const breadcrumbItems = computed(() => {
   justify-content: space-between;
   padding: 0 15px 0 20px;
   background-image: linear-gradient(to right, rgb(189, 245, 178), rgb(67, 240, 28), rgb(148, 225, 140));
+
+  // 底部阴影
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  /* 添加阴影 */
 
   .tabbar_left {
     display: flex;
@@ -182,9 +209,10 @@ const breadcrumbItems = computed(() => {
 
     img {
       width: 100%;
-      height:100%;
-      object-fit: cover; /* 保持比例填充容器 */
-      
+      height: 100%;
+      object-fit: cover;
+      /* 保持比例填充容器 */
+
     }
   }
 }

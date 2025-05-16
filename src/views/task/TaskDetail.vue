@@ -16,7 +16,7 @@ const taskStore = useTaskStore();
 const commentInput = ref('');
 const userStore = useUserStore();
 const teamStore = useTeamStore();
-const taskId = computed(() => route.params.id as string); // 从路由参数中获取任务 ID
+const taskId = computed(() => route.params.taskId as string); // 从路由参数中获取任务 ID
 const teamId = ref<string>('');
 const defaultTask: Task = {
   taskId: '',
@@ -258,7 +258,7 @@ const saveTask = async () => {
     }
     // 发送更新请求
     await taskStore.updateTask(taskId.value, editTask.value);
-
+    await loadTaskDetail();  // 加载任务数据
     // 退出编辑模式
     isEditing.value = false;
     createToast('任务更新成功', { type: 'success' });
@@ -315,10 +315,11 @@ onMounted(async () => {
             <div>
               <!-- ‌tonal‌：按钮有颜色渐变效果 -->
               <v-btn v-if="isAdmin" variant="tonal" color="primary" prepend-icon="edit" @click="toggleEdit">
-                {{ isEditing ? '完成' : '编辑' }}
+                {{ isEditing ? '返回' : '编辑' }}
               </v-btn>
               <!-- 删除按钮 -->
-              <v-btn v-if="isAdmin" variant="tonal" color="error" prepend-icon="delete" @click="deleteDialog = true">删除</v-btn>
+              <v-btn v-if="isAdmin" variant="tonal" color="error" prepend-icon="delete"
+                @click="deleteDialog = true">删除</v-btn>
               <!-- 删除确认对话框 -->
               <v-dialog v-model="deleteDialog" max-width="400">
                 <v-card>
@@ -453,7 +454,7 @@ onMounted(async () => {
                     <template #icon>
                       <v-icon>check</v-icon>
                     </template>
-                  
+
                     <div class="text-body-1 font-weight-bold ">完成时间</div>
                     <div>
                       <template v-if="!isEditing">

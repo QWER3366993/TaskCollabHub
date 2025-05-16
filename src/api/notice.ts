@@ -23,12 +23,9 @@ export async function getNoticeDetailAndUpdateHit(id: string) {
 
 
 // 发起 PUT 请求以更新某一资源的数据
-export async function update(data: Notice, url: string) {
+export async function update(data: Notice, id: string) {
     const reponse = await service({
-        headers: {
-            'Content-Type': 'application/json; charset=utf-8'
-        },
-        url: url,
+        url: `/notices/${id}`,
         method: 'put',
         data
     })
@@ -36,9 +33,9 @@ export async function update(data: Notice, url: string) {
 }
 
 // 发起 POST 请求以添加新资源
-export async function add(data: Omit<Notice, 'id'>, url: string) {
+export async function add(data: Omit<Notice, 'id'>) {
     const reponse = await service({
-        url: url,
+        url: '/notices', 
         method: 'post',
         data
     })
@@ -46,9 +43,9 @@ export async function add(data: Omit<Notice, 'id'>, url: string) {
 }
 
 // 发起 DELETE 请求以删除某一资源
-export async function del(id: string, url: string) {
+export async function del(id: string) {
     return service({
-        url: url + '/' + id,
+        url: `/notices/${id}`, 
         method: 'delete'
     })
 }

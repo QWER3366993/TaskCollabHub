@@ -97,7 +97,7 @@ const reset = () => {
       </div>
     </div>
     <!-- 注册跳转 -->
-    <a href="#" class="btns signup" @click.prevent="switchMode">没有账号，去注册</a>
+    <!-- <a href="#" class="btns signup" @click.prevent="switchMode">没有账号，去注册</a> -->
     <!-- 忘记密码跳转 -->
     <a href="#" class="btns forget" @click.prevent="forgotPassword">忘记密码？</a>
   </div>

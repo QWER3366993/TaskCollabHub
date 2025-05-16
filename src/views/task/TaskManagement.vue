@@ -96,6 +96,7 @@ const editTask = (task: Task) => {
         taskId: task.taskId
       }
     })
+    console.log('编辑跳转', task.taskId)
   }
 }
 
@@ -137,7 +138,6 @@ const filterTasksByProject = async () => {
     await taskStore.getProjectTasks(selectedProjectId.value);
   } else {
     await taskStore.loadAllTasksWithProjects(); // 使用新的合并方法
-    // console.log('过滤',filteredTasks.value)
   }
 };
 // 过滤后的任务列表
@@ -190,6 +190,8 @@ onMounted(async () => {
   await loadEmployees(); //先加载员工数据再加载任务（防止getName在员工数据未就绪时被调用）
   await loadProjects(); // 先加载项目
   await filterTasksByProject() // 初始加载所有任务
+  await taskStore.loadAllTasksWithProjects(); // 加载项目及独立任务到 allTasks
+
 });
 </script>
 

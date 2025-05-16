@@ -46,7 +46,6 @@ const sendMessage = () => {
 .chat-input {
   padding: 10px;
   border-top: 1px solid #eee;
-  background-color: #fff;
 }
 
 textarea {

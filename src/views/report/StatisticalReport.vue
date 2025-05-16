@@ -726,7 +726,6 @@ const handleResize = () => {
 /* 样式增强 */
 .kpi-card {
   border-left:5px solid #bdfa88;
-  background-color: #ffffff;
   transition: transform 0.3s, box-shadow 0.3s ease-in-out;
   border-radius: 10px;
   box-shadow: 0 2px 6px rgba(162, 0, 255, 0.2);
@@ -763,7 +762,6 @@ const handleResize = () => {
   margin-bottom: 15px;
   padding: 15px;
   border-radius: 8px;
-  background-color: #f9f9f9;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
 }
 /* 名称颜色 */

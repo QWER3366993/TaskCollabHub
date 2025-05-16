@@ -18,6 +18,7 @@ import {
   fetchOperationLogs,
   fetchPublicFiles,
   uploadPublicFile,
+  fetchTaskFilesById,
   fetchTaskFiles,
   uploadTaskFile,
   downloadFile,
@@ -302,7 +303,9 @@ export const useTaskStore = defineStore('task', () => {
   const updateTask = async (taskId: string, updatedTask: Partial<Task>): Promise<void> => {
     try {
       // 查找原任务
-      const originalTask = tasks.value.find(t => t.taskId === taskId);
+      const originalTask = allTasks.value.find(t => t.taskId === taskId);
+      console.log('传入的 taskId:', taskId);
+      console.log(originalTask);
       if (!originalTask) {
         throw new Error('任务不存在');
       }
@@ -537,25 +540,25 @@ export const useTaskStore = defineStore('task', () => {
   };
 
   // ==================== 文件 ====================
-  // 获取文件列表
-  const getFiles = async () => {
-    loading.value = true;
-    try {
-      if (currentScope.value === 'task' && currentTaskId.value) {
-        const data = await fetchTaskFiles(currentTaskId.value);
-        files.value = data
-        return data
-      } else {
-        const data = await fetchPublicFiles();
-        files.value = data
-        return data
-      }
-    } catch (error) {
-      console.error(error);
-    } finally {
-      loading.value = false;
-    }
-  };
+ // 获取文件列表
+const getFiles = async () => {
+  loading.value = true;
+  try {
+    const taskFilesPromise = fetchTaskFiles();  // 获取任务文件
+    const publicFilesPromise = fetchPublicFiles();  // 获取公共文件
+
+    // 等待两个请求完成
+    const [taskFiles, publicFiles] = await Promise.all([taskFilesPromise, publicFilesPromise]);
+
+    // 合并任务文件和公共文件
+    files.value = [...taskFiles, ...publicFiles];
+    return files.value;
+  } catch (error) {
+    console.error(error);
+  } finally {
+    loading.value = false;
+  }
+};
 
   // 上传文件
   const uploadFile = async (formData: FormData) => {

@@ -24,8 +24,8 @@ const teamId = computed(() => route.params.id as string);
 
 // 权限控制
 const isManager = computed(() =>
-  userStore.user.authorities?.includes('manager') ||
-  userStore.user.authorities?.includes('admin')
+  userStore.user.authorities?.includes('ROLE_MANAGER') ||
+  userStore.user.authorities?.includes('ROLE_ADMIN')
 );
 
 // 加载数据

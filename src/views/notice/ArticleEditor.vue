@@ -16,20 +16,6 @@ const toolbarConfig = {
   excludeKeys: ['group-image', 'insertTable'], // 排除不需要的功能
 }
 
-// 表单数据
-const noticeForm = ref({
-  title: '',
-  type: '',
-  content: '',
-  coverImage: '',
-  url: '',
-  summary: '',
-})
-
-// 必填项校验
-const isFormValid = computed(() => {
-  return noticeForm.value.title && noticeForm.value.type && noticeForm.value.content
-})
 
 const editorConfig = {
   placeholder: '请输入公告内容...',
@@ -56,33 +42,6 @@ const handleCreated = (editor: IDomEditor) => {
   editorRef.value = editor
 }
 
-const handleChange = (editor: IDomEditor) => {
-  // 可添加内容变更处理
-}
-
-// 处理公告发布
-const handleSubmit = () => {
-  if (!isFormValid.value) {
-    createToast({
-      message: '请填写所有必填项（标题、类型、内容）',
-      type: 'danger',
-      position: 'top-center',
-      transition: 'bounce',
-      timeout: 3000,
-    })
-    return
-  }
-  console.log('公告数据:', noticeForm.value)
-  createToast({
-    message: '公告发布成功',
-    type: 'success',
-    position: 'top-center',
-    transition: 'bounce',
-    timeout: 3000,
-    showIcon: true
-  })
-}
-
 onBeforeUnmount(() => {
   const editor = editorRef.value
   editor?.destroy()
@@ -93,7 +52,7 @@ onBeforeUnmount(() => {
     <div class="editor-wrapper">
         <toolbar class="editor-toolbar" :editor="editorRef" :mode="mode" :default-config="toolbarConfig" />
         <editor class="editor-content" :style="{ height: editorHeight }" v-model="modelValue" :mode="mode"
-            :default-config="editorConfig" @on-created="handleCreated" @on-change="handleChange" />
+            :default-config="editorConfig" @on-created="handleCreated"/>
     </div>
 </template>
 

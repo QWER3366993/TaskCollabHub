@@ -34,16 +34,29 @@ const setupSocket = (username : string, token: string) => {
     const data = JSON.parse(raw)
 
     if (data.type === 'presence') {
+      // 处理上线/下线消息
       chatStore.handleSystemNotice({
         type: data.isOnline ? 'online' : 'offline',
         userId: data.userId,
         userName: data.userName,
-        timestamp: ''
-      })
+        timestamp: new Date().toISOString()
+      });
     } else if (data.type === 'chat') {
-      chatStore.handleMessage(data)
+      // 处理聊天消息
+      chatStore.handleMessage(data);
+    } else if (data.type === 'task_notify') {
+      // 处理任务发布通知
+      chatStore.handleSystemNotice({
+        type: 'task_notify',
+        userId: data.userId,
+        userName: data.userName || '系统',
+        content: data.message,
+        timestamp: data.timestamp,
+        id: data.taskId, // 任务ID
+        title: '任务发布通知' // 任务标题
+      });
     }
-  }
+  };
 
   socket.onclose = () => {
     console.warn(' WebSocket 连接关闭')

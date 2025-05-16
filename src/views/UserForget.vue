@@ -185,7 +185,7 @@ const resetPassword = async () => {
         </transition>
 
         <a href="#" class="btns signup" @click.prevent="router.push('/')">返回登录</a>
-        <a href="#" class="btns forget" @click.prevent="router.push('/register')">立即注册</a>
+        <!-- <a href="#" class="btns forget" @click.prevent="router.push('/register')">立即注册</a> -->
       </div>
     </div>
   </div>

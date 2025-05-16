@@ -292,6 +292,7 @@ const loadEmployeeTeams = async () => {
 const fetchMembers = async (teamId: string): Promise<Employee[]> => {
   try {
     const teamMembers = await teamStore.getTeamMembers(teamId);
+    console.log('团队成员列表:', teamMembers);
     return teamMembers; // 返回团队成员列表
   } catch (error) {
     console.error('获取成员列表失败:', error);
@@ -346,10 +347,6 @@ onMounted(async () => {
   }
 })
 
-onUnmounted(() => {
-  clearInterval(intervalId);
-});
-
 // 动态监听当前项目的 teamId
 watch(
   () => project.value.teamId,
@@ -374,8 +371,9 @@ watch(
 );
 
 
-
-
+onUnmounted(() => {
+  clearInterval(intervalId);
+});
 </script>
 
 <template>

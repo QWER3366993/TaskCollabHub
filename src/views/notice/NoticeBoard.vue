@@ -33,22 +33,32 @@ const isFormValid = computed(() => {
     !!newArticle.value.content
 })
 
+// 封面图上传
 const handleCoverUpload = async () => {
   if (!coverImageFile.value) return
 
   try {
+    // 判断是否已有 noticeId（编辑）或者新建生成一个 UUID
+    if (!newArticle.value.noticeId) {
+      newArticle.value.noticeId = currentEditId.value || generateUUID()
+    }
+
     const formData = new FormData()
     formData.append('file', coverImageFile.value)
 
-    const res = await service.post('/upload', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' }
+    const res = await service.post(`/upload/notice/${newArticle.value.noticeId}`, formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data', // 设置请求头为 multipart/form-data
+      },
     })
 
-    newArticle.value.coverImage = res.data.url
+    // 后端返回结构是 { errno: 0, data: { url: xxx } }
+    newArticle.value.coverImage = res.data.data.url
   } catch (error) {
     console.error('封面图上传失败:', error)
   }
 }
+
 
 // 详情页状态管理
 const editorDialog = ref(false)
@@ -88,7 +98,10 @@ const viewDetail = async (notice: Notice) => {
 const openEditor = (notice?: Notice) => {
   if (notice) {
     currentEditId.value = notice.noticeId
-    newArticle.value = { ...notice }
+    newArticle.value = {
+      ...notice,
+      content: notice.content || ''
+    }
   } else {
     currentEditId.value = null
     newArticle.value = {
@@ -151,9 +164,9 @@ const submitNotice = async () => {
       coverImage: newArticle.value.coverImage || '/default-cover.jpg'
     }
     if (currentEditId.value) {
-      await update(payload, noticeStore.listUrl,)
+      await update(payload, payload.noticeId)
     } else {
-      await add(payload, noticeStore.listUrl)
+      await add(payload)
     }
     editorDialog.value = false
     loadNotices()
@@ -187,7 +200,7 @@ const handleDelete = async () => {
 // 初始化加载
 onMounted(async () => {
   await userStore.getUserInfo();  // 确保加载用户信息
-  
+
   await loadNotices()
 });
 </script>
@@ -324,7 +337,7 @@ onMounted(async () => {
               公告正文 *
               <v-chip color="grey" size="x-small">使用下方编辑器编写详细内容</v-chip>
             </h4>
-            <ArticleEditor v-model="newArticle.content" :rules="[(v: string) => !!v || '正文内容不能为空']" />
+            <ArticleEditor v-model="newArticle.content" />
           </div>
         </v-card-text>
 

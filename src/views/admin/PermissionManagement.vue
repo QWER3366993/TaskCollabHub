@@ -11,10 +11,11 @@ import type { Task } from '@/types/task';
 import type { Employee } from '@/types/team';
 import dayjs from 'dayjs';
 import { usernameRules, passwordRules, nameRules } from '@/hooks/useValidRule';
+import { createToast } from 'mosha-vue-toastify'
 
 const teamStore = useTeamStore();
 const userStore = useUserStore();
-
+const selectedUser = ref<any>({});
 const loading = ref(false)
 // 搜索框中的关键词
 const keyWord = ref('');
@@ -28,7 +29,8 @@ const userParams = ref({
   addTeamInfo: false,
   teamId: '',
   employeeId: '',
-  status: ''
+  status: '',
+  position: ''
 });
 
 // 分页参数
@@ -89,6 +91,7 @@ const statusIcon = (status: string | undefined): string => {
 
 // 合并用户数据和团队员工数据
 const mergedData = computed(() => {
+  console.log("users",userStore.users)
   return userStore.users
     .map(user => {
       const employee = teamStore.employees.find(emp => emp.userId === user.userId);
@@ -101,6 +104,7 @@ const mergedData = computed(() => {
         ...user,
         ...employee,
         userId: user.userId!, // 非空断言
+        authorities: user.authorities, // 确保 authorities 存在
         employeeId: employee.employeeId,
         teamname: team?.name
       };
@@ -108,11 +112,12 @@ const mergedData = computed(() => {
     .filter(Boolean) as Array<{
       userId: string;
       employeeId: string;
+      authorities: string[]; 
       teamId: string;
       [key: string]: any
     }>;
 });
-
+console.log("mergedData",mergedData.value);
 // 加载用户列表
 const loadUsers = async () => {
   await userStore.getUserList({
@@ -144,6 +149,7 @@ const addUser = () => {
     addTeamInfo: false,
     teamId: '',
     employeeId: '',
+    position: '',
     status: ''
   };
   drawer.value = true;
@@ -159,11 +165,6 @@ const updateUser = (item: any) => {
 const save = async () => {
   try {
     let userData = { ...userParams.value };
-
-    if (!userData.isEditing) {
-      userData.password = ''; // 或者 userData.password = undefined;
-    }
-
     if (userData.isEditing) {
       if (userData.addTeamInfo) {
         // 如果选择同时编辑员工信息，保留 teamId 和 employeeId
@@ -175,7 +176,7 @@ const save = async () => {
       }
     } else {
       if (!userData.addTeamInfo) {
-        const { teamId, employeeId, ...rest } = userData; // 解结构移除属性
+        const { teamId, employeeId, ...rest } = userData; // 解构移除属性
         userData = rest as typeof userData; // 类型断言
       }
       await userStore.createUser(userData);
@@ -190,7 +191,7 @@ const save = async () => {
 
 // 打开角色分配对话框，传入当前用户数据，并准备分配角色
 const setRole = (item: any) => {
-  userParams.value = { ...item };
+  selectedUser.value = { ...item };
   // 初始化当前用户角色
   userRole.value = item.authorities || [];
   drawer1.value = true;
@@ -198,15 +199,12 @@ const setRole = (item: any) => {
 
 // 确认分配角色
 const confirmClick = async () => {
-  if (!userParams.value.id) return
-
+  if (!selectedUser.value.userId) return
   try {
     loading.value = true
-    const currentUserId = userParams.value.id
-
+    const currentUserId = selectedUser.value.userId
     // 先获取当前用户的已有角色
-    const userInfo = await getInfo()
-    const originalRoles = userInfo.authorities || []
+    const originalRoles = selectedUser.value.authorities || []
 
     // 计算需要添加和移除的角色
     const rolesToAdd = userRole.value.filter((id: string) => !originalRoles.includes(id))
@@ -243,8 +241,8 @@ const deleteSelectUser = async () => {
 
 // 删除单个用户。通过 removeUser 方法删除指定的用户
 const deleteUser = async (userId: string) => {
-  const params = { userId };
-  await removeUser(params);
+  await removeUser(userId);
+  await loadUsers();
 };
 
 // 加载角色列表
@@ -262,6 +260,7 @@ const loadRoles = async () => {
 
 // 映射角色(权限-中文角色名)
 const mapRoles = (authorities: string[]) => {
+  if (!Array.isArray(authorities)) return '无角色信息';
   if (!allRole.value || allRole.value.length === 0) {
     return '角色数据未加载'; // 返回默认值
   }
@@ -465,12 +464,17 @@ onMounted(async () => {
 
               <v-col cols="12" v-if="userParams.addTeamInfo">
                 <v-select v-model="userParams.teamId" label="选择团队" :items="teamStore.teams" item-title="name"
-                  item-value="id" variant="outlined" density="comfortable" />
+                  item-value="teamId" variant="outlined" density="comfortable" />
               </v-col>
 
               <v-col cols="12" v-if="userParams.addTeamInfo && userParams.isEditing">
                 <v-select v-model="userParams.employeeId" label="选择员工" :items="teamStore.employees" item-title="name"
                   item-value="employeeId" variant="outlined" density="comfortable" />
+              </v-col>
+
+              <v-col cols="12" v-if="userParams.addTeamInfo">
+                <v-text-field v-model="userParams.position" label="职位" placeholder="请输入职位" variant="outlined"
+                  density="comfortable" />
               </v-col>
 
               <v-col cols="12" v-if="userParams.addTeamInfo && userParams.isEditing">
@@ -509,7 +513,7 @@ onMounted(async () => {
 
         <v-card-text class="pa-4">
           <!-- 用户信息 -->
-          <v-text-field v-model="userParams.username" label="用户姓名" disabled variant="outlined"
+          <v-text-field v-model="selectedUser.name" label="用户姓名" disabled variant="outlined"
             prepend-inner-icon="person"></v-text-field>
 
           <!-- 全选控件 -->
@@ -551,7 +555,6 @@ onMounted(async () => {
 <style scoped>
 .search-card {
   border-left: 4px solid #4ae2d0;
-  background: linear-gradient(to right, #f8fbff, #ffffff);
 }
 
 .edit-dialog {
@@ -605,8 +608,6 @@ onMounted(async () => {
 .role-text {
   font-size: 0.875rem;
   /* 角色显示字体大小 */
-  color: #333;
-  /* 角色文本颜色 */
 }
 
 /* 优化角色标签外观 */

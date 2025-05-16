@@ -61,7 +61,6 @@ watch(filteredMessages, scrollToBottom, { deep: true })
   flex: 1;
   border: 1px solid #000000;
   border-radius: 8px;
-  background-color: #f9f9f9;
   min-height: 300px; /* 给个最低高度 */
   display: flex;
   flex-direction: column;
@@ -79,13 +78,13 @@ watch(filteredMessages, scrollToBottom, { deep: true })
   margin-bottom: 12px;
   max-width: 60%;
   padding: 10px;
-  background-color: #f1f1f1;
+  background-color: #beb9b9;
   border-radius: 8px;
 }
 
 .message-item.own {
   margin-left: auto;
-  background-color: #d0f0fd;
+  background-color: #ace6fc;
 }
 
 .sender {

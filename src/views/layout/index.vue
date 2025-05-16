@@ -86,7 +86,6 @@ onMounted(() => {
   .layout_sidebar {
     width: 160px;
     height: 100vh;
-    background: white;
     position: absolute;
     /* 添加绝对定位 */
     top: 0;
@@ -128,7 +127,6 @@ onMounted(() => {
     width: 350px;
     height: 100vh;
     /* 添加高度 */
-    /* 添加背景色以便查看 */
     position: absolute;
     /* 添加绝对定位 */
     top: 0;
@@ -143,8 +141,8 @@ onMounted(() => {
     position: absolute;
     top: 0;
     left: 510px;
-    transition: all 0.5s;
     /* 添加过渡效果 */
+    transition: all 0.5s;
 
     &.fold {
       width: calc(100% - 220px);
@@ -163,7 +161,6 @@ onMounted(() => {
     padding: 20px;
     overflow: auto;
     transition: all 0.5s;
-    background-color: white;
 
     &.fold {
       width: calc(100% - 255px);

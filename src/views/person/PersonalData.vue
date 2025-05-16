@@ -677,12 +677,10 @@ onMounted(async () => {
 
 .readonly-field {
   :deep(.v-input__control) {
-    background-color: #f5f5f5;
     border-radius: 8px;
   }
 
   :deep(input) {
-    color: rgba(0, 0, 0, 0.6);
     cursor: not-allowed;
   }
 }

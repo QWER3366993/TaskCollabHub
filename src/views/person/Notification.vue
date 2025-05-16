@@ -20,13 +20,14 @@ const unreadCount = ref<number>(0);  // 总未读消息数
 const loadSystemNotifications = async () => {
   try {
     // 假设消息接口支持筛选，只获取系统通知
-    const systemMessages = await fetchMessages('system');  // 根据假设筛选出系统通知
-    console.log('系统通知:', systemMessages);
+    const systemMessages = await fetchMessages('system');  // 筛选出系统通知
+    console.log('系统通知:', systemMessages.value);
     messages.value = systemMessages;
   } catch (error) {
     console.error('获取系统通知失败:', error);
   }
 };
+
 
 // 页面加载时获取初始数据
 onMounted(() => {
@@ -47,12 +48,8 @@ onMounted(() => {
 
     <!-- 消息列表 -->
     <div class="message-list" v-if="messages.length > 0">
-      <div
-        v-for="message in messages"
-        :key="message.messageId"
-        class="message-item"
-        :class="{ unread: !message.isRead }"
-      >
+      <div v-for="message in messages" :key="message.messageId" class="message-item"
+        :class="{ unread: !message.isRead }">
         <div class="message-header">
           <span class="sender">{{ message.sender }}</span>
           <span class="timestamp">{{ message.timestamp }}</span>
@@ -73,7 +70,6 @@ onMounted(() => {
   padding: 20px;
   max-width: 530px;
   margin: 0 auto;
-  background-color: #f8f9fa;
   border-radius: 8px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 
@@ -99,6 +95,7 @@ onMounted(() => {
     border-bottom: 1px solid #ddd;
     cursor: pointer;
     transition: background-color 0.3s;
+
     &.unread {
       background-color: #e3f2fd;
     }
@@ -122,10 +119,6 @@ onMounted(() => {
       margin-top: 6px;
       font-size: 16px;
       color: #333;
-    }
-
-    &:hover {
-      background-color: #f1f1f1;
     }
   }
 }

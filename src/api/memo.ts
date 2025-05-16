@@ -1,9 +1,9 @@
 import type { Memo } from '@/types/memo'
 import service from '@/utils/request'
 
-// 获取所有备忘录
-export const getMemos = async (): Promise<Memo[]> => {
-  const response = await service.get('/memos')
+// 获取当前员工备忘录
+export const getMemos = async (employeeId: string): Promise<Memo[]> => {
+  const response = await service.get(`/employees/${employeeId}/memos`);
   // 确保返回的是一个数组
   if (!Array.isArray(response.data)) {
     console.error('接口返回异常数据格式:', response.data);

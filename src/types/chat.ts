@@ -30,9 +30,12 @@ export interface ChatSession {
 
 // 系统消息
 export interface SystemMessage {
-  type: 'online' | 'offline' | 'join' | 'leave'; // 在线状态/加入/离开等
-  userId: string; // 用户ID
-  userName: string; // 用户名
-  timestamp: string
+  type: 'online' | 'offline' | 'task_notify' | 'join' | 'leave' | 'project_update';
+  id?: string; // 任务通知的ID
+  title?: string; // 任务通知的标题
+  userId?: string; // 用户ID
+  userName?: string; // 用户名
+  timestamp?: string
   teamId?: string; // 团队ID（可选）
+  content?: string;   // 支持 task_notify、join 时的描述
 }

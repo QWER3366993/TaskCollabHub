@@ -8,7 +8,6 @@ import type { ChatMessage, SystemMessage, ChatSession } from '@/types/chat'
 import type { Memo } from '@/types/memo';
 import type { Project } from '@/types/project';
 import { WebSocketServer, WebSocket } from 'ws';
-
 // 自定义路径参数类型
 interface MockParams {
   params: {
@@ -21,8 +20,7 @@ interface MockParams {
   };
   body?: any;
 }
-
-
+const JWT_SECRET = 'mock_secret';
 export const mockNotices: Notice[] = [
   {
     noticeId: "1",
@@ -132,8 +130,7 @@ export const mockNotices: Notice[] = [
     hit: 150
   }
 ];
-
-const mockUsers = [
+const mockUsers :User[] = [
   {
     userId: 'user001',
     username: 'admin',
@@ -142,7 +139,6 @@ const mockUsers = [
     avatar: '/海绵宝宝.jpg',
     email: 'admin@example.com',
     phone: '13800138000',
-    token: 'admin-token'
   },
   {
     userId: 'user002',
@@ -152,7 +148,6 @@ const mockUsers = [
     avatar: '/派大星.jpg',
     email: 'pdx@example.com',
     phone: '13800138001',
-    token: 'pdx-token'
   },
   {
     userId: 'user003',
@@ -162,7 +157,6 @@ const mockUsers = [
     avatar: '/章鱼哥.jpg',
     email: 'zyg@example.com',
     phone: '13800138002',
-    token: 'zyg-token',
   },
   {
     userId: 'user004',
@@ -172,7 +166,6 @@ const mockUsers = [
     avatar: '/蟹老板.jpg',
     email: 'xlb@example.com',
     phone: '13800138003',
-    token: 'xlb-token',
   },
   {
     userId: 'user005',
@@ -182,10 +175,8 @@ const mockUsers = [
     avatar: '/痞老板.jpg',
     email: 'plb@example.com',
     phone: '13800138004',
-    token: 'plb-token',
   },
 ];
-
 const mockProjects: Project[] = [
   {
     projectId: 'p001',
@@ -304,7 +295,6 @@ const mockProjects: Project[] = [
     ]
   }
 ];
-
 const mockTasks: Task[] = [
   {
     taskId: '1',
@@ -432,8 +422,7 @@ const mockTasks: Task[] = [
   },
 
 ];
-
-let mockPublicFiles: FileItem[] = [
+const mockPublicFiles: FileItem[] = [
   {
     id: '1',
     name: '封面和评分表.pdf',
@@ -497,8 +486,6 @@ let mockPublicFiles: FileItem[] = [
     scope: 'public'
   }
 ];
-
-// 模拟的团队列表
 const mockTeams: Team[] = [
   {
     teamId: '1',
@@ -519,8 +506,6 @@ const mockTeams: Team[] = [
     employees: ['e005']
   }
 ];
-
-// 团队成员列表
 const mockTeamMembers: Employee[] = [
   // 前端组成员
   {
@@ -586,7 +571,6 @@ const mockTeamMembers: Employee[] = [
     online: true,
   }
 ];
-
 const mockMemos: Memo[] = [
   {
     memoId: '1',
@@ -628,8 +612,6 @@ const mockMemos: Memo[] = [
     attachments: []
   }
 ]
-
-
 const mockSchedules: Schedule[] = [
   {
     scheduleId: '1',
@@ -653,7 +635,6 @@ const mockSchedules: Schedule[] = [
     participants: ['e002', 'e003'],
   },
 ];
-
 const mockChatSessions: ChatSession[] = [
   {
     sessionId: 't001',
@@ -672,7 +653,6 @@ const mockChatSessions: ChatSession[] = [
     unread: 1,
   }
 ];
-
 const mockMessages: ChatMessage[] = [
   {
     messageId: 'm1',
@@ -693,11 +673,6 @@ const mockMessages: ChatMessage[] = [
     isRead: false,
   }
 ];
-
-
-// JWT密钥
-const JWT_SECRET = 'mock_secret';
-
 export default [
 
   // 登录接口 Mock
@@ -715,8 +690,8 @@ export default [
           data: { message: '用户名或密码错误' }
         }
       }
-      const { token } = checkUser;
-      return token;
+      // const { token } = checkUser;
+      // return token;
     }
   },
 
@@ -735,11 +710,11 @@ export default [
       // 2. 提取实际Token
       const token = authHeader.split(' ')[1];
       // 3. 查询用户信息
-      const user = mockUsers.find(item => item.token === token);
-      if (!user) {
-        return { message: '未找到该用户' }
-      }
-      return user
+      // const user = mockUsers.find(item => item.token === token);
+      // if (!user) {
+      //   return { message: '未找到该用户' }
+      // }
+      // return user
     }
   },
 
@@ -888,7 +863,7 @@ export default [
       });
 
       // 删除公共文件
-      mockPublicFiles = mockPublicFiles.filter(f => f.id !== params.fileId);
+      // mockPublicFiles = mockPublicFiles.filter(f => f.id !== params.fileId);
       return { message: '文件删除成功' }
     }
   },

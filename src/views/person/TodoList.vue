@@ -91,12 +91,8 @@ const saveMemo = async () => {
   closeEditor()
 }
 
-const deleteMemo = async (id: string) => {
-  await memoStore.deleteMemo(id)
-}
-
 const toggleMemoStatus = async (memo: Memo) => {
-  await memoStore.updateMemo({ ...memo, completed: !memo.completed })
+  await memoStore.updateMemo(memo)
 }
 
 // 辅助方法
@@ -248,7 +244,6 @@ onMounted(async () => {
   .toolbar-card {
     .v-toolbar {
       padding: 12px 24px;
-      background: rgba(255, 255, 255, 0.9);
       align-items: center;
 
       >* {

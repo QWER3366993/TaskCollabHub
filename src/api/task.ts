@@ -86,19 +86,19 @@ export const createTask = async (taskData: TaskCreateDTO): Promise<Task> => {
 };
 
 // 更新任务
-export const updateOldTask = async (id: string, updatedTask: Partial<Task>): Promise<Task> => {
+export const updateOldTask = async (taskId: string, updatedTask: Partial<Task>): Promise<Task> => {
   const response = await service({
-    url: `/tasks/${id}`,
-    method: 'patch',
+    url: `/tasks/${taskId}`,
+    method: 'put',
     data: updatedTask,
   });
   return response.data;
 };
 
 // 删除任务
-export const deleteTask = async (id: string): Promise<void> => {
+export const deleteTask = async (taskId: string): Promise<void> => {
   await service({
-    url: `/tasks/${id}`,
+    url: `/tasks/${taskId}`,
     method: 'delete',
   });
 };
@@ -164,11 +164,18 @@ export const uploadPublicFile = async (formData: FormData): Promise<FileItem> =>
   return response.data
 }
 
-// 任务文件操作
-export const fetchTaskFiles = async (taskId: string): Promise<FileItem[]> => {
+// 获取单个任务下的文件
+export const fetchTaskFilesById = async (taskId: string): Promise<FileItem[]> => {
   const response = await service.get<FileItem[]>(`/tasks/${taskId}/files`)
   return response.data
 }
+
+// 获取任务文件列表
+export const fetchTaskFiles = async (): Promise<FileItem[]> => {
+  const response = await service.get<FileItem[]>(`/files/tasks`)
+  return response.data
+}
+
 
 // 任务调度下的文件上传
 export const uploadTaskFile = async (taskId: string, formData: FormData): Promise<FileItem> => {

@@ -427,7 +427,6 @@ onMounted(async () => {
 <style scoped>
 .quick-panel {
     padding: 20px;
-    background: #f8fafc;
     position: relative;
 }
 
@@ -448,7 +447,7 @@ onMounted(async () => {
 .stat-card {
     padding: 16px;
     text-align: center;
-    background: linear-gradient(145deg, #ffffff, #f1f5f9);
+    background: linear-gradient(145deg, #ffffff, #cce4fe);
     border-radius: 12px;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 

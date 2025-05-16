@@ -61,7 +61,7 @@ export const useNoticeStore = defineStore('notice', () => {
   // 删除公告
   const deleteNotice = async (noticeId: string) => {
     try {
-      await del(noticeId, '/notices')
+      await del(noticeId)
       loadNotices()
     } catch (error) {
       console.error('删除失败:', error)
@@ -71,7 +71,7 @@ export const useNoticeStore = defineStore('notice', () => {
   // 更新公告
   const updateNotice = async (payload: Notice) => {
     try {
-      await update(payload, '/notices')
+      await update(payload, payload.noticeId) 
       loadNotices()
     } catch (error) {
       console.error('更新失败:', error)
@@ -79,10 +79,10 @@ export const useNoticeStore = defineStore('notice', () => {
   }
 
   // 添加公告
-  const addNotice = async (payload: Notice) => {
+  const addNotice = async (payload: Omit<Notice, 'id'>) => {
     try {
-      await add(payload, '/notices')
-      loadNotices()
+      await add(payload) // 添加公告，传递 payload
+      loadNotices() // 添加后重新加载公告
     } catch (error) {
       console.error('添加失败:', error)
     }
