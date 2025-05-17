@@ -27,8 +27,13 @@ const currentSession = computed(() =>
 )
 
 const handleSelectSession = async (sessionId: string) => {
+  const session = sessions.value.find(s => s.sessionId === sessionId);
+  if (!session) return;
+
   chatStore.switchSession(sessionId);
-  await chatStore.loadMessages(sessionId);
+  if (session.type === 'PRIVATE' || session.type === 'GROUP') {
+    await chatStore.loadMessages(sessionId, session.type)
+  }
 };
 
 onMounted(async () => {
@@ -53,7 +58,7 @@ const handleCreatePrivate = async (targetUserId: string) => {
   <div class="chat-container">
     <div class="sidebar">
       <MemberList :sessions="sessions" :employees="employees" :active-session-id="activeSessionId"
-        :system-messages="systemMessages" @select="handleSelectSession" @create-private="handleCreatePrivate"/>
+        :system-messages="systemMessages" @select="handleSelectSession" @create-private="handleCreatePrivate" />
     </div>
     <div class="main-area">
       <template v-if="currentSession">

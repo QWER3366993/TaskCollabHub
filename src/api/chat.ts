@@ -20,12 +20,14 @@ export const fetchChatSessions = async () => {
   return response.data;
 };
 
-// 获取指定会话的消息内容
-export const fetchMessages = async (sessionId: string) => {
+// 获取指定会话的消息内容（支持按类型过滤）
+export const fetchMessages = async (sessionId: string, sessionType?: 'PRIVATE' | 'GROUP' | 'SYSTEM') => {
   const response = await service({
     url: `/chat/sessions/${sessionId}/messages`,
     method: 'get',
+    params: { sessionType } 
   });
+  console.log(response.data);
   return response.data;
 };
 

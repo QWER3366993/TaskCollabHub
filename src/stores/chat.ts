@@ -260,9 +260,13 @@ export const useChatStore = defineStore("chat", () => {
         }),
 
     };
-    const loadMessages = async (sessionId: string) => {
+
+    const loadMessages = async (
+        sessionId: string,
+        sessionType: 'PRIVATE' | 'GROUP' | 'SYSTEM' // sessionType 参数
+    ) => {
         try {
-            const msgs = await fetchMessages(sessionId);
+            const msgs = await fetchMessages(sessionId, sessionType); // 传递 sessionType
             messages.value = msgs;
         } catch (error) {
             console.error('加载消息失败:', error);

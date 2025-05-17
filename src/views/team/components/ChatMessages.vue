@@ -15,7 +15,14 @@ const chatWindowRef = ref<HTMLElement | null>(null)
 
 const filteredMessages = computed(() => {
   return props.messages
-    .filter(msg => msg.sessionId === props.sessionId)
+    .filter(msg => {
+      // 群聊消息需匹配 sessionId 和 sessionType
+      if (msg.sessionType === 'GROUP') {
+        return msg.sessionId === props.sessionId;
+      }
+      // 私聊消息直接匹配 sessionId
+      return msg.sessionId === props.sessionId;
+    })
     .sort((a, b) => dayjs(a.timestamp).diff(dayjs(b.timestamp)))
 })
 
