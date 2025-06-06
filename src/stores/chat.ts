@@ -281,6 +281,7 @@ export const useChatStore = defineStore("chat", () => {
         currentTeam,
         ...getters,
         onlineNotices,
+        notifications,
         initializeChat,
         loadAllPossibleSessions,
         setWsReady,

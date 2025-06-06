@@ -91,7 +91,7 @@ const statusIcon = (status: string | undefined): string => {
 
 // 合并用户数据和团队员工数据
 const mergedData = computed(() => {
-  console.log("users",userStore.users)
+  console.log("users", userStore.users)
   return userStore.users
     .map(user => {
       const employee = teamStore.employees.find(emp => emp.userId === user.userId);
@@ -112,12 +112,12 @@ const mergedData = computed(() => {
     .filter(Boolean) as Array<{
       userId: string;
       employeeId: string;
-      authorities: string[]; 
+      authorities: string[];
       teamId: string;
       [key: string]: any
     }>;
 });
-console.log("mergedData",mergedData.value);
+console.log("mergedData", mergedData.value);
 // 加载用户列表
 const loadUsers = async () => {
   await userStore.getUserList({
@@ -181,9 +181,9 @@ const save = async () => {
       }
       await userStore.createUser(userData);
     }
-
-    drawer.value = false;
-    await loadUsers();
+    drawer.value = false; // 在加载完成后关闭对话框
+    await teamStore.getEmployees();
+    await Promise.all([loadUsers(), loadRoles()]);
   } catch (error) {
     console.error('操作失败:', error);
   }

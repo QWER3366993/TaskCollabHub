@@ -289,6 +289,7 @@ const responsibleAvatar = computed(() => {
 onMounted(async () => {
   await userStore.getUserInfo();
   await teamStore.getEmployees();
+  await taskStore.loadAllTasksWithProjects();
   await loadTaskDetail();  // 加载任务数据
 });
 </script>

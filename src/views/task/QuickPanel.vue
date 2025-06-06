@@ -174,6 +174,7 @@ const visibleTasks = computed(() => {
 // 任务状态切换
 const toggleTaskStatus = async (task: Task) => {
     const originalStatus = task.status;
+    const updatedTask = JSON.parse(JSON.stringify(task));  // 深拷贝，确保任务对象所有字段都有副本
     try {
         const newStatus = task.status === '已完成' ? '进行中' : '已完成';
         const newOperation: OperationLog = {
@@ -189,15 +190,22 @@ const toggleTaskStatus = async (task: Task) => {
         };
 
         // 直接更新任务状态 & 添加日志
-        task.status = newStatus;
-        task.operations = [...(task.operations || []), newOperation];
-        await taskStore.updateTask(task.taskId, { status: newStatus, operations: task.operations });
-        task.completedTime = new Date().toISOString();  // 设置任务完成时间
+        updatedTask.status = newStatus;
+        console.log('任务状态1:', newStatus);
+
+        console.log('任务状态:', updatedTask.status);
+        updatedTask.completedTime = newStatus === '已完成' ? new Date().toISOString() : undefined;
+        console.log('任务完成时间:', updatedTask.completedTime);
+        updatedTask.operations = [...(task.operations || []), newOperation];
+
+        // 发送完整任务对象进行更新
+        await taskStore.updateTask(task.taskId, updatedTask);
     } catch (error) {
         createToast('状态更新失败', { type: 'danger', timeout: 3000 });
         task.status = originalStatus; // 回滚状态
     }
 };
+
 
 const handleLogClick = (log: OperationLog) => {
     const task = taskStore.tasks.find(t => t.taskId === log.taskId);

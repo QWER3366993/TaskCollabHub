@@ -16,10 +16,11 @@ const startHeartbeat = () => {
 }
 
 // 连接 WebSocket
-const setupSocket = (username : string, token: string) => {
+const setupSocket = (username: string, token: string) => {
+
   const chatStore = useChatStore()
   socket = new WebSocket(`ws://localhost:8080/ws/chat/${username}?token=${token}`)
-  console.log("socket",socket)
+  console.log("socket", socket)
   console.log(' 正在建立 WebSocket 连接...')
 
   socket.onopen = () => {
@@ -30,7 +31,6 @@ const setupSocket = (username : string, token: string) => {
 
   socket.onmessage = (e) => {
     const raw = e.data
-    console.log(' 收到上线通知:', raw)
     const data = JSON.parse(raw)
 
     if (data.type === 'presence') {
@@ -41,7 +41,7 @@ const setupSocket = (username : string, token: string) => {
         userName: data.userName,
         timestamp: new Date().toISOString()
       });
-    } else if (data.type === 'chat') {
+    } else if (data.type === 'chat' || data.sessionType === 'PRIVATE' || data.sessionType === 'GROUP') {
       // 处理聊天消息
       chatStore.handleMessage(data);
     } else if (data.type === 'task_notify') {

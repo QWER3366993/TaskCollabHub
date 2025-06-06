@@ -61,12 +61,12 @@ const statusData = computed<StatusDataItem[]>(() => [
 
 const topPerformer = computed(() => teamStore.contributionData.topPerformer);
 
-  // 计算首个员工提前完成任务总时长
-  const totalEarlyTime = computed<{
+// 计算首个员工提前完成任务总时长
+const totalEarlyTime = computed<{
   totalEarly: number;
   completedCount: number;
 }>(() => {
-   if (!teamStore.contributionData.sortedEmployees.length) {
+  if (!teamStore.contributionData.sortedEmployees.length) {
     return { totalEarly: 0, completedCount: 0 };
   }
   const firstEmployee = teamStore.contributionData.sortedEmployees[0];
@@ -92,7 +92,7 @@ const topPerformer = computed(() => teamStore.contributionData.topPerformer);
 // 计算首个员工的平均提前完成时间
 const averageEarlyTime = computed(() => {
   const { totalEarly, completedCount } = totalEarlyTime.value;
-  const average = completedCount > 0 ? totalEarly / completedCount /60/24 : 0;  // 计算平均提前时间（以天为单位）
+  const average = completedCount > 0 ? totalEarly / completedCount / 60 / 24 : 0;  // 计算平均提前时间（以天为单位）
   return average;
 });
 
@@ -608,47 +608,48 @@ const handleResize = () => {
           <v-col cols="8">
             <div ref="contributionChart" class="chart-container"></div>
           </v-col>
-          
+
           <!-- 右侧：KPI 卡片 -->
           <v-col cols="4">
             <v-container class="kpi-container" style="max-height: 350px; overflow-y: auto;">
-            <!-- 最佳执行者卡片 -->
-            <v-card class="kpi-card">
-              <v-card-title class="headline text-center">🏆 最佳执行者</v-card-title>
-              <v-card-text>
-                <div class="kpi-value text-h4 text-center">{{ topPerformer.name }}</div>
-                <div class="kpi-subtext text-center">完成任务数: <strong>{{ topPerformer.count }}</strong></div>
-                <div class="kpi-subtext text-center">平均提前完工时长: <strong>{{ averageEarlyTime.toFixed(1) }} 天</strong></div>
-              </v-card-text>
-            </v-card>
+              <!-- 最佳执行者卡片 -->
+              <v-card class="kpi-card">
+                <v-card-title class="headline text-center">🏆 最佳执行者</v-card-title>
+                <v-card-text>
+                  <div class="kpi-value text-h4 text-center">{{ topPerformer.name }}</div>
+                  <div class="kpi-subtext text-center">完成任务数: <strong>{{ topPerformer.count }}</strong></div>
+                  <div class="kpi-subtext text-center">平均提前完工时长: <strong>{{ averageEarlyTime.toFixed(1) }} 天</strong>
+                  </div>
+                </v-card-text>
+              </v-card>
 
-            <!-- 逾期任务卡片 -->
-            <v-card class="kpi-card mt-4">
-              <v-card-title class="headline text-center">🚨 逾期任务</v-card-title>
-              <v-card-text>
-                <div v-for="task in overdueTasks" :key="task.taskId" class="task-item">
-                  <div><strong>任务名称:</strong> {{ task.title }}</div>
-                  <div><strong>负责人:</strong> {{ teamStore.getName(task.employeeId) }}</div>
-                  <div><strong>截止日期:</strong> {{ task.deadline }}</div>
-                </div>
-              </v-card-text>
-            </v-card>
+              <!-- 逾期任务卡片 -->
+              <v-card class="kpi-card mt-4">
+                <v-card-title class="headline text-center">🚨 逾期任务</v-card-title>
+                <v-card-text>
+                  <div v-for="task in overdueTasks" :key="task.taskId" class="task-item">
+                    <div><strong>任务名称:</strong> {{ task.title }}</div>
+                    <div><strong>负责人:</strong> {{ teamStore.getName(task.employeeId) }}</div>
+                    <div><strong>截止日期:</strong> {{ task.deadline }}</div>
+                  </div>
+                </v-card-text>
+              </v-card>
 
-            <!-- 员工 KPI 卡片 -->
-            <v-card class="kpi-card mt-4">
-              <v-card-title class="headline text-center">📊 员工 KPI</v-card-title>
-              <v-card-text>
-                <!-- 展示每个员工的KPI -->
-                <div v-for="employee in employeeKPIs" :key="employee.employeeId" class="employee-kpi">
-                  <div><strong>{{ employee.name }}:</strong> {{ employee.kpi.toFixed(2) }}</div>
-                </div>
-                <!-- 展示每个团队的平均KPI -->
-                <div v-for="teamKPI in teamKPIs" :key="teamKPI.teamId" class="team-kpi">
-                  <div>团队 <strong>{{ teamKPI.teamId }}</strong> 平均KPI: {{ teamKPI.averageKPI.toFixed(2) }}</div>
-                </div>
-              </v-card-text>
-            </v-card>
-          </v-container>
+              <!-- 员工 KPI 卡片 -->
+              <v-card class="kpi-card mt-4">
+                <v-card-title class="headline text-center">📊 员工 KPI</v-card-title>
+                <v-card-text>
+                  <!-- 展示每个员工的KPI -->
+                  <div v-for="employee in employeeKPIs" :key="employee.employeeId" class="employee-kpi">
+                    <div><strong>{{ employee.name }}:</strong> {{ employee.kpi.toFixed(2) }}</div>
+                  </div>
+                  <!-- 展示每个团队的平均KPI -->
+                  <div v-for="teamKPI in teamKPIs" :key="teamKPI.teamId" class="team-kpi">
+                    <div>团队 <strong>{{ teamKPI.teamId }}</strong> 平均KPI: {{ teamKPI.averageKPI.toFixed(2) }}</div>
+                  </div>
+                </v-card-text>
+              </v-card>
+            </v-container>
 
           </v-col>
         </v-row>
@@ -725,7 +726,7 @@ const handleResize = () => {
 
 /* 样式增强 */
 .kpi-card {
-  border-left:5px solid #bdfa88;
+  border-left: 5px solid #bdfa88;
   transition: transform 0.3s, box-shadow 0.3s ease-in-out;
   border-radius: 10px;
   box-shadow: 0 2px 6px rgba(162, 0, 255, 0.2);
@@ -743,12 +744,14 @@ const handleResize = () => {
   color: #ec45ac;
   margin-bottom: 10px;
 }
+
 /* 名称 */
 .kpi-subtext {
   color: #9a6600;
   font-size: 1rem;
   margin-bottom: 5px;
 }
+
 /* 数值颜色 */
 .kpi-subtext strong {
   color: #02f81f;
@@ -757,6 +760,7 @@ const handleResize = () => {
 .kpi-card .text-center {
   text-align: center;
 }
+
 /* 逾期任务卡片 */
 .task-item {
   margin-bottom: 15px;
@@ -764,6 +768,7 @@ const handleResize = () => {
   border-radius: 8px;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
 }
+
 /* 名称颜色 */
 .task-item strong {
   color: #f96666;
@@ -774,12 +779,14 @@ const handleResize = () => {
 .team-kpi {
   margin-bottom: 5px;
 }
+
 /* 数值颜色 */
 .employee-kpi div,
 .team-kpi div {
   font-size: 1rem;
   color: #018342;
 }
+
 /* 名称颜色 */
 .employee-kpi div strong,
 .team-kpi div strong {

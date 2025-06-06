@@ -305,7 +305,6 @@ export const useTaskStore = defineStore('task', () => {
       // 查找原任务
       const originalTask = allTasks.value.find(t => t.taskId === taskId);
       console.log('传入的 taskId:', taskId);
-      console.log(originalTask);
       if (!originalTask) {
         throw new Error('任务不存在');
       }
@@ -394,11 +393,11 @@ export const useTaskStore = defineStore('task', () => {
   };
 
   /** 删除任务 */
-  const deleteTaskById = async (id: string): Promise<void> => {
+  const deleteTaskById = async (taskId: string): Promise<void> => {
     try {
       // 先记录删除日志
       addOperationLog({
-        taskId: id,
+        taskId: taskId,
         employeeId: userStore.user.userId as string, // 类型断言
         operationType: 'delete',
         operation: '删除任务',
@@ -409,11 +408,11 @@ export const useTaskStore = defineStore('task', () => {
       await nextTick();
 
       // 执行删除操作
-      await deleteTask(id);
-      tasks.value = tasks.value.filter((task) => task.taskId !== id);
+      await deleteTask(taskId);
+      tasks.value = tasks.value.filter((task) => task.taskId !== taskId);
 
       // 清理相关日志
-      operationLogs.value = operationLogs.value.filter(log => log.taskId !== id);
+      operationLogs.value = operationLogs.value.filter(log => log.taskId !== taskId);
 
       createToast('任务删除成功', {
         position: 'top-center',

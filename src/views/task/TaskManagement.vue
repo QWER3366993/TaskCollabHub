@@ -101,12 +101,26 @@ const editTask = (task: Task) => {
 }
 
 // 删除任务
-const deleteTask = async (taskId: string) => {
+const deleteDialog = ref(false);       // 删除确认弹窗控制
+const taskToDeleteId = ref<string | null>(null);  // 待删除任务ID
+
+// 打开删除确认弹窗
+const confirmDeleteTask = (taskId: string) => {
+  taskToDeleteId.value = taskId;
+  deleteDialog.value = true;
+};
+
+// 删除任务并关闭弹窗
+const deleteTask = async () => {
+  if (!taskToDeleteId.value) return;
   try {
-    await taskStore.deleteTaskById(taskId);
-    await loadTasks();
+    await taskStore.deleteTaskById(taskToDeleteId.value);
+    await filterTasksByProject() // 初始加载所有任务
   } catch (error) {
     console.error('删除任务失败:', error);
+  } finally {
+    deleteDialog.value = false;
+    taskToDeleteId.value = null;
   }
 };
 
@@ -149,8 +163,8 @@ const filteredTasks = computed(() => {
   return taskStore.allTasks.filter(task => {
     const matchesProject = !selectedProjectId.value || task.projectId === selectedProjectId.value;
     const matchesStatus = selectedStatus.value === '全部' || task.status === selectedStatus.value;
-    const matchesSearch = task.title.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-      task.description.toLowerCase().includes(searchQuery.value.toLowerCase());
+    const matchesSearch = (String(task.title || '').toLowerCase().includes(searchQuery.value.toLowerCase())) ||
+      (String(task.description || '').toLowerCase().includes(searchQuery.value.toLowerCase()));
     return matchesProject && matchesStatus && matchesSearch;
   });
 });
@@ -284,10 +298,10 @@ onMounted(async () => {
                     </v-btn>
                   </template>
                 </v-tooltip>
-                 <!-- 添加v-if="isAdmin"，普通员工不可见 -->
+                <!-- 添加v-if="isAdmin"，普通员工不可见 -->
                 <v-tooltip text="删除" v-if="isAdmin">
                   <template #activator="{ props }">
-                    <v-btn v-bind="props" icon variant="text" color="grey" @click="deleteTask(item.taskId)">
+                    <v-btn v-bind="props" icon variant="text" color="grey" @click="confirmDeleteTask(item.taskId)">
                       <v-icon>delete</v-icon>
                     </v-btn>
                   </template>
@@ -298,6 +312,19 @@ onMounted(async () => {
         </v-card>
       </v-col>
     </v-row>
+    <!-- 删除确认弹窗 -->
+    <v-dialog v-model="deleteDialog" max-width="400px">
+      <v-card>
+        <v-card-title class="headline">确认删除任务</v-card-title>
+        <v-card-text>
+          <span>确定要删除此任务吗？删除后无法恢复。</span>
+        </v-card-text>
+        <v-card-actions>
+          <v-btn color="red" @click="deleteTask">确认删除</v-btn>
+          <v-btn @click="deleteDialog = false">取消</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </v-container>
 </template>
 

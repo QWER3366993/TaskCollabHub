@@ -99,9 +99,9 @@ const tasks = ref<TaskCreateDTO[]>([
     employeeId: members.value[0]?.employeeId || '', // 自动选择第一个成员
     status: '待处理',
     priority: '低',
-    creator: '',
-    scheduledTime: dayjs().format('YYYY-MM-DD HH:mm:ss'),
-    deadline: dayjs().add(7, 'day').format('YYYY-MM-DD HH:mm:ss'), // 默认7天后
+    creator: userStore.employee?.employeeId || '', // 设置创建者ID
+    scheduledTime: dayjs().format('YYYY-MM-DDTHH:mm:ss'),
+    deadline: dayjs().add(7, 'day').format('YYYY-MM-DDTHH:mm:ss'), // 默认7天后
     reminderTime: '',
     files: []
   }
@@ -149,9 +149,9 @@ const addTask = () => {
     employeeId: members.value[0]?.employeeId || '', // 默认选择第一个成员
     status: '待处理',
     priority: '低',
-    creator: teamStore.currentEmployee?.employeeId || '', // 设置创建者ID
-    scheduledTime: dayjs().format('YYYY-MM-DD HH:mm:ss'),
-    deadline: dayjs().format('YYYY-MM-DD HH:mm:ss'),
+    creator: userStore.employee?.employeeId || '', // 设置创建者ID
+    scheduledTime: dayjs().format('YYYY-MM-DDTHH:mm:ss'),
+    deadline: dayjs().format('YYYY-MM-DDTHH:mm:ss'),
     reminderTime: '',
     files: [],
   });
